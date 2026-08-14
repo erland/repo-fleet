@@ -1,12 +1,18 @@
 package info.isaksson.erland.repofleet.repository.inventory;
 
+import info.isaksson.erland.repofleet.repository.api.AnalysisState;
+import info.isaksson.erland.repofleet.repository.api.RepositoryRefreshStatus;
 import info.isaksson.erland.repofleet.repository.api.RepositorySummary;
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.locks.ReentrantLock;
 
 @ApplicationScoped
@@ -15,31 +21,55 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
     private final GitHubRepositoryDiscoveryService discoveryService;
     private final RepositoryEnrichmentService enrichmentService;
     private final Clock clock;
+    private final ExecutorService refreshExecutor;
     private final ReentrantLock refreshLock = new ReentrantLock();
 
     private volatile List<RepositorySummary> repositories = List.of();
-    private volatile InventoryStatus status =
-            new InventoryStatus(InventoryRefreshState.NOT_STARTED, null, null, null, 0);
+    private volatile InventoryStatus status = InventoryStatus.notStarted();
 
     @Inject
     public InMemoryRepositoryInventoryService(
             GitHubRepositoryDiscoveryService discoveryService,
             RepositoryEnrichmentService enrichmentService) {
-        this(discoveryService, enrichmentService, Clock.systemUTC());
+        this(
+                discoveryService,
+                enrichmentService,
+                Clock.systemUTC(),
+                Executors.newSingleThreadExecutor(runnable -> {
+                    Thread thread = new Thread(runnable, "repo-fleet-inventory-refresh");
+                    thread.setDaemon(true);
+                    return thread;
+                }));
     }
 
     InMemoryRepositoryInventoryService(
             GitHubRepositoryDiscoveryService discoveryService,
             RepositoryEnrichmentService enrichmentService,
             Clock clock) {
+        this(discoveryService, enrichmentService, clock, null);
+    }
+
+    InMemoryRepositoryInventoryService(
+            GitHubRepositoryDiscoveryService discoveryService,
+            RepositoryEnrichmentService enrichmentService,
+            Clock clock,
+            ExecutorService refreshExecutor) {
         this.discoveryService = discoveryService;
         this.enrichmentService = enrichmentService;
         this.clock = clock;
+        this.refreshExecutor = refreshExecutor;
     }
 
     @PostConstruct
     void initialize() {
         refresh();
+    }
+
+    @PreDestroy
+    void shutdown() {
+        if (refreshExecutor != null) {
+            refreshExecutor.shutdownNow();
+        }
     }
 
     @Override
@@ -53,47 +83,143 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
     }
 
     @Override
+    public InventoryStatus startRefresh() {
+        if (status.running()) {
+            return status;
+        }
+        if (refreshExecutor == null) {
+            return refresh();
+        }
+
+        Instant startedAt = clock.instant();
+        status = runningStatus(startedAt, 0, 0, 0, 0, null);
+        refreshExecutor.submit(() -> refreshFrom(startedAt));
+        return status;
+    }
+
+    @Override
     public InventoryStatus refresh() {
+        return refreshFrom(clock.instant());
+    }
+
+    private InventoryStatus refreshFrom(Instant startedAt) {
         if (!refreshLock.tryLock()) {
             return status;
         }
 
         try {
-            Instant startedAt = clock.instant();
-            status = new InventoryStatus(
-                    InventoryRefreshState.RUNNING,
-                    startedAt,
-                    status.lastSuccessfulRefreshAt(),
-                    null,
-                    repositories.size());
+            status = runningStatus(startedAt, 0, 0, 0, 0, null);
 
+            final List<RepositorySummary> discovered;
             try {
-                List<RepositorySummary> discovered = discoveryService.discoverRepositories();
-                List<RepositorySummary> refreshed = discovered.stream()
-                        .map(this::enrichSafely)
-                        .toList();
-                repositories = List.copyOf(refreshed);
-                Instant completedAt = clock.instant();
-                status = new InventoryStatus(
-                        InventoryRefreshState.COMPLETED,
-                        startedAt,
-                        completedAt,
-                        null,
-                        refreshed.size());
+                discovered = List.copyOf(discoveryService.discoverRepositories());
             } catch (RuntimeException exception) {
                 status = new InventoryStatus(
                         InventoryRefreshState.FAILED,
                         startedAt,
                         status.lastSuccessfulRefreshAt(),
+                        clock.instant(),
                         safeMessage(exception),
-                        repositories.size());
+                        repositories.size(),
+                        0,
+                        0,
+                        0,
+                        0,
+                        null);
+                return status;
             }
 
+            int total = discovered.size();
+            int successful = 0;
+            int errors = 0;
+            int hardFailures = 0;
+            List<RepositorySummary> refreshed = new ArrayList<>(total);
+
+            status = runningStatus(startedAt, total, 0, 0, 0, null);
+
+            for (RepositorySummary repository : discovered) {
+                status = runningStatus(
+                        startedAt,
+                        total,
+                        refreshed.size(),
+                        successful,
+                        errors,
+                        repository.fullName());
+
+                RepositorySummary enriched = enrichSafely(repository);
+                refreshed.add(enriched);
+                AnalysisState repositoryState = enriched.refreshStatus() == null
+                        ? AnalysisState.FAILED
+                        : enriched.refreshStatus().state();
+                if (repositoryState == AnalysisState.COMPLETE) {
+                    successful++;
+                } else {
+                    errors++;
+                    if (repositoryState == AnalysisState.FAILED) {
+                        hardFailures++;
+                    }
+                }
+
+                status = runningStatus(
+                        startedAt,
+                        total,
+                        refreshed.size(),
+                        successful,
+                        errors,
+                        null);
+            }
+
+            repositories = List.copyOf(refreshed);
+            Instant completedAt = clock.instant();
+            InventoryRefreshState finalState =
+                    errors == 0 ? InventoryRefreshState.COMPLETED
+                            : hardFailures == total && total > 0 ? InventoryRefreshState.FAILED
+                            : InventoryRefreshState.PARTIAL;
+
+            Instant lastSuccessfulRefreshAt =
+                    finalState == InventoryRefreshState.COMPLETED
+                            ? completedAt
+                            : status.lastSuccessfulRefreshAt();
+
+            status = new InventoryStatus(
+                    finalState,
+                    startedAt,
+                    lastSuccessfulRefreshAt,
+                    completedAt,
+                    errors == 0 ? null : errors + " repository enrichment(s) completed with errors.",
+                    refreshed.size(),
+                    total,
+                    total,
+                    successful,
+                    errors,
+                    null);
             return status;
         } finally {
             refreshLock.unlock();
         }
     }
+
+    private InventoryStatus runningStatus(
+            Instant startedAt,
+            int total,
+            int processed,
+            int successful,
+            int errors,
+            String currentRepository) {
+        return new InventoryStatus(
+                InventoryRefreshState.RUNNING,
+                startedAt,
+                status.lastSuccessfulRefreshAt(),
+                null,
+                null,
+                repositories.size(),
+                total,
+                processed,
+                successful,
+                errors,
+                currentRepository);
+    }
+
 
     private RepositorySummary enrichSafely(RepositorySummary repository) {
         try {
@@ -116,8 +242,8 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
                     repository.githubActions(),
                     repository.release(),
                     repository.activity(),
-                    new info.isaksson.erland.repofleet.repository.api.RepositoryRefreshStatus(
-                            info.isaksson.erland.repofleet.repository.api.AnalysisState.FAILED,
+                    new RepositoryRefreshStatus(
+                            AnalysisState.FAILED,
                             "Repository enrichment failed: " + safeMessage(exception)));
         }
     }

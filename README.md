@@ -202,3 +202,19 @@ Repository enrichment now analyses published GitHub Releases separately from tag
 - A published prerelease counts as a release but is marked as a prerelease.
 - The latest published release is selected by `published_at` (falling back to `created_at`).
 - An API failure remains an unknown/failed analysis and is never reported as “no release”.
+
+## Refresh orchestration and progress
+
+A portfolio refresh now has observable lifecycle/progress data through `GET /api/inventory/status`.
+
+The status includes:
+
+- lifecycle state (`NOT_STARTED`, `RUNNING`, `COMPLETED`, `PARTIAL`, `FAILED`),
+- start/completion and last-success timestamps,
+- total and processed repository counts,
+- successful and error counts,
+- the repository currently being enriched while a refresh is running.
+
+`POST /api/inventory/refresh` starts an asynchronous refresh when the service is running normally, allowing the frontend to poll status concurrently. A second refresh request while one is already running does not start a duplicate run.
+
+Repository-level partial/failed enrichment is retained in the inventory. A mixed result produces a `PARTIAL` portfolio refresh instead of discarding successfully enriched repositories.

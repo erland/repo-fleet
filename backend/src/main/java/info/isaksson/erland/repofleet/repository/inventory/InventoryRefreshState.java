@@ -4,5 +4,6 @@ public enum InventoryRefreshState {
     NOT_STARTED,
     RUNNING,
     COMPLETED,
+    PARTIAL,
     FAILED
 }

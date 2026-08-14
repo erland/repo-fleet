@@ -10,4 +10,6 @@ public interface RepositoryInventoryService {
     InventoryStatus getStatus();
 
     InventoryStatus refresh();
+
+    InventoryStatus startRefresh();
 }
