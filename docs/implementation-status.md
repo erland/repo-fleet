@@ -28,8 +28,8 @@ Update this file whenever a development step is started, completed, blocked, or 
 | 10 | Add Official Release Analysis | DONE | Verified by GitHub Actions. |
 | 11 | Complete Refresh Orchestration and Progress Reporting | DONE | Verified by GitHub Actions. |
 | 12 | Add Frontend Refresh Experience | DONE | Verified by GitHub Actions. |
-| 13 | Implement Repository Filtering | IN PROGRESS | CI frontend test fix applied: the filter result count is precomputed as a single string before JSX rendering, avoiding React server-render separator comments. Awaiting GitHub CI verification. |
-| 14 | Add Sorting and Result Counts | NOT STARTED | |
+| 13 | Implement Repository Filtering | DONE | Verified by GitHub Actions. |
+| 14 | Add Sorting and Result Counts | IN PROGRESS | Client-side sorting and explicit total/filtered counts implemented across planned fields; awaiting GitHub CI verification. |
 | 15 | Add Repository Selection | NOT STARTED | |
 | 16 | Add Portfolio Summary Indicators | NOT STARTED | |
 | 17 | Add Repository Detail View | NOT STARTED | |
@@ -51,9 +51,9 @@ A lightweight CI workflow has been introduced ahead of planned Step 24 so GitHub
 
 ## Current Position
 
-Next step: **Step 13 – Implement Repository Filtering** (awaiting CI verification)
+Next step: **Step 14 – Add Sorting and Result Counts** (awaiting CI verification)
 
-Completed steps: **12 / 26**
+Completed steps: **13 / 26**
 
 ## Update Convention
 

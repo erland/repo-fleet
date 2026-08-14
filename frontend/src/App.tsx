@@ -9,7 +9,9 @@ import {
 import { InventoryRefreshPanel } from './InventoryRefreshPanel'
 import { RepositoryFiltersPanel } from './RepositoryFiltersPanel'
 import { RepositoryInventory } from './RepositoryInventory'
+import { RepositorySortControls } from './RepositorySortControls'
 import { emptyRepositoryFilters, filterRepositories } from './repositoryFilters'
+import { defaultRepositorySort, sortRepositories } from './repositorySorting'
 
 const REFRESH_POLL_INTERVAL_MS = 1000
 
@@ -21,6 +23,7 @@ export default function App() {
   const [statusError, setStatusError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [filters, setFilters] = useState(emptyRepositoryFilters)
+  const [sort, setSort] = useState(defaultRepositorySort)
   const mountedRef = useRef(true)
 
   const loadRepositories = useCallback(async (showInitialLoading = false) => {
@@ -85,6 +88,11 @@ export default function App() {
     [repositories, filters],
   )
 
+  const sortedRepositories = useMemo(
+    () => sortRepositories(filteredRepositories, sort),
+    [filteredRepositories, sort],
+  )
+
   const refreshRepositories = useCallback(async () => {
     if (refreshing || inventoryStatus?.state === 'RUNNING') return
 
@@ -131,8 +139,15 @@ export default function App() {
         filteredCount={filteredRepositories.length}
       />
 
+      <RepositorySortControls
+        sort={sort}
+        onChange={setSort}
+        totalCount={repositories.length}
+        filteredCount={filteredRepositories.length}
+      />
+
       <RepositoryInventory
-        repositories={filteredRepositories}
+        repositories={sortedRepositories}
         loading={loading}
         error={error}
         emptyMessage={repositories.length > 0 ? 'No repositories match the current filters.' : undefined}

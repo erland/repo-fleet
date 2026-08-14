@@ -20,7 +20,7 @@ export function RepositoryFiltersPanel({
   totalCount,
   filteredCount,
 }: RepositoryFiltersPanelProps) {
-  const resultCountLabel = `${filteredCount} of ${totalCount} repositories match`
+  const resultCountLabel = `${filteredCount} of ${totalCount} repositories match current filters`
 
   const update = <K extends keyof RepositoryFilters>(key: K, value: RepositoryFilters[K]) => {
     onChange({ ...filters, [key]: value })

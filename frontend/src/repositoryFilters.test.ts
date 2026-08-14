@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { RepositorySummary } from './api'
 import { emptyRepositoryFilters, filterRepositories } from './repositoryFilters'
+import { sortRepositories } from './repositorySorting'
 
 function repository(overrides: Partial<RepositorySummary> = {}): RepositorySummary {
   return {
@@ -143,4 +144,15 @@ describe('filterRepositories', () => {
     })
     expect(result.map((item) => item.name)).toEqual(['repo-fleet'])
   })
+
+  it('works together with sorting after filtering', () => {
+    const filtered = filterRepositories(repos, {
+      ...emptyRepositoryFilters,
+      visibility: 'PRIVATE',
+    })
+    const sorted = sortRepositories(filtered, { field: 'name', direction: 'DESC' })
+
+    expect(sorted.map((item) => item.name)).toEqual(['repo-fleet'])
+  })
+
 })
