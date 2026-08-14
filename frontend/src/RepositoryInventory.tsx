@@ -12,6 +12,7 @@ type RepositoryInventoryProps = {
   emptyMessage?: string
   selectedRepositoryIds?: ReadonlySet<number>
   onToggleRepository?: (repositoryId: number) => void
+  onOpenDetails?: (repositoryId: number) => void
 }
 
 function analysisUnavailable(state: string): boolean {
@@ -54,6 +55,7 @@ export function RepositoryInventory({
   emptyMessage = 'No repositories are available.',
   selectedRepositoryIds = new Set<number>(),
   onToggleRepository = () => undefined,
+  onOpenDetails = () => undefined,
 }: RepositoryInventoryProps) {
   if (loading) {
     return (
@@ -106,6 +108,7 @@ export function RepositoryInventory({
               <th scope="col">Actions</th>
               <th scope="col">Release</th>
               <th scope="col">Last activity</th>
+              <th scope="col">Details</th>
             </tr>
           </thead>
           <tbody>
@@ -140,6 +143,11 @@ export function RepositoryInventory({
                 <td>{actionsLabel(repository.githubActions)}</td>
                 <td>{releaseLabel(repository.release)}</td>
                 <td>{activityLabel(repository)}</td>
+                <td>
+                  <button className="table-action-button" type="button" onClick={() => onOpenDetails(repository.id)}>
+                    View details
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>

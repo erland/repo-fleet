@@ -290,3 +290,17 @@ The Phase 1 inventory now includes summary indicators for the current filtered r
 - forks.
 
 Unknown or failed analysis is tracked separately and is not counted as a known missing capability. This keeps portfolio maintenance signals trustworthy when GitHub API enrichment is partial.
+
+## Repository detail view
+
+Each inventory row now exposes a read-only detail view containing the repository's currently known Phase 1 metadata:
+
+- owner, visibility, archive/fork status and default branch,
+- topics and detected languages,
+- LICENSE analysis,
+- GitHub Actions analysis and workflow count,
+- official release metadata,
+- activity timestamps,
+- repository enrichment status and message.
+
+Unknown or failed analysis remains explicit instead of being interpreted as a missing capability. The detail view links to the repository on GitHub but performs no mutations.
