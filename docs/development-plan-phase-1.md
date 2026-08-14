@@ -366,6 +366,11 @@ JWT/token behavior, expiry/reacquisition and mocked GitHub failures.
 ### Definition of Done
 The backend can obtain an installation token and verify GitHub connectivity.
 
+### Implementation note
+
+The Step 4 implementation supports a GitHub App private key either from a mounted PEM file or inline environment configuration, keeps all credentials server-side, caches installation tokens until shortly before expiry, and exposes only non-secret connection status through `/api/github/connection`.
+
+
 ### Suggested prompt
 > Implement Step 4 from `development-plan-phase-1.md`: add secure GitHub App authentication to the Quarkus backend, including installation-token handling, configuration, mocked tests and documentation. Do not expose secrets to the frontend.
 
