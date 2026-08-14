@@ -347,3 +347,11 @@ The Phase 1 UI includes an accessibility and responsive-layout pass:
 - forced-colors and reduced-motion preferences receive basic support.
 
 Native HTML controls and explicit/wrapped labels remain the primary interaction model so keyboard use does not depend on custom widgets.
+
+## Phase 1 acceptance validation
+
+Phase 1 now has a deterministic acceptance-validation suite covering the complete read-only workflow from GitHub discovery and refresh through repository filtering, sorting, selection, saved views and repository details.
+
+The validation uses mocked GitHub API clients and fixed frontend fixtures, so CI results do not depend on the current contents of the real GitHub installation.
+
+See `docs/phase-1-acceptance-validation.md` for the criterion-by-criterion validation matrix and run `./scripts/verify-step-21.sh` to execute the full Phase 1 validation.
