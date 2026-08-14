@@ -28,7 +28,7 @@ Update this file whenever a development step is started, completed, blocked, or 
 | 10 | Add Official Release Analysis | DONE | Verified by GitHub Actions. |
 | 11 | Complete Refresh Orchestration and Progress Reporting | DONE | Verified by GitHub Actions. |
 | 12 | Add Frontend Refresh Experience | DONE | Verified by GitHub Actions. |
-| 13 | Implement Repository Filtering | IN PROGRESS | Client-side Phase 1 filtering implemented across all planned categories with AND semantics; awaiting GitHub CI verification. |
+| 13 | Implement Repository Filtering | IN PROGRESS | CI frontend test fix applied: the filter result count is precomputed as a single string before JSX rendering, avoiding React server-render separator comments. Awaiting GitHub CI verification. |
 | 14 | Add Sorting and Result Counts | NOT STARTED | |
 | 15 | Add Repository Selection | NOT STARTED | |
 | 16 | Add Portfolio Summary Indicators | NOT STARTED | |
