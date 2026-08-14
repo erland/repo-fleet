@@ -76,6 +76,19 @@ cd backend
 mvn test
 ```
 
+## Continuous integration
+
+A lightweight GitHub Actions workflow is available at `.github/workflows/ci.yml`.
+
+It runs on pull requests and pushes to `main` and validates the two application components independently:
+
+- **Frontend:** installs dependencies, runs Vitest and creates the production Vite build.
+- **Backend:** sets up Java 21 and runs the Maven `verify` lifecycle.
+
+The jobs run in parallel so a failure can be attributed directly to frontend or backend. Docker image publishing and release packaging are intentionally left for the later Phase 1 packaging steps.
+
+Because the project does not yet contain an npm lockfile, CI currently uses `npm install`. Once a lockfile is committed, CI should switch to `npm ci` for reproducible dependency installation and dependency caching.
+
 ## Java package convention
 
 All project-owned Java code must use packages beginning with:

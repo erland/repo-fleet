@@ -251,6 +251,28 @@ A failed lookup for one repository must not invalidate the entire inventory. Per
 
 ---
 
+# 8.1 Early CI Bootstrap Decision
+
+A lightweight subset of Step 24 is intentionally implemented immediately after Step 1 so GitHub can validate builds and tests from the beginning of development.
+
+The early workflow should:
+
+- run frontend tests and production build,
+- run backend tests/build,
+- use separate frontend and backend jobs,
+- run for pull requests and pushes to `main`,
+- use read-only repository permissions,
+- cancel obsolete runs for the same branch/PR.
+
+The following remain part of their original later steps:
+
+- Docker image validation,
+- Docker Compose smoke tests,
+- container publishing,
+- release packaging.
+
+This early CI bootstrap does not make Step 24 complete; it only moves its basic source quality gate forward.
+
 # 9. Development Steps
 
 ## Step 1 – Bootstrap the Monorepo

@@ -43,9 +43,15 @@ Update this file whenever a development step is started, completed, blocked, or 
 | 25 | Package Versioned Releases with GitHub Actions | NOT STARTED | |
 | 26 | Documentation and Phase 1 Completion Review | NOT STARTED | |
 
+## Early CI Bootstrap
+
+Status: **DONE**
+
+A lightweight CI workflow has been introduced ahead of planned Step 24 so GitHub can perform the runtime/build verification that is unavailable in the packaging environment. It runs separate frontend and backend jobs on pull requests and pushes to `main`. Docker publishing and release packaging remain deferred to Steps 22–25.
+
 ## Current Position
 
-Next step: **Complete Step 1 verification, then Step 2 – Establish Backend API Structure and Domain Models**
+Next step: **Run the new GitHub CI. If both jobs pass, mark Step 1 DONE; then continue with Step 2 – Establish Backend API Structure and Domain Models**
 
 Completed steps: **0 / 26**
 
