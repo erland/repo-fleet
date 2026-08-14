@@ -25,8 +25,8 @@ Update this file whenever a development step is started, completed, blocked, or 
 | 7 | Add Topics and Language Enrichment | DONE | Verified by GitHub Actions. |
 | 8 | Add LICENSE Analysis | DONE | Verified by GitHub Actions. |
 | 9 | Add GitHub Actions Analysis | DONE | Verified by GitHub Actions. |
-| 10 | Add Official Release Analysis | IN PROGRESS | Official GitHub Release analysis implemented, excluding drafts and preserving prerelease state; awaiting GitHub CI verification. |
-| 11 | Complete Refresh Orchestration and Progress Reporting | NOT STARTED | |
+| 10 | Add Official Release Analysis | DONE | Verified by GitHub Actions. |
+| 11 | Complete Refresh Orchestration and Progress Reporting | IN PROGRESS | Refresh orchestration/progress implemented with asynchronous API start, counts and COMPLETE/PARTIAL/FAILED outcomes; awaiting GitHub CI verification. |
 | 12 | Add Frontend Refresh Experience | NOT STARTED | |
 | 13 | Implement Repository Filtering | NOT STARTED | |
 | 14 | Add Sorting and Result Counts | NOT STARTED | |
@@ -51,9 +51,9 @@ A lightweight CI workflow has been introduced ahead of planned Step 24 so GitHub
 
 ## Current Position
 
-Next step: **Step 10 – Add Official Release Analysis** (awaiting CI verification)
+Next step: **Step 11 – Complete Refresh Orchestration and Progress Reporting** (awaiting CI verification)
 
-Completed steps: **9 / 26**
+Completed steps: **10 / 26**
 
 ## Update Convention
 

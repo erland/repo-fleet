@@ -29,6 +29,6 @@ public class InventoryResource {
     @POST
     @Path("/refresh")
     public InventoryStatus refresh() {
-        return inventoryService.refresh();
+        return inventoryService.startRefresh();
     }
 }
