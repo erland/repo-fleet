@@ -36,8 +36,8 @@ Update this file whenever a development step is started, completed, blocked, or 
 | 18 | Add Saved Views Using Browser Storage | DONE | Verified by GitHub Actions. |
 | 19 | Harden GitHub API and Rate-Limit Handling | DONE | Verified by GitHub Actions. |
 | 20 | Accessibility and Responsive UI Pass | DONE | Verified by GitHub Actions. |
-| 21 | End-to-End Phase 1 Validation | IN PROGRESS | Deterministic Phase 1 acceptance validation implemented for all 13 criteria across mocked GitHub backend refresh and frontend workflows; awaiting GitHub CI verification. |
-| 22 | Dockerize Frontend and Backend | NOT STARTED | |
+| 21 | End-to-End Phase 1 Validation | DONE | Verified by GitHub Actions. |
+| 22 | Dockerize Frontend and Backend | IN PROGRESS | Second CI fix applied: Docker smoke validation is invoked with `bash` instead of relying on the executable file mode of scripts/verify-step-22.sh. Previous non-root Nginx runtime fix retained; awaiting GitHub CI verification. |
 | 23 | Add Docker Compose Runtime | NOT STARTED | |
 | 24 | CI Quality Gate | NOT STARTED | |
 | 25 | Package Versioned Releases with GitHub Actions | NOT STARTED | |
@@ -51,9 +51,9 @@ A lightweight CI workflow has been introduced ahead of planned Step 24 so GitHub
 
 ## Current Position
 
-Next step: **Step 21 – End-to-End Phase 1 Validation** (awaiting CI verification)
+Next step: **Step 22 – Dockerize Frontend and Backend** (awaiting CI verification)
 
-Completed steps: **20 / 26**
+Completed steps: **21 / 26**
 
 ## Update Convention
 
