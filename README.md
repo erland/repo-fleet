@@ -33,6 +33,8 @@ The backend listens on `http://localhost:8080` and currently exposes:
 
 ```text
 GET /api/status
+GET /api/repositories
+GET /api/github/connection
 ```
 
 Example response:
@@ -57,6 +59,30 @@ npm run dev
 Open `http://localhost:5173`.
 
 The Vite development server proxies `/api/*` requests to the Quarkus backend at `http://localhost:8080`, so the application shell verifies frontend-to-backend connectivity automatically.
+
+## GitHub App configuration
+
+Step 4 adds the server-side GitHub App authentication foundation. Repository discovery still uses deterministic sample data until Step 5.
+
+Configure the backend with environment variables (see `.env.example`):
+
+```text
+REPOFLEET_GITHUB_APP_ID
+REPOFLEET_GITHUB_INSTALLATION_ID
+REPOFLEET_GITHUB_PRIVATE_KEY_PATH
+```
+
+The private key may alternatively be supplied as `REPOFLEET_GITHUB_PRIVATE_KEY` containing PEM text. A mounted PEM file is recommended for container deployments because the secret is then not embedded in the image or application configuration.
+
+The diagnostic endpoint:
+
+```text
+GET /api/github/connection
+```
+
+returns `CONNECTED`, `NOT_CONFIGURED`, or `ERROR`. It verifies GitHub App authentication and installation-token acquisition but never returns the JWT, installation token, or private key. Installation tokens are cached server-side and refreshed before their GitHub expiry.
+
+Phase 1 remains read-only; do not grant repository write permissions to the GitHub App.
 
 ## Tests
 
@@ -111,10 +137,10 @@ info.isaksson.erland.repofleet
 
 ## Phase 1 progress
 
-The initial repository inventory UI is implemented against `GET /api/repositories`. It includes populated, loading, empty and error states. Until GitHub integration is introduced in later steps, the backend still provides deterministic sample inventory data.
+Steps 1–3 are complete. Step 4 adds the GitHub App authentication foundation while `GET /api/repositories` intentionally continues to use deterministic sample data until Step 5.
 
-To verify Step 3 locally:
+To verify Step 4 locally:
 
 ```bash
-./scripts/verify-step-3.sh
+./scripts/verify-step-4.sh
 ```
