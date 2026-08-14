@@ -29,8 +29,8 @@ Update this file whenever a development step is started, completed, blocked, or 
 | 11 | Complete Refresh Orchestration and Progress Reporting | DONE | Verified by GitHub Actions. |
 | 12 | Add Frontend Refresh Experience | DONE | Verified by GitHub Actions. |
 | 13 | Implement Repository Filtering | DONE | Verified by GitHub Actions. |
-| 14 | Add Sorting and Result Counts | IN PROGRESS | Client-side sorting and explicit total/filtered counts implemented across planned fields; awaiting GitHub CI verification. |
-| 15 | Add Repository Selection | NOT STARTED | |
+| 14 | Add Sorting and Result Counts | DONE | Verified by GitHub Actions. |
+| 15 | Add Repository Selection | IN PROGRESS | Stable multi-repository selection implemented with select/deselect visible, persistent hidden selections and selected counts; awaiting GitHub CI verification. |
 | 16 | Add Portfolio Summary Indicators | NOT STARTED | |
 | 17 | Add Repository Detail View | NOT STARTED | |
 | 18 | Add Saved Views Using Browser Storage | NOT STARTED | |
@@ -51,9 +51,9 @@ A lightweight CI workflow has been introduced ahead of planned Step 24 so GitHub
 
 ## Current Position
 
-Next step: **Step 14 – Add Sorting and Result Counts** (awaiting CI verification)
+Next step: **Step 15 – Add Repository Selection** (awaiting CI verification)
 
-Completed steps: **13 / 26**
+Completed steps: **14 / 26**
 
 ## Update Convention
 

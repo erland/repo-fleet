@@ -7,4 +7,4 @@ cd "$ROOT/frontend"
 npm test
 npm run build
 
-echo "Step 14 frontend verification passed."
+echo "Step 15 frontend verification passed."

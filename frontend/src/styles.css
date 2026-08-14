@@ -19,6 +19,7 @@ a { color: inherit; }
 .refresh-panel,
 .filter-panel,
 .sort-panel,
+.selection-bar,
 .inventory-section,
 .inventory-state {
   width: min(1440px, 100%);
@@ -42,6 +43,13 @@ a { color: inherit; }
 .sort-controls label { display: grid; gap: .35rem; min-width: 11rem; font-size: .84rem; font-weight: 650; }
 .sort-controls select { min-height: 2.5rem; border: 1px solid #cfd5dc; border-radius: .55rem; background: #fff; padding: .5rem .65rem; font: inherit; color: inherit; }
 .sort-count { margin: .8rem 0 0; color: #596273; font-weight: 650; }
+.selection-bar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; padding: .85rem 1.5rem; border: 1px solid #dfe4ea; border-radius: 1rem; background: #fff; box-shadow: 0 1rem 3rem rgb(23 32 51 / 7%); }
+.selection-bar > div:first-child { display: flex; align-items: baseline; gap: .7rem; }
+.selection-visible-count { color: #596273; font-size: .9rem; }
+.selection-actions { display: flex; gap: .6rem; }
+.selection-column { width: 4.5rem; text-align: center !important; }
+.selection-column input { width: 1rem; height: 1rem; cursor: pointer; }
+.repository-row-selected td { background: #f5f8fc; }
 
 .refresh-panel { margin-bottom: 1rem; padding: 1.25rem 1.5rem; border: 1px solid #dfe4ea; border-radius: 1rem; background: #fff; box-shadow: 0 1rem 3rem rgb(23 32 51 / 7%); }
 .refresh-summary { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
@@ -113,7 +121,9 @@ h2 { margin: 0; font-size: 1.5rem; }
   .app-shell { padding: 1rem; }
   .refresh-summary, .filter-heading-row { align-items: stretch; flex-direction: column; }
   .sort-controls { align-items: stretch; flex-direction: column; }
-  .sort-controls label, .sort-controls .secondary-button { width: 100%; }
+  .selection-bar { align-items: stretch; flex-direction: column; }
+  .selection-bar > div:first-child, .selection-actions { align-items: stretch; flex-direction: column; }
+  .sort-controls label, .sort-controls .secondary-button, .selection-actions .secondary-button { width: 100%; }
   .filter-grid { grid-template-columns: 1fr; }
   .refresh-button { width: 100%; }
   .section-heading { align-items: start; flex-direction: column; }

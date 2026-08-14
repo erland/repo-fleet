@@ -264,3 +264,15 @@ Filtered inventory results can now be sorted client-side by:
 Sorting is deterministic and does not mutate the underlying repository inventory. Maintenance-state sorting orders known present values before known missing values, with unknown/failed analysis after both. Direction can be reversed.
 
 The UI shows both the total repository count and the filtered result count so large portfolios remain easy to inspect.
+
+## Repository selection
+
+The inventory now supports explicit multi-repository selection using stable GitHub repository IDs.
+
+- Individual repositories can be selected or deselected.
+- All currently visible filtered repositories can be selected in one action.
+- Visible repositories can be deselected without losing selections hidden by filters.
+- The complete selection can be cleared explicitly.
+- Total selected count remains visible even when filters hide selected repositories.
+
+This interaction model intentionally prepares RepoFleet for later guided and pull-request-based maintenance phases without performing any repository mutations in Phase 1.

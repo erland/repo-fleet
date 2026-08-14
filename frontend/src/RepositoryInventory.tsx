@@ -10,6 +10,8 @@ type RepositoryInventoryProps = {
   loading: boolean
   error: string | null
   emptyMessage?: string
+  selectedRepositoryIds?: ReadonlySet<number>
+  onToggleRepository?: (repositoryId: number) => void
 }
 
 function analysisUnavailable(state: string): boolean {
@@ -45,7 +47,14 @@ function activityLabel(repository: RepositorySummary): string {
   return date.toLocaleDateString('en-CA')
 }
 
-export function RepositoryInventory({ repositories, loading, error, emptyMessage = 'No repositories are available.' }: RepositoryInventoryProps) {
+export function RepositoryInventory({
+  repositories,
+  loading,
+  error,
+  emptyMessage = 'No repositories are available.',
+  selectedRepositoryIds = new Set<number>(),
+  onToggleRepository = () => undefined,
+}: RepositoryInventoryProps) {
   if (loading) {
     return (
       <section className="inventory-state" aria-live="polite" aria-busy="true">
@@ -87,6 +96,7 @@ export function RepositoryInventory({ repositories, loading, error, emptyMessage
         <table className="repository-table">
           <thead>
             <tr>
+              <th scope="col" className="selection-column">Select</th>
               <th scope="col">Repository</th>
               <th scope="col">Owner</th>
               <th scope="col">Visibility</th>
@@ -100,7 +110,15 @@ export function RepositoryInventory({ repositories, loading, error, emptyMessage
           </thead>
           <tbody>
             {repositories.map((repository) => (
-              <tr key={repository.id}>
+              <tr key={repository.id} className={selectedRepositoryIds.has(repository.id) ? 'repository-row-selected' : undefined}>
+                <td className="selection-column">
+                  <input
+                    type="checkbox"
+                    aria-label={`Select ${repository.fullName}`}
+                    checked={selectedRepositoryIds.has(repository.id)}
+                    onChange={() => onToggleRepository(repository.id)}
+                  />
+                </td>
                 <td>
                   <a href={repository.url} target="_blank" rel="noreferrer" className="repository-link">
                     {repository.name}
