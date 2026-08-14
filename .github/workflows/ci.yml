@@ -63,3 +63,22 @@ jobs:
 
       - name: Run tests and build backend
         run: mvn --batch-mode --no-transfer-progress verify
+
+  docker:
+    name: Docker images
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs:
+      - frontend
+      - backend
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Validate Dockerfiles
+        run: python3 scripts/validate-dockerfiles-step-22.py
+
+      - name: Build and smoke-test containers
+        run: ./scripts/verify-step-22.sh
+

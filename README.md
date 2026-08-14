@@ -355,3 +355,16 @@ Phase 1 now has a deterministic acceptance-validation suite covering the complet
 The validation uses mocked GitHub API clients and fixed frontend fixtures, so CI results do not depend on the current contents of the real GitHub installation.
 
 See `docs/phase-1-acceptance-validation.md` for the criterion-by-criterion validation matrix and run `./scripts/verify-step-21.sh` to execute the full Phase 1 validation.
+
+## Docker images
+
+The frontend and backend can now be built as independent production images:
+
+```bash
+docker build -t repofleet-backend ./backend
+docker build -t repofleet-frontend ./frontend
+```
+
+The frontend runtime uses `BACKEND_URL` to proxy `/api` requests to the backend, while GitHub App configuration remains backend-only runtime configuration. Both images include container health checks and run without local Node, Maven or Java build tooling.
+
+See `docs/docker-images.md` and use `./scripts/verify-step-22.sh` for the isolated two-container smoke validation. Docker Compose is intentionally deferred to Step 23.
