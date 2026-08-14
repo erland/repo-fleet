@@ -26,6 +26,9 @@ jobs:
       - name: Validate repository policy
         run: python3 scripts/validate-quality-gate.py
 
+      - name: Validate Phase 1 completion documentation
+        run: python3 scripts/validate-phase1-completion.py
+
       - name: Validate Dockerfiles
         run: python3 scripts/validate-dockerfiles-step-22.py
 
