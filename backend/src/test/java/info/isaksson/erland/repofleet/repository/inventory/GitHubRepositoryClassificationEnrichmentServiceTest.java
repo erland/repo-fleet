@@ -8,6 +8,9 @@ import static org.mockito.Mockito.when;
 
 import info.isaksson.erland.repofleet.github.auth.GitHubInstallationToken;
 import info.isaksson.erland.repofleet.github.auth.GitHubInstallationTokenService;
+import info.isaksson.erland.repofleet.github.client.GitHubContentItemResponse;
+import info.isaksson.erland.repofleet.github.client.GitHubLicenseInfoResponse;
+import info.isaksson.erland.repofleet.github.client.GitHubLicenseResponse;
 import info.isaksson.erland.repofleet.github.client.GitHubRepositoryMetadataClient;
 import info.isaksson.erland.repofleet.github.client.GitHubTopicsResponse;
 import info.isaksson.erland.repofleet.repository.api.ActivityStatus;
@@ -19,6 +22,8 @@ import info.isaksson.erland.repofleet.repository.api.ReleaseStatus;
 import info.isaksson.erland.repofleet.repository.api.RepositoryRefreshStatus;
 import info.isaksson.erland.repofleet.repository.api.RepositorySummary;
 import info.isaksson.erland.repofleet.repository.api.RepositoryVisibility;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Response;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -38,6 +43,13 @@ class GitHubRepositoryClassificationEnrichmentServiceTest {
         client = mock(GitHubRepositoryMetadataClient.class);
         when(tokenService.getToken())
                 .thenReturn(new GitHubInstallationToken("token", Instant.parse("2026-08-14T10:00:00Z")));
+        when(client.getTopics(anyString(), anyString(), anyString(), anyString(), anyString()))
+                .thenReturn(new GitHubTopicsResponse(List.of()));
+        when(client.getLanguages(anyString(), anyString(), anyString(), anyString(), anyString()))
+                .thenReturn(Map.of());
+        when(client.getRootContents(anyString(), anyString(), anyString(), anyString(), anyString()))
+                .thenReturn(List.of());
+
         service = new GitHubRepositoryClassificationEnrichmentService(tokenService, client);
     }
 
@@ -102,6 +114,62 @@ class GitHubRepositoryClassificationEnrichmentServiceTest {
         assertEquals(AnalysisState.FAILED, enriched.refreshStatus().state());
         assertEquals(List.of(), enriched.topics());
         assertEquals(List.of(), enriched.languages());
+    }
+
+
+    @Test
+    void marksLicenseMissingWhenNoLicenseFileExists() {
+        RepositorySummary enriched = service.enrich(repository());
+
+        assertEquals(LicensePresence.MISSING, enriched.license().presence());
+        assertEquals(Boolean.FALSE, enriched.license().recognized());
+        assertEquals(AnalysisState.COMPLETE, enriched.license().analysisState());
+    }
+
+    @Test
+    void identifiesRecognizedLicense() {
+        when(client.getRootContents(anyString(), anyString(), anyString(), anyString(), anyString()))
+                .thenReturn(List.of(new GitHubContentItemResponse("LICENSE", "LICENSE", "file")));
+        when(client.getLicense(anyString(), anyString(), anyString(), anyString(), anyString()))
+                .thenReturn(new GitHubLicenseResponse(
+                        "LICENSE",
+                        "LICENSE",
+                        new GitHubLicenseInfoResponse("mit", "MIT License", "MIT")));
+
+        RepositorySummary enriched = service.enrich(repository());
+
+        assertEquals(LicensePresence.PRESENT, enriched.license().presence());
+        assertEquals(Boolean.TRUE, enriched.license().recognized());
+        assertEquals("mit", enriched.license().key());
+        assertEquals("MIT License", enriched.license().name());
+        assertEquals(AnalysisState.COMPLETE, enriched.license().analysisState());
+    }
+
+    @Test
+    void identifiesCustomLicenseWhenFileExistsButGitHubDoesNotRecognizeIt() {
+        when(client.getRootContents(anyString(), anyString(), anyString(), anyString(), anyString()))
+                .thenReturn(List.of(new GitHubContentItemResponse("LICENSE.md", "LICENSE.md", "file")));
+        when(client.getLicense(anyString(), anyString(), anyString(), anyString(), anyString()))
+                .thenThrow(new WebApplicationException(Response.status(404).build()));
+
+        RepositorySummary enriched = service.enrich(repository());
+
+        assertEquals(LicensePresence.PRESENT, enriched.license().presence());
+        assertEquals(Boolean.FALSE, enriched.license().recognized());
+        assertEquals("Custom or unrecognized license", enriched.license().name());
+        assertEquals(AnalysisState.COMPLETE, enriched.license().analysisState());
+    }
+
+    @Test
+    void keepsLicenseUnknownWhenLicenseAnalysisFails() {
+        when(client.getRootContents(anyString(), anyString(), anyString(), anyString(), anyString()))
+                .thenThrow(new IllegalStateException("contents unavailable"));
+
+        RepositorySummary enriched = service.enrich(repository());
+
+        assertEquals(LicensePresence.UNKNOWN, enriched.license().presence());
+        assertEquals(AnalysisState.NOT_ANALYZED, enriched.license().analysisState());
+        assertEquals(AnalysisState.PARTIAL, enriched.refreshStatus().state());
     }
 
     private RepositorySummary repository() {

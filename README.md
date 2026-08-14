@@ -172,3 +172,14 @@ Each inventory refresh now enriches discovered repositories with:
 - primary language based on GitHub's language byte counts.
 
 Classification failures are isolated per repository. A failed topics/languages lookup for one repository does not make the complete portfolio refresh fail, and an API failure is represented separately from an empty topics/languages result.
+
+## LICENSE analysis
+
+Repository enrichment now distinguishes:
+
+- no license-like file in the repository root,
+- a license recognized by GitHub,
+- a license file that exists but is custom/unrecognized,
+- a LICENSE analysis failure.
+
+An API failure is never reported as a missing LICENSE.

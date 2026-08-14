@@ -22,8 +22,8 @@ Update this file whenever a development step is started, completed, blocked, or 
 | 4 | Add GitHub App Authentication Foundation | DONE | Verified by GitHub Actions. |
 | 5 | Replace Sample Inventory with Real Repository Discovery | DONE | Verified by GitHub Actions. |
 | 6 | Introduce the In-Memory Repository Inventory | DONE | Verified by GitHub Actions. |
-| 7 | Add Topics and Language Enrichment | IN PROGRESS | Topics/languages enrichment implemented with per-repository failure handling; awaiting GitHub CI verification. |
-| 8 | Add LICENSE Analysis | NOT STARTED | |
+| 7 | Add Topics and Language Enrichment | DONE | Verified by GitHub Actions. |
+| 8 | Add LICENSE Analysis | IN PROGRESS | LICENSE analysis implemented for missing, recognized, custom/unrecognized and failed states; awaiting GitHub CI verification. |
 | 9 | Add GitHub Actions Analysis | NOT STARTED | |
 | 10 | Add Official Release Analysis | NOT STARTED | |
 | 11 | Complete Refresh Orchestration and Progress Reporting | NOT STARTED | |
@@ -51,9 +51,9 @@ A lightweight CI workflow has been introduced ahead of planned Step 24 so GitHub
 
 ## Current Position
 
-Next step: **Step 7 – Add Topics and Language Enrichment** (awaiting CI verification)
+Next step: **Step 8 – Add LICENSE Analysis** (awaiting CI verification)
 
-Completed steps: **6 / 26**
+Completed steps: **7 / 26**
 
 ## Update Convention
 
