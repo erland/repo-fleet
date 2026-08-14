@@ -76,6 +76,25 @@ class InMemoryRepositoryInventoryServiceTest {
         assertEquals(Instant.parse("2026-08-14T06:00:00Z"), service.getStatus().lastSuccessfulRefreshAt());
     }
 
+
+    @Test
+    void successfulRefreshRemovesRepositoriesNoLongerInInstallation() {
+        AtomicInteger calls = new AtomicInteger();
+        GitHubRepositoryDiscoveryService discovery = () -> calls.getAndIncrement() == 0
+                ? List.of(repository(1L, "one"), repository(2L, "two"))
+                : List.of(repository(1L, "one"));
+
+        var service = new InMemoryRepositoryInventoryService(discovery, this::complete, CLOCK);
+        service.refresh();
+        assertEquals(2, service.listRepositories().size());
+
+        service.refresh();
+
+        assertEquals(1, service.listRepositories().size());
+        assertEquals(1L, service.listRepositories().getFirst().id());
+        assertEquals(InventoryRefreshState.COMPLETED, service.getStatus().state());
+    }
+
     @Test
     void individualEnrichmentFailureDoesNotFailWholeRefresh() {
         GitHubRepositoryDiscoveryService discovery = () -> List.of(repository(1L, "one"), repository(2L, "two"));

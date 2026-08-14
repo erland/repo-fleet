@@ -8,6 +8,7 @@ import info.isaksson.erland.repofleet.github.client.GitHubRepositoryResponse;
 import info.isaksson.erland.repofleet.github.client.InstallationRepositoriesResponse;
 import info.isaksson.erland.repofleet.repository.api.AnalysisState;
 import info.isaksson.erland.repofleet.repository.api.RepositoryVisibility;
+import info.isaksson.erland.repofleet.repository.api.RepositorySummary;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -65,6 +66,29 @@ class GitHubRepositoryInventoryServiceTest {
         var result = service.discoverRepositories();
 
         assertEquals(101, result.size());
+    }
+
+
+    @Test
+    void deDuplicatesRepositoriesWhenGitHubPagesOverlap() {
+        when(tokenService.getToken()).thenReturn(new GitHubInstallationToken("token", Instant.now().plusSeconds(3600)));
+        List<GitHubRepositoryResponse> firstPage = new ArrayList<>();
+        for (int i = 0; i < 100; i++) {
+            firstPage.add(repository(i + 1, "repo-%03d".formatted(i + 1), "public"));
+        }
+        when(client.listInstallationRepositories(anyString(), anyString(), anyString(), anyInt(), org.mockito.ArgumentMatchers.eq(1)))
+            .thenReturn(new InstallationRepositoriesResponse(101, firstPage));
+        when(client.listInstallationRepositories(anyString(), anyString(), anyString(), anyInt(), org.mockito.ArgumentMatchers.eq(2)))
+            .thenReturn(new InstallationRepositoriesResponse(
+                101,
+                List.of(
+                    repository(100, "repo-100", "public"),
+                    repository(101, "repo-101", "public"))));
+
+        var result = new GitHubRepositoryInventoryService(tokenService, client).discoverRepositories();
+
+        assertEquals(101, result.size());
+        assertEquals(101, result.stream().map(RepositorySummary::id).distinct().count());
     }
 
     @Test

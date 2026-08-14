@@ -5,8 +5,11 @@ import info.isaksson.erland.repofleet.github.client.GitHubAppClient;
 import info.isaksson.erland.repofleet.github.client.GitHubAppResponse;
 import info.isaksson.erland.repofleet.github.client.InstallationRepositoriesResponse;
 import info.isaksson.erland.repofleet.github.client.InstallationTokenResponse;
+import info.isaksson.erland.repofleet.github.config.GitHubAppConfig;
 import org.junit.jupiter.api.Test;
 
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Response;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -15,6 +18,11 @@ import static info.isaksson.erland.repofleet.github.auth.GitHubAppJwtServiceTest
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class GitHubInstallationTokenServiceTest {
 
@@ -97,4 +105,37 @@ class GitHubInstallationTokenServiceTest {
         public Clock withZone(ZoneId zone) { return this; }
         public Instant instant() { return instant; }
     }
+    @Test
+    void retriesTransientInstallationTokenFailures() {
+        GitHubAppConfig config = mock(GitHubAppConfig.class);
+        GitHubAppJwtService jwtService = mock(GitHubAppJwtService.class);
+        GitHubAppClient client = mock(GitHubAppClient.class);
+        when(config.installationId()).thenReturn(java.util.Optional.of(123L));
+        when(config.tokenRefreshMarginSeconds()).thenReturn(300L);
+        when(jwtService.createJwt()).thenReturn("jwt");
+        when(client.createInstallationToken(
+                org.mockito.ArgumentMatchers.eq(123L),
+                anyString(),
+                anyString(),
+                anyString()))
+                .thenThrow(new WebApplicationException(Response.status(503).build()))
+                .thenReturn(new InstallationTokenResponse(
+                        "token",
+                        Instant.parse("2026-08-14T12:00:00Z")));
+
+        GitHubInstallationTokenService service = new GitHubInstallationTokenService(
+                config,
+                jwtService,
+                client,
+                Clock.fixed(Instant.parse("2026-08-14T10:00:00Z"), java.time.ZoneOffset.UTC));
+
+        assertEquals("token", service.getToken().value());
+        verify(client, times(2)).createInstallationToken(
+                org.mockito.ArgumentMatchers.eq(123L),
+                anyString(),
+                anyString(),
+                anyString());
+    }
+
+
 }

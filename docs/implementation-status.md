@@ -33,8 +33,8 @@ Update this file whenever a development step is started, completed, blocked, or 
 | 15 | Add Repository Selection | DONE | Verified by GitHub Actions. |
 | 16 | Add Portfolio Summary Indicators | DONE | Verified by GitHub Actions. |
 | 17 | Add Repository Detail View | DONE | Verified by GitHub Actions. |
-| 18 | Add Saved Views Using Browser Storage | IN PROGRESS | Named saved views implemented in browser localStorage for filter and sorting snapshots, with load/delete and graceful storage failure handling; awaiting GitHub CI verification. |
-| 19 | Harden GitHub API and Rate-Limit Handling | NOT STARTED | |
+| 18 | Add Saved Views Using Browser Storage | DONE | Verified by GitHub Actions. |
+| 19 | Harden GitHub API and Rate-Limit Handling | IN PROGRESS | GitHub API hardening implemented: bounded transient/rate-limit retries, 401 token invalidation/refresh, safe failure classification, discovery de-duplication, release pagination, unavailable-repository short-circuiting and removal-on-refresh tests; awaiting GitHub CI verification. |
 | 20 | Accessibility and Responsive UI Pass | NOT STARTED | |
 | 21 | End-to-End Phase 1 Validation | NOT STARTED | |
 | 22 | Dockerize Frontend and Backend | NOT STARTED | |
@@ -51,9 +51,9 @@ A lightweight CI workflow has been introduced ahead of planned Step 24 so GitHub
 
 ## Current Position
 
-Next step: **Step 18 – Add Saved Views Using Browser Storage** (awaiting CI verification)
+Next step: **Step 19 – Harden GitHub API and Rate-Limit Handling** (awaiting CI verification)
 
-Completed steps: **17 / 26**
+Completed steps: **18 / 26**
 
 ## Update Convention
 

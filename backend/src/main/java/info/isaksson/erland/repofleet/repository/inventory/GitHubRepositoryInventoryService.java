@@ -1,5 +1,6 @@
 package info.isaksson.erland.repofleet.repository.inventory;
 
+import info.isaksson.erland.repofleet.github.api.GitHubApiCallExecutor;
 import info.isaksson.erland.repofleet.github.auth.GitHubInstallationTokenService;
 import info.isaksson.erland.repofleet.github.client.GitHubAppClient;
 import info.isaksson.erland.repofleet.github.client.GitHubRepositoryResponse;
@@ -18,6 +19,8 @@ import jakarta.inject.Inject;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -29,31 +32,42 @@ public class GitHubRepositoryInventoryService implements GitHubRepositoryDiscove
 
     private final GitHubInstallationTokenService tokenService;
     private final GitHubAppClient client;
+    private final GitHubApiCallExecutor apiCalls;
 
     @Inject
     public GitHubRepositoryInventoryService(
         GitHubInstallationTokenService tokenService,
-        @RestClient GitHubAppClient client
+        @RestClient GitHubAppClient client,
+        GitHubApiCallExecutor apiCalls
     ) {
         this.tokenService = tokenService;
         this.client = client;
+        this.apiCalls = apiCalls;
+    }
+
+    GitHubRepositoryInventoryService(
+        GitHubInstallationTokenService tokenService,
+        GitHubAppClient client
+    ) {
+        this(tokenService, client, new GitHubApiCallExecutor(tokenService));
     }
 
     @Override
     public List<RepositorySummary> discoverRepositories() {
-        String token = tokenService.getToken().value();
-        List<RepositorySummary> repositories = new ArrayList<>();
+        Map<Long, RepositorySummary> repositories = new LinkedHashMap<>();
         int page = 1;
         int totalCount = Integer.MAX_VALUE;
 
         while (repositories.size() < totalCount) {
-            InstallationRepositoriesResponse response = client.listInstallationRepositories(
-                "Bearer " + token,
-                GitHubInstallationTokenService.ACCEPT,
-                GitHubInstallationTokenService.API_VERSION,
-                PAGE_SIZE,
-                page
-            );
+            int requestedPage = page;
+            InstallationRepositoriesResponse response = apiCalls.execute(
+                    "repository discovery page " + requestedPage,
+                    authorization -> client.listInstallationRepositories(
+                            authorization,
+                            GitHubInstallationTokenService.ACCEPT,
+                            GitHubInstallationTokenService.API_VERSION,
+                            PAGE_SIZE,
+                            requestedPage));
             if (response == null) {
                 throw new IllegalStateException("GitHub returned an empty repository discovery response.");
             }
@@ -62,14 +76,16 @@ public class GitHubRepositoryInventoryService implements GitHubRepositoryDiscove
             if (currentPage.isEmpty()) {
                 break;
             }
-            currentPage.stream().map(this::mapRepository).forEach(repositories::add);
+            currentPage.stream()
+                    .map(this::mapRepository)
+                    .forEach(repository -> repositories.put(repository.id(), repository));
             if (currentPage.size() < PAGE_SIZE) {
                 break;
             }
             page++;
         }
 
-        return repositories.stream()
+        return repositories.values().stream()
             .sorted(Comparator.comparing(RepositorySummary::fullName, String.CASE_INSENSITIVE_ORDER))
             .toList();
     }

@@ -4,6 +4,8 @@ import info.isaksson.erland.repofleet.github.client.GitHubAppClient;
 import info.isaksson.erland.repofleet.github.config.GitHubAppConfig;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.ProcessingException;
+import jakarta.ws.rs.WebApplicationException;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 import java.time.Clock;
@@ -55,18 +57,43 @@ public class GitHubInstallationTokenService {
             long installationId = config.installationId()
                 .orElseThrow(() -> new GitHubAppNotConfiguredException("GitHub App installation ID is not configured."));
             String jwt = jwtService.createJwt();
-            var response = client.createInstallationToken(
-                installationId,
-                "Bearer " + jwt,
-                ACCEPT,
-                API_VERSION
-            );
+            var response = createInstallationTokenWithRetry(installationId, jwt);
             if (response == null || response.token() == null || response.token().isBlank() || response.expiresAt() == null) {
                 throw new IllegalStateException("GitHub returned an invalid installation-token response.");
             }
             cached = new GitHubInstallationToken(response.token(), response.expiresAt());
             return cached;
         }
+    }
+
+    private info.isaksson.erland.repofleet.github.client.InstallationTokenResponse createInstallationTokenWithRetry(
+            long installationId,
+            String jwt) {
+        RuntimeException lastFailure = null;
+        for (int attempt = 1; attempt <= 3; attempt++) {
+            try {
+                return client.createInstallationToken(
+                        installationId,
+                        "Bearer " + jwt,
+                        ACCEPT,
+                        API_VERSION);
+            } catch (WebApplicationException exception) {
+                lastFailure = exception;
+                int status = exception.getResponse() == null ? 0 : exception.getResponse().getStatus();
+                boolean retryable = status == 429 || status == 408 || status >= 500;
+                if (!retryable || attempt == 3) {
+                    throw exception;
+                }
+            } catch (ProcessingException exception) {
+                lastFailure = exception;
+                if (attempt == 3) {
+                    throw exception;
+                }
+            }
+        }
+        throw lastFailure == null
+                ? new IllegalStateException("GitHub installation-token request failed.")
+                : lastFailure;
     }
 
     public synchronized void invalidate() {
