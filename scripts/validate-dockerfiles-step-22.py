@@ -20,7 +20,7 @@ checks = {
     "frontend runtime backend config": "BACKEND_URL" in frontend and "${BACKEND_URL}" in nginx,
     "spa fallback": "try_files $uri $uri/ /index.html;" in nginx,
     "api proxy": "location /api/" in nginx and "proxy_pass ${BACKEND_URL};" in nginx,
-    "CI invokes smoke test via bash": "run: bash scripts/verify-step-22.sh" in workflow,
+    "CI validates production containers": "run: bash scripts/verify-step-23.sh" in workflow,
 }
 
 failed = [name for name, ok in checks.items() if not ok]

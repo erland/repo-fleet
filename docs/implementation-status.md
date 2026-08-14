@@ -38,8 +38,8 @@ Update this file whenever a development step is started, completed, blocked, or 
 | 20 | Accessibility and Responsive UI Pass | DONE | Verified by GitHub Actions. |
 | 21 | End-to-End Phase 1 Validation | DONE | Verified by GitHub Actions. |
 | 22 | Dockerize Frontend and Backend | DONE | Verified by GitHub Actions, including Docker image builds, non-root container startup, health checks and frontend-to-backend proxy smoke test. |
-| 23 | Add Docker Compose Runtime | IN PROGRESS | Two-service Docker Compose runtime implemented with configurable ports/runtime environment, private networking, health-based startup ordering and clean Compose smoke validation; awaiting GitHub CI verification. |
-| 24 | CI Quality Gate | NOT STARTED | |
+| 23 | Add Docker Compose Runtime | DONE | Verified by GitHub Actions, including clean Docker Compose build/startup, health checks and frontend-to-backend connectivity. |
+| 24 | CI Quality Gate | IN PROGRESS | Phase 1 CI quality gate implemented with repository policy, explicit frontend typecheck/test/bundle, backend Maven verify, single Compose production smoke path and a stable final Quality Gate job; awaiting GitHub CI verification. |
 | 25 | Package Versioned Releases with GitHub Actions | NOT STARTED | |
 | 26 | Documentation and Phase 1 Completion Review | NOT STARTED | |
 
@@ -51,9 +51,9 @@ A lightweight CI workflow has been introduced ahead of planned Step 24 so GitHub
 
 ## Current Position
 
-Next step: **Step 23 – Add Docker Compose Runtime** (awaiting CI verification)
+Next step: **Step 24 – CI Quality Gate** (awaiting CI verification)
 
-Completed steps: **22 / 26**
+Completed steps: **23 / 26**
 
 ## Update Convention
 
