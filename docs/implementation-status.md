@@ -16,7 +16,7 @@ Update this file whenever a development step is started, completed, blocked, or 
 
 | Step | Development step | Status | Notes |
 |---:|---|---|---|
-| 1 | Bootstrap the Monorepo | IN PROGRESS | Implementation complete and source/configuration smoke validation passed. Java packages use `info.isaksson.erland.repofleet`. Final runtime/test verification is blocked in the packaging environment because external Maven/npm dependency resolution is unavailable. |
+| 1 | Bootstrap the Monorepo | IN PROGRESS | Frontend CI build fix applied: added `vite/client` types and `noEmit` for node tsconfig. Awaiting GitHub CI verification. |
 | 2 | Establish Backend API Structure and Domain Models | NOT STARTED | |
 | 3 | Build the Initial Repository Inventory UI | NOT STARTED | |
 | 4 | Add GitHub App Authentication Foundation | NOT STARTED | |
