@@ -7,4 +7,7 @@ cd "$ROOT/frontend"
 npm test
 npm run build
 
-echo "Step 20 frontend verification passed."
+cd "$ROOT/backend"
+mvn --batch-mode --no-transfer-progress verify
+
+echo "Step 21 Phase 1 end-to-end validation passed."
