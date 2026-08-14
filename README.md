@@ -316,3 +316,18 @@ A saved view captures the current:
 - sort direction.
 
 Saved views can be loaded or deleted later in the same browser. Repository selection is deliberately not part of a saved view, keeping selection an explicit temporary action. Storage failures are handled gracefully; the application remains usable even when browser storage is blocked or unavailable.
+
+## GitHub API resilience
+
+Repository refresh now applies bounded resilience rules around GitHub API calls:
+
+- installation tokens are invalidated and reacquired after a `401`,
+- transient network failures, rate limits and retryable server errors receive bounded retries,
+- ordinary authorization errors and unavailable resources are not retried repeatedly,
+- errors exposed to inventory status are sanitized and never include authorization tokens,
+- overlapping repository-discovery pages are de-duplicated by stable GitHub repository ID,
+- release discovery continues to later pages when a full page contains only drafts,
+- repositories that disappear during enrichment are marked unavailable without issuing the remaining metadata requests,
+- a successful later discovery removes repositories that are no longer part of the GitHub App installation.
+
+The previous in-memory inventory is still retained when repository discovery itself fails, so transient GitHub failures cannot replace usable portfolio data with an empty result.

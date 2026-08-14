@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import info.isaksson.erland.repofleet.github.auth.GitHubInstallationToken;
@@ -60,6 +62,23 @@ class GitHubRepositoryClassificationEnrichmentServiceTest {
                 .thenReturn(List.of());
 
         service = new GitHubRepositoryClassificationEnrichmentService(tokenService, client);
+    }
+
+
+    @Test
+    void stopsEnrichmentWhenRepositoryBecomesUnavailable() {
+        when(client.getTopics(anyString(), anyString(), anyString(), anyString(), anyString()))
+                .thenThrow(new WebApplicationException(Response.status(404).build()));
+
+        RepositorySummary enriched = service.enrich(repository());
+
+        assertEquals(AnalysisState.FAILED, enriched.refreshStatus().state());
+        verify(client, never()).getLanguages(anyString(), anyString(), anyString(), anyString(), anyString());
+        verify(client, never()).getRootContents(anyString(), anyString(), anyString(), anyString(), anyString());
+        verify(client, never()).getWorkflows(
+                anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyInt());
+        verify(client, never()).getReleases(
+                anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyInt());
     }
 
     @Test
@@ -305,6 +324,39 @@ class GitHubRepositoryClassificationEnrichmentServiceTest {
         assertEquals(AnalysisState.FAILED, enriched.release().analysisState());
         assertNull(enriched.release().releasePresent());
         assertEquals(AnalysisState.PARTIAL, enriched.refreshStatus().state());
+    }
+
+
+    @Test
+    void scansAdditionalReleasePagesWhenFirstPageContainsOnlyDrafts() {
+        List<GitHubReleaseResponse> drafts = java.util.stream.IntStream.range(0, 100)
+                .mapToObj(index -> new GitHubReleaseResponse(
+                        (long) index,
+                        "draft-" + index,
+                        "draft-" + index,
+                        true,
+                        false,
+                        null,
+                        Instant.parse("2026-08-10T10:00:00Z")))
+                .toList();
+        when(client.getReleases(
+                anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), org.mockito.ArgumentMatchers.eq(1)))
+                .thenReturn(drafts);
+        when(client.getReleases(
+                anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), org.mockito.ArgumentMatchers.eq(2)))
+                .thenReturn(List.of(new GitHubReleaseResponse(
+                        200L,
+                        "v1.0.0",
+                        "v1.0.0",
+                        false,
+                        false,
+                        Instant.parse("2026-08-01T10:00:00Z"),
+                        Instant.parse("2026-08-01T09:00:00Z"))));
+
+        RepositorySummary enriched = service.enrich(repository());
+
+        assertEquals(Boolean.TRUE, enriched.release().releasePresent());
+        assertEquals("v1.0.0", enriched.release().latestReleaseTag());
     }
 
     private RepositorySummary repository() {
