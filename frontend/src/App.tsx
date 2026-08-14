@@ -9,9 +9,11 @@ import {
 import { InventoryRefreshPanel } from './InventoryRefreshPanel'
 import { RepositoryFiltersPanel } from './RepositoryFiltersPanel'
 import { RepositoryInventory } from './RepositoryInventory'
+import { RepositorySelectionBar } from './RepositorySelectionBar'
 import { RepositorySortControls } from './RepositorySortControls'
 import { emptyRepositoryFilters, filterRepositories } from './repositoryFilters'
 import { defaultRepositorySort, sortRepositories } from './repositorySorting'
+import { clearRepositorySelection, deselectVisibleRepositories, selectVisibleRepositories, toggleRepositorySelection } from './repositorySelection'
 
 const REFRESH_POLL_INTERVAL_MS = 1000
 
@@ -24,6 +26,7 @@ export default function App() {
   const [refreshing, setRefreshing] = useState(false)
   const [filters, setFilters] = useState(emptyRepositoryFilters)
   const [sort, setSort] = useState(defaultRepositorySort)
+  const [selectedRepositoryIds, setSelectedRepositoryIds] = useState<Set<number>>(new Set())
   const mountedRef = useRef(true)
 
   const loadRepositories = useCallback(async (showInitialLoading = false) => {
@@ -93,6 +96,23 @@ export default function App() {
     [filteredRepositories, sort],
   )
 
+
+  const toggleRepository = useCallback((repositoryId: number) => {
+    setSelectedRepositoryIds((current) => toggleRepositorySelection(current, repositoryId))
+  }, [])
+
+  const selectVisible = useCallback(() => {
+    setSelectedRepositoryIds((current) => selectVisibleRepositories(current, sortedRepositories))
+  }, [sortedRepositories])
+
+  const deselectVisible = useCallback(() => {
+    setSelectedRepositoryIds((current) => deselectVisibleRepositories(current, sortedRepositories))
+  }, [sortedRepositories])
+
+  const clearSelection = useCallback(() => {
+    setSelectedRepositoryIds(clearRepositorySelection())
+  }, [])
+
   const refreshRepositories = useCallback(async () => {
     if (refreshing || inventoryStatus?.state === 'RUNNING') return
 
@@ -146,11 +166,21 @@ export default function App() {
         filteredCount={filteredRepositories.length}
       />
 
+      <RepositorySelectionBar
+        selection={selectedRepositoryIds}
+        visibleRepositories={sortedRepositories}
+        onSelectVisible={selectVisible}
+        onDeselectVisible={deselectVisible}
+        onClear={clearSelection}
+      />
+
       <RepositoryInventory
         repositories={sortedRepositories}
         loading={loading}
         error={error}
         emptyMessage={repositories.length > 0 ? 'No repositories match the current filters.' : undefined}
+        selectedRepositoryIds={selectedRepositoryIds}
+        onToggleRepository={toggleRepository}
       />
     </main>
   )

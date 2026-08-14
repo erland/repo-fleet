@@ -4,6 +4,7 @@ import App from './App'
 import { InventoryRefreshPanel } from './InventoryRefreshPanel'
 import { RepositoryFiltersPanel } from './RepositoryFiltersPanel'
 import { RepositoryInventory } from './RepositoryInventory'
+import { RepositorySelectionBar } from './RepositorySelectionBar'
 import { RepositorySortControls } from './RepositorySortControls'
 import type { InventoryStatus, RepositorySummary } from './api'
 import { emptyRepositoryFilters } from './repositoryFilters'
@@ -251,6 +252,41 @@ describe('RepositorySortControls', () => {
     )
 
     expect(html).toContain('200 repositories')
+  })
+})
+
+describe('RepositorySelectionBar', () => {
+  it('shows total selected and visible selected counts', () => {
+    const html = renderToString(
+      <RepositorySelectionBar
+        selection={new Set([1001, 9999])}
+        visibleRepositories={[repository]}
+        onSelectVisible={() => undefined}
+        onDeselectVisible={() => undefined}
+        onClear={() => undefined}
+      />,
+    )
+
+    expect(html).toContain('2 selected')
+    expect(html).toContain('1 of 1 visible selected')
+    expect(html).toContain('Deselect visible')
+    expect(html).toContain('Clear selection')
+  })
+
+  it('renders repository row selection using stable repository id', () => {
+    const html = renderToString(
+      <RepositoryInventory
+        repositories={[repository]}
+        loading={false}
+        error={null}
+        selectedRepositoryIds={new Set([repository.id])}
+        onToggleRepository={() => undefined}
+      />,
+    )
+
+    expect(html).toContain('Select erland/roman-nollpunkten')
+    expect(html).toContain('checked')
+    expect(html).toContain('repository-row-selected')
   })
 })
 
