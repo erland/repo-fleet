@@ -17,6 +17,7 @@ a { color: inherit; }
 
 .app-header,
 .refresh-panel,
+.filter-panel,
 .inventory-section,
 .inventory-state {
   width: min(1440px, 100%);
@@ -26,6 +27,15 @@ a { color: inherit; }
 .app-header {
   margin-bottom: 2rem;
 }
+
+.filter-panel { margin-bottom: 1rem; padding: 1.25rem 1.5rem; border: 1px solid #dfe4ea; border-radius: 1rem; background: #fff; box-shadow: 0 1rem 3rem rgb(23 32 51 / 7%); }
+.filter-heading-row { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
+.filter-help { margin: .65rem 0 0; color: #596273; max-width: 52rem; }
+.filter-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .9rem; margin-top: 1rem; }
+.filter-grid label { display: grid; gap: .35rem; font-size: .84rem; font-weight: 650; }
+.filter-grid input, .filter-grid select { width: 100%; min-height: 2.5rem; border: 1px solid #cfd5dc; border-radius: .55rem; background: #fff; padding: .5rem .65rem; font: inherit; color: inherit; }
+.secondary-button { border: 1px solid #c7ced7; border-radius: .7rem; background: #fff; padding: .65rem .9rem; font: inherit; font-weight: 700; cursor: pointer; }
+.filter-count { margin: 1rem 0 0; color: #596273; font-weight: 650; }
 
 .refresh-panel { margin-bottom: 1rem; padding: 1.25rem 1.5rem; border: 1px solid #dfe4ea; border-radius: 1rem; background: #fff; box-shadow: 0 1rem 3rem rgb(23 32 51 / 7%); }
 .refresh-summary { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
@@ -89,9 +99,14 @@ h2 { margin: 0; font-size: 1.5rem; }
 .topic-list { display: flex; flex-wrap: wrap; gap: .3rem; }
 .topic { padding: .15rem .48rem; background: #eef1f5; }
 
+@media (max-width: 1000px) {
+  .filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 @media (max-width: 720px) {
   .app-shell { padding: 1rem; }
-  .refresh-summary { align-items: stretch; flex-direction: column; }
+  .refresh-summary, .filter-heading-row { align-items: stretch; flex-direction: column; }
+  .filter-grid { grid-template-columns: 1fr; }
   .refresh-button { width: 100%; }
   .section-heading { align-items: start; flex-direction: column; }
 }
