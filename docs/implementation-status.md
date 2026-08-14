@@ -30,8 +30,8 @@ Update this file whenever a development step is started, completed, blocked, or 
 | 12 | Add Frontend Refresh Experience | DONE | Verified by GitHub Actions. |
 | 13 | Implement Repository Filtering | DONE | Verified by GitHub Actions. |
 | 14 | Add Sorting and Result Counts | DONE | Verified by GitHub Actions. |
-| 15 | Add Repository Selection | IN PROGRESS | Stable multi-repository selection implemented with select/deselect visible, persistent hidden selections and selected counts; awaiting GitHub CI verification. |
-| 16 | Add Portfolio Summary Indicators | NOT STARTED | |
+| 15 | Add Repository Selection | DONE | Verified by GitHub Actions. |
+| 16 | Add Portfolio Summary Indicators | IN PROGRESS | Filtered-scope portfolio summary indicators implemented for repository count, missing LICENSE/Actions/releases, Java, archived and forks with unknown analysis tracked separately; awaiting GitHub CI verification. |
 | 17 | Add Repository Detail View | NOT STARTED | |
 | 18 | Add Saved Views Using Browser Storage | NOT STARTED | |
 | 19 | Harden GitHub API and Rate-Limit Handling | NOT STARTED | |
@@ -51,9 +51,9 @@ A lightweight CI workflow has been introduced ahead of planned Step 24 so GitHub
 
 ## Current Position
 
-Next step: **Step 15 – Add Repository Selection** (awaiting CI verification)
+Next step: **Step 16 – Add Portfolio Summary Indicators** (awaiting CI verification)
 
-Completed steps: **14 / 26**
+Completed steps: **15 / 26**
 
 ## Update Convention
 

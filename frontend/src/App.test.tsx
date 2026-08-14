@@ -2,6 +2,7 @@ import { renderToString } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import App from './App'
 import { InventoryRefreshPanel } from './InventoryRefreshPanel'
+import { PortfolioSummaryPanel } from './PortfolioSummaryPanel'
 import { RepositoryFiltersPanel } from './RepositoryFiltersPanel'
 import { RepositoryInventory } from './RepositoryInventory'
 import { RepositorySelectionBar } from './RepositorySelectionBar'
@@ -9,6 +10,7 @@ import { RepositorySortControls } from './RepositorySortControls'
 import type { InventoryStatus, RepositorySummary } from './api'
 import { emptyRepositoryFilters } from './repositoryFilters'
 import { defaultRepositorySort } from './repositorySorting'
+import { summarizePortfolio } from './portfolioSummary'
 
 const repository: RepositorySummary = {
   id: 1001,
@@ -287,6 +289,44 @@ describe('RepositorySelectionBar', () => {
     expect(html).toContain('Select erland/roman-nollpunkten')
     expect(html).toContain('checked')
     expect(html).toContain('repository-row-selected')
+  })
+})
+
+describe('PortfolioSummaryPanel', () => {
+  it('renders core portfolio signals for the filtered scope', () => {
+    const summary = summarizePortfolio([repository])
+
+    const html = renderToString(
+      <PortfolioSummaryPanel
+        summary={summary}
+        totalPortfolioCount={200}
+      />,
+    )
+
+    expect(html).toContain('Portfolio signals')
+    expect(html).toContain('Missing LICENSE')
+    expect(html).toContain('Missing Actions')
+    expect(html).toContain('Missing release')
+    expect(html).toContain('Java repositories')
+    expect(html).toContain('Archived')
+    expect(html).toContain('Forks')
+    expect(html).toContain('Summary for 1 filtered repositories out of 200')
+  })
+
+  it('shows unknown maintenance analysis separately from missing', () => {
+    const incomplete = {
+      ...repository,
+      license: { analysisState: 'FAILED', presence: 'UNKNOWN', recognized: null, key: null, name: null },
+    } satisfies RepositorySummary
+
+    const html = renderToString(
+      <PortfolioSummaryPanel
+        summary={summarizePortfolio([incomplete])}
+        totalPortfolioCount={1}
+      />,
+    )
+
+    expect(html).toContain('1 unknown')
   })
 })
 

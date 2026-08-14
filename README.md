@@ -276,3 +276,17 @@ The inventory now supports explicit multi-repository selection using stable GitH
 - Total selected count remains visible even when filters hide selected repositories.
 
 This interaction model intentionally prepares RepoFleet for later guided and pull-request-based maintenance phases without performing any repository mutations in Phase 1.
+
+## Portfolio summary indicators
+
+The Phase 1 inventory now includes summary indicators for the current filtered result set:
+
+- repository count,
+- repositories missing LICENSE,
+- repositories missing GitHub Actions,
+- repositories missing an official GitHub Release,
+- repositories containing Java,
+- archived repositories,
+- forks.
+
+Unknown or failed analysis is tracked separately and is not counted as a known missing capability. This keeps portfolio maintenance signals trustworthy when GitHub API enrichment is partial.

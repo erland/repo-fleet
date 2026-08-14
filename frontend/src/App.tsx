@@ -7,6 +7,7 @@ import {
   type RepositorySummary,
 } from './api'
 import { InventoryRefreshPanel } from './InventoryRefreshPanel'
+import { PortfolioSummaryPanel } from './PortfolioSummaryPanel'
 import { RepositoryFiltersPanel } from './RepositoryFiltersPanel'
 import { RepositoryInventory } from './RepositoryInventory'
 import { RepositorySelectionBar } from './RepositorySelectionBar'
@@ -14,6 +15,7 @@ import { RepositorySortControls } from './RepositorySortControls'
 import { emptyRepositoryFilters, filterRepositories } from './repositoryFilters'
 import { defaultRepositorySort, sortRepositories } from './repositorySorting'
 import { clearRepositorySelection, deselectVisibleRepositories, selectVisibleRepositories, toggleRepositorySelection } from './repositorySelection'
+import { summarizePortfolio } from './portfolioSummary'
 
 const REFRESH_POLL_INTERVAL_MS = 1000
 
@@ -96,6 +98,11 @@ export default function App() {
     [filteredRepositories, sort],
   )
 
+  const portfolioSummary = useMemo(
+    () => summarizePortfolio(filteredRepositories),
+    [filteredRepositories],
+  )
+
 
   const toggleRepository = useCallback((repositoryId: number) => {
     setSelectedRepositoryIds((current) => toggleRepositorySelection(current, repositoryId))
@@ -157,6 +164,11 @@ export default function App() {
         onChange={setFilters}
         totalCount={repositories.length}
         filteredCount={filteredRepositories.length}
+      />
+
+      <PortfolioSummaryPanel
+        summary={portfolioSummary}
+        totalPortfolioCount={repositories.length}
       />
 
       <RepositorySortControls
