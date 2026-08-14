@@ -83,7 +83,7 @@ class InMemoryRepositoryInventoryServiceTest {
             if (repository.id() == 2L) {
                 throw new IllegalStateException("metadata unavailable");
             }
-            return repository;
+            return complete(repository);
         };
 
         var service = new InMemoryRepositoryInventoryService(discovery, enrichment, CLOCK);
