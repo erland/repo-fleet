@@ -16,8 +16,8 @@ Update this file whenever a development step is started, completed, blocked, or 
 
 | Step | Development step | Status | Notes |
 |---:|---|---|---|
-| 1 | Bootstrap the Monorepo | IN PROGRESS | Frontend CI build fix applied: added `vite/client` types and `noEmit` for node tsconfig. Awaiting GitHub CI verification. |
-| 2 | Establish Backend API Structure and Domain Models | NOT STARTED | |
+| 1 | Bootstrap the Monorepo | DONE | Verified by green GitHub Actions frontend and backend build. |
+| 2 | Establish Backend API Structure and Domain Models | IN PROGRESS | Backend models, sample inventory and `/api/repositories` implemented; awaiting local/CI verification. |
 | 3 | Build the Initial Repository Inventory UI | NOT STARTED | |
 | 4 | Add GitHub App Authentication Foundation | NOT STARTED | |
 | 5 | Replace Sample Inventory with Real Repository Discovery | NOT STARTED | |
@@ -51,9 +51,9 @@ A lightweight CI workflow has been introduced ahead of planned Step 24 so GitHub
 
 ## Current Position
 
-Next step: **Run the new GitHub CI. If both jobs pass, mark Step 1 DONE; then continue with Step 2 – Establish Backend API Structure and Domain Models**
+Next step: **Step 2 – Establish Backend API Structure and Domain Models (CI verification)**
 
-Completed steps: **0 / 26**
+Completed steps: **1 / 26**
 
 ## Update Convention
 
