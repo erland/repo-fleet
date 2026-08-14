@@ -21,8 +21,8 @@ Update this file whenever a development step is started, completed, blocked, or 
 | 3 | Build the Initial Repository Inventory UI | DONE | Verified by green GitHub Actions frontend and backend build. |
 | 4 | Add GitHub App Authentication Foundation | DONE | Verified by GitHub Actions. |
 | 5 | Replace Sample Inventory with Real Repository Discovery | DONE | Verified by GitHub Actions. |
-| 6 | Introduce the In-Memory Repository Inventory | IN PROGRESS | CI test-compile fix applied: discovery tests now use `discoverRepositories()` and RepositoryResourceTest targets the cached RepositoryInventoryService. Awaiting GitHub CI verification. |
-| 7 | Add Topics and Language Enrichment | NOT STARTED | |
+| 6 | Introduce the In-Memory Repository Inventory | DONE | Verified by GitHub Actions. |
+| 7 | Add Topics and Language Enrichment | IN PROGRESS | Topics/languages enrichment implemented with per-repository failure handling; awaiting GitHub CI verification. |
 | 8 | Add LICENSE Analysis | NOT STARTED | |
 | 9 | Add GitHub Actions Analysis | NOT STARTED | |
 | 10 | Add Official Release Analysis | NOT STARTED | |
@@ -51,9 +51,9 @@ A lightweight CI workflow has been introduced ahead of planned Step 24 so GitHub
 
 ## Current Position
 
-Next step: **Step 6 – Introduce the In-Memory Repository Inventory** (awaiting CI verification)
+Next step: **Step 7 – Add Topics and Language Enrichment** (awaiting CI verification)
 
-Completed steps: **5 / 26**
+Completed steps: **6 / 26**
 
 ## Update Convention
 

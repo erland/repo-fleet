@@ -27,7 +27,7 @@ class InMemoryRepositoryInventoryServiceTest {
             return expected;
         };
 
-        var service = new InMemoryRepositoryInventoryService(discovery, CLOCK);
+        var service = new InMemoryRepositoryInventoryService(discovery, repository -> repository, CLOCK);
         service.refresh();
 
         assertSame(service.listRepositories(), service.listRepositories());
@@ -45,7 +45,7 @@ class InMemoryRepositoryInventoryServiceTest {
         GitHubRepositoryDiscoveryService discovery =
                 () -> responses.get(Math.min(calls.getAndIncrement(), responses.size() - 1));
 
-        var service = new InMemoryRepositoryInventoryService(discovery, CLOCK);
+        var service = new InMemoryRepositoryInventoryService(discovery, repository -> repository, CLOCK);
         service.refresh();
         service.refresh();
 
@@ -63,7 +63,7 @@ class InMemoryRepositoryInventoryServiceTest {
             throw new IllegalStateException("GitHub unavailable");
         };
 
-        var service = new InMemoryRepositoryInventoryService(discovery, CLOCK);
+        var service = new InMemoryRepositoryInventoryService(discovery, repository -> repository, CLOCK);
         service.refresh();
         List<RepositorySummary> previous = service.listRepositories();
 
@@ -74,4 +74,55 @@ class InMemoryRepositoryInventoryServiceTest {
         assertEquals("GitHub unavailable", service.getStatus().errorMessage());
         assertEquals(Instant.parse("2026-08-14T06:00:00Z"), service.getStatus().lastSuccessfulRefreshAt());
     }
+
+    @Test
+    void individualEnrichmentFailureDoesNotFailWholeRefresh() {
+        GitHubRepositoryDiscoveryService discovery = () -> List.of(repository(1L, "one"), repository(2L, "two"));
+        RepositoryEnrichmentService enrichment = repository -> {
+            if (repository.id() == 2L) {
+                throw new IllegalStateException("metadata unavailable");
+            }
+            return repository;
+        };
+
+        var service = new InMemoryRepositoryInventoryService(discovery, enrichment, CLOCK);
+        service.refresh();
+
+        assertEquals(InventoryRefreshState.COMPLETED, service.getStatus().state());
+        assertEquals(2, service.listRepositories().size());
+        assertEquals(
+                info.isaksson.erland.repofleet.repository.api.AnalysisState.FAILED,
+                service.listRepositories().get(1).refreshStatus().state());
+    }
+
+    private RepositorySummary repository(long id, String name) {
+        return new RepositorySummary(
+                id,
+                "erland",
+                name,
+                "erland/" + name,
+                "https://github.com/erland/" + name,
+                info.isaksson.erland.repofleet.repository.api.RepositoryVisibility.PRIVATE,
+                false,
+                false,
+                "main",
+                List.of(),
+                List.of(),
+                null,
+                new info.isaksson.erland.repofleet.repository.api.LicenseStatus(
+                        info.isaksson.erland.repofleet.repository.api.AnalysisState.NOT_ANALYZED,
+                        info.isaksson.erland.repofleet.repository.api.LicensePresence.UNKNOWN,
+                        null, null, null),
+                new info.isaksson.erland.repofleet.repository.api.GitHubActionsStatus(
+                        info.isaksson.erland.repofleet.repository.api.AnalysisState.NOT_ANALYZED,
+                        null, null),
+                new info.isaksson.erland.repofleet.repository.api.ReleaseStatus(
+                        info.isaksson.erland.repofleet.repository.api.AnalysisState.NOT_ANALYZED,
+                        null, null, null, null, null),
+                new info.isaksson.erland.repofleet.repository.api.ActivityStatus(null, null),
+                new info.isaksson.erland.repofleet.repository.api.RepositoryRefreshStatus(
+                        info.isaksson.erland.repofleet.repository.api.AnalysisState.NOT_ANALYZED,
+                        "pending"));
+    }
+
 }

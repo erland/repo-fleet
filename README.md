@@ -162,3 +162,13 @@ Useful endpoints:
 - `POST /api/inventory/refresh` – explicitly refreshes repository discovery from GitHub.
 
 The service performs an initial refresh on backend startup. If a later refresh fails, the last successful inventory remains available.
+
+## Repository classification enrichment
+
+Each inventory refresh now enriches discovered repositories with:
+
+- GitHub topics,
+- detected programming languages,
+- primary language based on GitHub's language byte counts.
+
+Classification failures are isolated per repository. A failed topics/languages lookup for one repository does not make the complete portfolio refresh fail, and an API failure is represented separately from an empty topics/languages result.
