@@ -144,3 +144,9 @@ To verify Step 4 locally:
 ```bash
 ./scripts/verify-step-4.sh
 ```
+
+## Repository discovery
+
+Phase 1 Step 5 replaces the deterministic sample inventory with the repositories accessible to the configured GitHub App installation. The backend uses the installation token and follows GitHub pagination with up to 100 repositories per page. Maintenance enrichment fields (topics/languages, license, Actions and releases) intentionally remain `NOT_ANALYZED` until their dedicated later steps.
+
+Run `scripts/verify-step-5.sh` to verify backend and frontend after configuring normal build dependencies. Runtime repository discovery additionally requires the GitHub App environment variables documented above.

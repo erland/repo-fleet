@@ -3,6 +3,7 @@ package info.isaksson.erland.repofleet.github.auth;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import info.isaksson.erland.repofleet.github.client.GitHubAppClient;
 import info.isaksson.erland.repofleet.github.client.GitHubAppResponse;
+import info.isaksson.erland.repofleet.github.client.InstallationRepositoriesResponse;
 import info.isaksson.erland.repofleet.github.client.InstallationTokenResponse;
 import org.junit.jupiter.api.Test;
 
@@ -51,6 +52,11 @@ class GitHubInstallationTokenServiceTest {
         var clock = new MutableClock(Instant.parse("2026-08-14T06:00:00Z"));
         GitHubAppClient failing = new GitHubAppClient() {
             public GitHubAppResponse getAuthenticatedApp(String a, String accept, String version) { throw new UnsupportedOperationException(); }
+
+            public InstallationRepositoriesResponse listInstallationRepositories(
+                    String a, String accept, String version, int perPage, int page) {
+                throw new UnsupportedOperationException();
+            }
             public InstallationTokenResponse createInstallationToken(long id, String a, String accept, String version) {
                 throw new IllegalStateException("simulated GitHub failure");
             }
@@ -73,6 +79,10 @@ class GitHubInstallationTokenServiceTest {
         FakeClient(Clock clock) { this.clock = clock; }
         public GitHubAppResponse getAuthenticatedApp(String a, String accept, String version) {
             return new GitHubAppResponse(1L, "repo-fleet", "RepoFleet");
+        }
+        public InstallationRepositoriesResponse listInstallationRepositories(
+                String a, String accept, String version, int perPage, int page) {
+            throw new UnsupportedOperationException();
         }
         public InstallationTokenResponse createInstallationToken(long id, String a, String accept, String version) {
             createCalls++;
