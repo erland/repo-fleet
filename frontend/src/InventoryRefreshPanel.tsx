@@ -33,6 +33,15 @@ export function InventoryRefreshPanel({
   const running = refreshing || status?.state === 'RUNNING'
   const showPartial = status?.state === 'PARTIAL'
   const showFailed = status?.state === 'FAILED'
+  const progressPercent = status && status.totalCount > 0
+    ? `${Math.round((status.processedCount / status.totalCount) * 100)}%`
+    : null
+  const successMessage = status?.state === 'COMPLETED'
+    ? `${status.repositoryCount} repositories are up to date.`
+    : null
+  const partialMessage = status?.state === 'PARTIAL'
+    ? `${status.errorCount} ${status.errorCount === 1 ? 'repository has' : 'repositories have'} incomplete or failed analysis.`
+    : null
 
   return (
     <section className="refresh-panel" aria-labelledby="refresh-heading">
@@ -53,9 +62,7 @@ export function InventoryRefreshPanel({
         <div className="refresh-progress" role="status" aria-live="polite">
           <div className="progress-row">
             <span>{progressLabel(status)}</span>
-            {status.totalCount > 0 && (
-              <span>{Math.round((status.processedCount / status.totalCount) * 100)}%</span>
-            )}
+            {progressPercent && <span>{progressPercent}</span>}
           </div>
           <progress
             max={Math.max(status.totalCount, 1)}
@@ -69,9 +76,7 @@ export function InventoryRefreshPanel({
       {showPartial && (
         <div className="refresh-message refresh-message-warning" role="status">
           <strong>Refresh completed with partial failures.</strong>
-          <span>
-            {status.errorCount} {status.errorCount === 1 ? 'repository has' : 'repositories have'} incomplete or failed analysis.
-          </span>
+          <span>{partialMessage}</span>
         </div>
       )}
 
@@ -85,7 +90,7 @@ export function InventoryRefreshPanel({
       {status?.state === 'COMPLETED' && (
         <div className="refresh-message refresh-message-success" role="status">
           <strong>Refresh complete.</strong>
-          <span>{status.repositoryCount} repositories are up to date.</span>
+          <span>{successMessage}</span>
         </div>
       )}
 

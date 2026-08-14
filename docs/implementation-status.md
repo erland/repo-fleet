@@ -27,7 +27,7 @@ Update this file whenever a development step is started, completed, blocked, or 
 | 9 | Add GitHub Actions Analysis | DONE | Verified by GitHub Actions. |
 | 10 | Add Official Release Analysis | DONE | Verified by GitHub Actions. |
 | 11 | Complete Refresh Orchestration and Progress Reporting | DONE | Verified by GitHub Actions. |
-| 12 | Add Frontend Refresh Experience | IN PROGRESS | Frontend refresh UX implemented with freshness, explicit refresh, polling/progress and partial/failed warnings; awaiting GitHub CI verification. |
+| 12 | Add Frontend Refresh Experience | IN PROGRESS | CI frontend test fix applied: dynamic refresh messages are precomputed before JSX rendering so server-rendered HTML is stable and testable. Awaiting GitHub CI verification. |
 | 13 | Implement Repository Filtering | NOT STARTED | |
 | 14 | Add Sorting and Result Counts | NOT STARTED | |
 | 15 | Add Repository Selection | NOT STARTED | |
