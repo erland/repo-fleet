@@ -20,7 +20,7 @@ Update this file whenever a development step is started, completed, blocked, or 
 | 2 | Establish Backend API Structure and Domain Models | DONE | Verified by green GitHub Actions frontend and backend build. |
 | 3 | Build the Initial Repository Inventory UI | DONE | Verified by green GitHub Actions frontend and backend build. |
 | 4 | Add GitHub App Authentication Foundation | DONE | Verified by GitHub Actions. |
-| 5 | Replace Sample Inventory with Real Repository Discovery | IN PROGRESS | Real GitHub installation repository discovery implemented; awaiting GitHub Actions verification. |
+| 5 | Replace Sample Inventory with Real Repository Discovery | IN PROGRESS | CI compile fix applied: GitHubInstallationToken accessor corrected to `value()`; Quarkus relocated test dependencies updated. Awaiting GitHub CI verification. |
 | 6 | Introduce the In-Memory Repository Inventory | NOT STARTED | |
 | 7 | Add Topics and Language Enrichment | NOT STARTED | |
 | 8 | Add LICENSE Analysis | NOT STARTED | |

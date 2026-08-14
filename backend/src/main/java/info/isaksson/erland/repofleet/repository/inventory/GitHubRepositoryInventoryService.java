@@ -41,7 +41,7 @@ public class GitHubRepositoryInventoryService implements RepositoryInventoryServ
 
     @Override
     public List<RepositorySummary> listRepositories() {
-        String token = tokenService.getToken().token();
+        String token = tokenService.getToken().value();
         List<RepositorySummary> repositories = new ArrayList<>();
         int page = 1;
         int totalCount = Integer.MAX_VALUE;
