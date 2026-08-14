@@ -108,3 +108,13 @@ info.isaksson.erland.repofleet
 - `docs/functional-specification.md`
 - `docs/development-plan-phase-1.md`
 - `docs/implementation-status.md`
+
+## Phase 1 progress
+
+The initial repository inventory UI is implemented against `GET /api/repositories`. It includes populated, loading, empty and error states. Until GitHub integration is introduced in later steps, the backend still provides deterministic sample inventory data.
+
+To verify Step 3 locally:
+
+```bash
+./scripts/verify-step-3.sh
+```

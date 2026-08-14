@@ -17,8 +17,8 @@ Update this file whenever a development step is started, completed, blocked, or 
 | Step | Development step | Status | Notes |
 |---:|---|---|---|
 | 1 | Bootstrap the Monorepo | DONE | Verified by green GitHub Actions frontend and backend build. |
-| 2 | Establish Backend API Structure and Domain Models | IN PROGRESS | Backend models, sample inventory and `/api/repositories` implemented; awaiting local/CI verification. |
-| 3 | Build the Initial Repository Inventory UI | NOT STARTED | |
+| 2 | Establish Backend API Structure and Domain Models | DONE | Verified by green GitHub Actions frontend and backend build. |
+| 3 | Build the Initial Repository Inventory UI | IN PROGRESS | Repository table, loading/empty/error states and frontend tests implemented; awaiting GitHub CI verification. |
 | 4 | Add GitHub App Authentication Foundation | NOT STARTED | |
 | 5 | Replace Sample Inventory with Real Repository Discovery | NOT STARTED | |
 | 6 | Introduce the In-Memory Repository Inventory | NOT STARTED | |
@@ -51,9 +51,9 @@ A lightweight CI workflow has been introduced ahead of planned Step 24 so GitHub
 
 ## Current Position
 
-Next step: **Step 2 – Establish Backend API Structure and Domain Models (CI verification)**
+Next step: **Step 3 – Build the Initial Repository Inventory UI (CI verification)**
 
-Completed steps: **1 / 26**
+Completed steps: **2 / 26**
 
 ## Update Convention
 
