@@ -19,8 +19,8 @@ Update this file whenever a development step is started, completed, blocked, or 
 | 1 | Bootstrap the Monorepo | DONE | Verified by green GitHub Actions frontend and backend build. |
 | 2 | Establish Backend API Structure and Domain Models | DONE | Verified by green GitHub Actions frontend and backend build. |
 | 3 | Build the Initial Repository Inventory UI | DONE | Verified by green GitHub Actions frontend and backend build. |
-| 4 | Add GitHub App Authentication Foundation | IN PROGRESS | GitHub App JWT, installation-token acquisition/cache, secure configuration, connection diagnostic endpoint and mocked tests implemented; awaiting GitHub CI verification. |
-| 5 | Replace Sample Inventory with Real Repository Discovery | NOT STARTED | |
+| 4 | Add GitHub App Authentication Foundation | DONE | Verified by GitHub Actions. |
+| 5 | Replace Sample Inventory with Real Repository Discovery | IN PROGRESS | Real GitHub installation repository discovery implemented; awaiting GitHub Actions verification. |
 | 6 | Introduce the In-Memory Repository Inventory | NOT STARTED | |
 | 7 | Add Topics and Language Enrichment | NOT STARTED | |
 | 8 | Add LICENSE Analysis | NOT STARTED | |
@@ -51,9 +51,9 @@ A lightweight CI workflow has been introduced ahead of planned Step 24 so GitHub
 
 ## Current Position
 
-Next step: **Step 4 – Add GitHub App Authentication Foundation (CI verification)**
+Next step: **Verify Step 5 in GitHub Actions, then Step 6 – Introduce the In-Memory Repository Inventory**
 
-Completed steps: **3 / 26**
+Completed steps: **4 / 26**
 
 ## Update Convention
 
