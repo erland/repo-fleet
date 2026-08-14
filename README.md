@@ -248,3 +248,19 @@ Supported filters are combinable and use **AND semantics across filter categorie
 - recent activity windows.
 
 Topic and language filters currently accept a single exact, case-insensitive value. When a topic/language value is entered with the neutral match mode, it means “present”. Unknown/failed analyses are never treated as “missing”.
+
+## Repository sorting and counts
+
+Filtered inventory results can now be sorted client-side by:
+
+- name,
+- owner,
+- last activity,
+- primary language,
+- LICENSE state,
+- GitHub Actions state,
+- official release state.
+
+Sorting is deterministic and does not mutate the underlying repository inventory. Maintenance-state sorting orders known present values before known missing values, with unknown/failed analysis after both. Direction can be reversed.
+
+The UI shows both the total repository count and the filtered result count so large portfolios remain easy to inspect.

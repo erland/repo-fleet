@@ -4,8 +4,10 @@ import App from './App'
 import { InventoryRefreshPanel } from './InventoryRefreshPanel'
 import { RepositoryFiltersPanel } from './RepositoryFiltersPanel'
 import { RepositoryInventory } from './RepositoryInventory'
+import { RepositorySortControls } from './RepositorySortControls'
 import type { InventoryStatus, RepositorySummary } from './api'
 import { emptyRepositoryFilters } from './repositoryFilters'
+import { defaultRepositorySort } from './repositorySorting'
 
 const repository: RepositorySummary = {
   id: 1001,
@@ -214,7 +216,41 @@ describe('RepositoryFiltersPanel', () => {
     expect(html).toContain('GitHub Actions')
     expect(html).toContain('Official release')
     expect(html).toContain('Activity')
-    expect(html).toContain('12 of 200 repositories match')
+    expect(html).toContain('12 of 200 repositories match current filters')
+  })
+})
+
+describe('RepositorySortControls', () => {
+  it('renders useful sort fields and a filtered/total result count', () => {
+    const html = renderToString(
+      <RepositorySortControls
+        sort={defaultRepositorySort}
+        onChange={() => undefined}
+        totalCount={200}
+        filteredCount={12}
+      />,
+    )
+
+    expect(html).toContain('Sort by')
+    expect(html).toContain('Last activity')
+    expect(html).toContain('Primary language')
+    expect(html).toContain('License state')
+    expect(html).toContain('Actions state')
+    expect(html).toContain('Release state')
+    expect(html).toContain('12 of 200 repositories')
+  })
+
+  it('renders a compact count when no filter reduces the result set', () => {
+    const html = renderToString(
+      <RepositorySortControls
+        sort={defaultRepositorySort}
+        onChange={() => undefined}
+        totalCount={200}
+        filteredCount={200}
+      />,
+    )
+
+    expect(html).toContain('200 repositories')
   })
 })
 
