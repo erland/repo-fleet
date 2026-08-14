@@ -23,7 +23,7 @@ Update this file whenever a development step is started, completed, blocked, or 
 | 5 | Replace Sample Inventory with Real Repository Discovery | DONE | Verified by GitHub Actions. |
 | 6 | Introduce the In-Memory Repository Inventory | DONE | Verified by GitHub Actions. |
 | 7 | Add Topics and Language Enrichment | DONE | Verified by GitHub Actions. |
-| 8 | Add LICENSE Analysis | IN PROGRESS | LICENSE analysis implemented for missing, recognized, custom/unrecognized and failed states; awaiting GitHub CI verification. |
+| 8 | Add LICENSE Analysis | IN PROGRESS | CI test fix applied: repository status expectations now account for successful LICENSE analysis when topics/languages fail; explicit all-analysis-failure coverage added. Awaiting GitHub CI verification. |
 | 9 | Add GitHub Actions Analysis | NOT STARTED | |
 | 10 | Add Official Release Analysis | NOT STARTED | |
 | 11 | Complete Refresh Orchestration and Progress Reporting | NOT STARTED | |

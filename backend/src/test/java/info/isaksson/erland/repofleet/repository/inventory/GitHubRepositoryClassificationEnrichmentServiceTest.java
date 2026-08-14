@@ -103,7 +103,7 @@ class GitHubRepositoryClassificationEnrichmentServiceTest {
     }
 
     @Test
-    void marksRepositoryFailedWhenBothClassificationLookupsFail() {
+    void marksRepositoryPartialWhenTopicsAndLanguagesFailButLicenseAnalysisSucceeds() {
         when(client.getTopics(anyString(), anyString(), anyString(), anyString(), anyString()))
                 .thenThrow(new IllegalStateException("topics unavailable"));
         when(client.getLanguages(anyString(), anyString(), anyString(), anyString(), anyString()))
@@ -111,9 +111,10 @@ class GitHubRepositoryClassificationEnrichmentServiceTest {
 
         RepositorySummary enriched = service.enrich(repository());
 
-        assertEquals(AnalysisState.FAILED, enriched.refreshStatus().state());
+        assertEquals(AnalysisState.PARTIAL, enriched.refreshStatus().state());
         assertEquals(List.of(), enriched.topics());
         assertEquals(List.of(), enriched.languages());
+        assertEquals(AnalysisState.COMPLETE, enriched.license().analysisState());
     }
 
 
@@ -170,6 +171,22 @@ class GitHubRepositoryClassificationEnrichmentServiceTest {
         assertEquals(LicensePresence.UNKNOWN, enriched.license().presence());
         assertEquals(AnalysisState.NOT_ANALYZED, enriched.license().analysisState());
         assertEquals(AnalysisState.PARTIAL, enriched.refreshStatus().state());
+    }
+
+
+    @Test
+    void marksRepositoryFailedWhenAllStep8EnrichmentLookupsFail() {
+        when(client.getTopics(anyString(), anyString(), anyString(), anyString(), anyString()))
+                .thenThrow(new IllegalStateException("topics unavailable"));
+        when(client.getLanguages(anyString(), anyString(), anyString(), anyString(), anyString()))
+                .thenThrow(new IllegalStateException("languages unavailable"));
+        when(client.getRootContents(anyString(), anyString(), anyString(), anyString(), anyString()))
+                .thenThrow(new IllegalStateException("contents unavailable"));
+
+        RepositorySummary enriched = service.enrich(repository());
+
+        assertEquals(AnalysisState.FAILED, enriched.refreshStatus().state());
+        assertEquals(AnalysisState.NOT_ANALYZED, enriched.license().analysisState());
     }
 
     private RepositorySummary repository() {
