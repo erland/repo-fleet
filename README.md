@@ -230,3 +230,21 @@ The inventory page now exposes repository data freshness directly to the user:
 - complete, partial and failed refresh outcomes.
 
 Existing repository data remains visible while refresh status is polled. When a refresh finishes, the inventory is reloaded without replacing the table with an initial-loading screen.
+
+## Repository filtering
+
+Phase 1 filtering is performed client-side because the expected inventory is only hundreds of repositories.
+
+Supported filters are combinable and use **AND semantics across filter categories**:
+
+- name contains / name prefix,
+- owner and visibility,
+- active/archived and fork/non-fork,
+- topic present/absent,
+- language present/absent,
+- LICENSE present/missing,
+- GitHub Actions present/missing,
+- official release present/missing,
+- recent activity windows.
+
+Topic and language filters currently accept a single exact, case-insensitive value. When a topic/language value is entered with the neutral match mode, it means “present”. Unknown/failed analyses are never treated as “missing”.

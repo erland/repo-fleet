@@ -9,6 +9,7 @@ type RepositoryInventoryProps = {
   repositories: RepositorySummary[]
   loading: boolean
   error: string | null
+  emptyMessage?: string
 }
 
 function analysisUnavailable(state: string): boolean {
@@ -44,7 +45,7 @@ function activityLabel(repository: RepositorySummary): string {
   return date.toLocaleDateString('en-CA')
 }
 
-export function RepositoryInventory({ repositories, loading, error }: RepositoryInventoryProps) {
+export function RepositoryInventory({ repositories, loading, error, emptyMessage = 'No repositories are available.' }: RepositoryInventoryProps) {
   if (loading) {
     return (
       <section className="inventory-state" aria-live="polite" aria-busy="true">
@@ -67,7 +68,7 @@ export function RepositoryInventory({ repositories, loading, error }: Repository
     return (
       <section className="inventory-state">
         <h2>Repositories</h2>
-        <p>No repositories are available.</p>
+        <p>{emptyMessage}</p>
       </section>
     )
   }

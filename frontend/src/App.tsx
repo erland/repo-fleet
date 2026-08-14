@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   fetchInventoryStatus,
   fetchRepositories,
@@ -7,7 +7,9 @@ import {
   type RepositorySummary,
 } from './api'
 import { InventoryRefreshPanel } from './InventoryRefreshPanel'
+import { RepositoryFiltersPanel } from './RepositoryFiltersPanel'
 import { RepositoryInventory } from './RepositoryInventory'
+import { emptyRepositoryFilters, filterRepositories } from './repositoryFilters'
 
 const REFRESH_POLL_INTERVAL_MS = 1000
 
@@ -18,6 +20,7 @@ export default function App() {
   const [inventoryStatus, setInventoryStatus] = useState<InventoryStatus | null>(null)
   const [statusError, setStatusError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
+  const [filters, setFilters] = useState(emptyRepositoryFilters)
   const mountedRef = useRef(true)
 
   const loadRepositories = useCallback(async (showInitialLoading = false) => {
@@ -76,6 +79,12 @@ export default function App() {
     return () => window.clearInterval(timer)
   }, [inventoryStatus?.state, loadRepositories, loadStatus])
 
+
+  const filteredRepositories = useMemo(
+    () => filterRepositories(repositories, filters),
+    [repositories, filters],
+  )
+
   const refreshRepositories = useCallback(async () => {
     if (refreshing || inventoryStatus?.state === 'RUNNING') return
 
@@ -115,7 +124,19 @@ export default function App() {
         onRefresh={refreshRepositories}
       />
 
-      <RepositoryInventory repositories={repositories} loading={loading} error={error} />
+      <RepositoryFiltersPanel
+        filters={filters}
+        onChange={setFilters}
+        totalCount={repositories.length}
+        filteredCount={filteredRepositories.length}
+      />
+
+      <RepositoryInventory
+        repositories={filteredRepositories}
+        loading={loading}
+        error={error}
+        emptyMessage={repositories.length > 0 ? 'No repositories match the current filters.' : undefined}
+      />
     </main>
   )
 }

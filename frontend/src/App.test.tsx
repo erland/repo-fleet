@@ -2,8 +2,10 @@ import { renderToString } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import App from './App'
 import { InventoryRefreshPanel } from './InventoryRefreshPanel'
+import { RepositoryFiltersPanel } from './RepositoryFiltersPanel'
 import { RepositoryInventory } from './RepositoryInventory'
 import type { InventoryStatus, RepositorySummary } from './api'
+import { emptyRepositoryFilters } from './repositoryFilters'
 
 const repository: RepositorySummary = {
   id: 1001,
@@ -188,6 +190,31 @@ describe('InventoryRefreshPanel', () => {
 
     expect(html).toContain('Refresh failed')
     expect(html).toContain('GitHub unavailable')
+  })
+})
+
+describe('RepositoryFiltersPanel', () => {
+  it('renders all core Phase 1 filter controls and result count', () => {
+    const html = renderToString(
+      <RepositoryFiltersPanel
+        filters={emptyRepositoryFilters}
+        onChange={() => undefined}
+        totalCount={200}
+        filteredCount={12}
+      />,
+    )
+
+    expect(html).toContain('Name contains')
+    expect(html).toContain('Name prefix')
+    expect(html).toContain('Owner')
+    expect(html).toContain('Visibility')
+    expect(html).toContain('Topic')
+    expect(html).toContain('Language')
+    expect(html).toContain('License')
+    expect(html).toContain('GitHub Actions')
+    expect(html).toContain('Official release')
+    expect(html).toContain('Activity')
+    expect(html).toContain('12 of 200 repositories match')
   })
 })
 
