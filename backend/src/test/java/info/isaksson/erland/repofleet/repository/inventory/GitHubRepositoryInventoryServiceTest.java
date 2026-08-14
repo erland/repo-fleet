@@ -35,7 +35,7 @@ class GitHubRepositoryInventoryServiceTest {
             .thenReturn(new InstallationRepositoriesResponse(1, List.of(repository(1, "demo", "private"))));
 
         var service = new GitHubRepositoryInventoryService(tokenService, client);
-        var result = service.listRepositories();
+        var result = service.discoverRepositories();
 
         assertEquals(1, result.size());
         var repo = result.getFirst();
@@ -62,7 +62,7 @@ class GitHubRepositoryInventoryServiceTest {
             .thenReturn(new InstallationRepositoriesResponse(101, List.of(repository(101, "repo-101", "public"))));
 
         var service = new GitHubRepositoryInventoryService(tokenService, client);
-        var result = service.listRepositories();
+        var result = service.discoverRepositories();
 
         assertEquals(101, result.size());
     }
@@ -73,7 +73,7 @@ class GitHubRepositoryInventoryServiceTest {
         when(client.listInstallationRepositories(anyString(), anyString(), anyString(), anyInt(), anyInt()))
             .thenReturn(new InstallationRepositoriesResponse(0, List.of()));
 
-        assertTrue(new GitHubRepositoryInventoryService(tokenService, client).listRepositories().isEmpty());
+        assertTrue(new GitHubRepositoryInventoryService(tokenService, client).discoverRepositories().isEmpty());
     }
 
     @Test
@@ -82,7 +82,7 @@ class GitHubRepositoryInventoryServiceTest {
         when(client.listInstallationRepositories(anyString(), anyString(), anyString(), anyInt(), anyInt())).thenReturn(null);
 
         assertThrows(IllegalStateException.class,
-            () -> new GitHubRepositoryInventoryService(tokenService, client).listRepositories());
+            () -> new GitHubRepositoryInventoryService(tokenService, client).discoverRepositories());
     }
 
     private GitHubRepositoryResponse repository(long id, String name, String visibility) {

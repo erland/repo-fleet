@@ -20,8 +20,8 @@ Update this file whenever a development step is started, completed, blocked, or 
 | 2 | Establish Backend API Structure and Domain Models | DONE | Verified by green GitHub Actions frontend and backend build. |
 | 3 | Build the Initial Repository Inventory UI | DONE | Verified by green GitHub Actions frontend and backend build. |
 | 4 | Add GitHub App Authentication Foundation | DONE | Verified by GitHub Actions. |
-| 5 | Replace Sample Inventory with Real Repository Discovery | IN PROGRESS | Second CI fix applied: existing GitHubAppClient test fakes now implement `listInstallationRepositories(...)`. Awaiting GitHub CI verification. |
-| 6 | Introduce the In-Memory Repository Inventory | NOT STARTED | |
+| 5 | Replace Sample Inventory with Real Repository Discovery | DONE | Verified by GitHub Actions. |
+| 6 | Introduce the In-Memory Repository Inventory | IN PROGRESS | CI test-compile fix applied: discovery tests now use `discoverRepositories()` and RepositoryResourceTest targets the cached RepositoryInventoryService. Awaiting GitHub CI verification. |
 | 7 | Add Topics and Language Enrichment | NOT STARTED | |
 | 8 | Add LICENSE Analysis | NOT STARTED | |
 | 9 | Add GitHub Actions Analysis | NOT STARTED | |
@@ -51,9 +51,9 @@ A lightweight CI workflow has been introduced ahead of planned Step 24 so GitHub
 
 ## Current Position
 
-Next step: **Verify Step 5 in GitHub Actions, then Step 6 – Introduce the In-Memory Repository Inventory**
+Next step: **Step 6 – Introduce the In-Memory Repository Inventory** (awaiting CI verification)
 
-Completed steps: **4 / 26**
+Completed steps: **5 / 26**
 
 ## Update Convention
 

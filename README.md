@@ -150,3 +150,15 @@ To verify Step 4 locally:
 Phase 1 Step 5 replaces the deterministic sample inventory with the repositories accessible to the configured GitHub App installation. The backend uses the installation token and follows GitHub pagination with up to 100 repositories per page. Maintenance enrichment fields (topics/languages, license, Actions and releases) intentionally remain `NOT_ANALYZED` until their dedicated later steps.
 
 Run `scripts/verify-step-5.sh` to verify backend and frontend after configuring normal build dependencies. Runtime repository discovery additionally requires the GitHub App environment variables documented above.
+
+## Repository inventory cache
+
+Phase 1 now keeps the discovered repository inventory in backend memory.
+
+Useful endpoints:
+
+- `GET /api/repositories` – returns the current cached inventory.
+- `GET /api/inventory/status` – returns refresh state and timestamps.
+- `POST /api/inventory/refresh` – explicitly refreshes repository discovery from GitHub.
+
+The service performs an initial refresh on backend startup. If a later refresh fails, the last successful inventory remains available.
