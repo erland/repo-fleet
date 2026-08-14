@@ -2,53 +2,98 @@
 
 RepoFleet is a GitHub repository portfolio analytics and maintenance service.
 
-Phase 1 is read-only and focuses on repository inventory and analytics. The project is structured as a monorepo with a React/TypeScript frontend and a Quarkus/Java backend.
+**Phase 1 is read-only and complete in implementation:** it inventories repositories accessible to a GitHub App installation, analyzes maintenance-relevant metadata, and lets the user refresh, filter, sort, inspect, select and save reusable portfolio views.
+
+## What Phase 1 does
+
+RepoFleet answers questions such as:
+
+- Which `roman-*` repositories do not have GitHub Actions?
+- Which repositories with a topic have no published release?
+- Which repositories contain Java?
+- Which repositories are missing LICENSE?
+- Which repositories match several maintenance conditions at once?
+
+Analyzed repository data includes:
+
+- owner/name and visibility,
+- archived/fork/default branch,
+- topics,
+- languages and primary language,
+- LICENSE state,
+- GitHub Actions workflow state,
+- official release state,
+- recent activity.
+
+The backend inventory is in-memory; GitHub remains the source of truth. Saved views are stored locally in the browser.
 
 ## Project structure
 
 ```text
 .
-├── frontend/   React + TypeScript + Vite
-├── backend/    Quarkus + Java
-└── docs/       Functional specification, development plan and implementation status
+├── backend/                 Quarkus + Java 21
+├── frontend/                React + TypeScript + Vite
+├── docs/                    Product, development, deployment and completion docs
+├── scripts/                 Validation/build/release helpers
+├── .github/workflows/       CI and official release workflows
+├── docker-compose.yml       Local/simple-host runtime
+└── .env.example             Non-secret runtime configuration example
 ```
 
-## Prerequisites for local development
+Project-owned Java packages use:
 
-- Node.js 20.19+ or 22.12+
-- npm
-- Java 21
-- Maven 3.9+
+```text
+info.isaksson.erland.repofleet
+```
 
-For production-like local runtime, Docker Compose can run the complete service without local Java or Node tooling.
+## Fastest way to run
 
-## Run the backend
+With Docker and Docker Compose installed:
+
+```bash
+cp .env.example .env
+docker compose up --build -d
+```
+
+Open:
+
+```text
+http://localhost:8080
+```
+
+Backend diagnostics are exposed at `http://localhost:8081` by default.
+
+The service can start without GitHub credentials, but live repository discovery requires a configured GitHub App.
+
+Full Compose instructions: `docs/docker-compose-runtime.md`.
+
+## Configure the GitHub App
+
+Phase 1 needs only read access:
+
+- Metadata: read-only
+- Contents: read-only
+- Actions: read-only
+
+Configure the App ID and installation ID, then provide the private key either as a mounted/readable file through `REPOFLEET_GITHUB_PRIVATE_KEY_PATH` or as PEM text through `REPOFLEET_GITHUB_PRIVATE_KEY`.
+
+For the stock Docker Compose runtime, the PEM environment-variable form is the simplest because the Compose file does not assume a host key-file mount.
+
+See:
+
+- `docs/github-app-setup.md`
+- `docs/configuration.md`
+
+## Native development
+
+Backend:
 
 ```bash
 cd backend
 mvn quarkus:dev
 ```
 
-The backend listens on `http://localhost:8080` and currently exposes:
-
-```text
-GET /api/status
-GET /api/repositories
-GET /api/github/connection
-```
-
-Example response:
-
-```json
-{
-  "service": "repo-fleet-backend",
-  "status": "UP"
-}
-```
-
-## Run the frontend
-
-In a second terminal:
+Frontend:
 
 ```bash
 cd frontend
@@ -56,354 +101,128 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:5173`.
+Open `http://localhost:5173`; Vite proxies `/api/*` to the backend.
 
-The Vite development server proxies `/api/*` requests to the Quarkus backend at `http://localhost:8080`, so the application shell verifies frontend-to-backend connectivity automatically.
+Detailed instructions: `docs/local-development.md`.
 
-## GitHub App configuration
-
-Step 4 adds the server-side GitHub App authentication foundation. Repository discovery still uses deterministic sample data until Step 5.
-
-Configure the backend with environment variables (see `.env.example`):
-
-```text
-REPOFLEET_GITHUB_APP_ID
-REPOFLEET_GITHUB_INSTALLATION_ID
-REPOFLEET_GITHUB_PRIVATE_KEY_PATH
-```
-
-The private key may alternatively be supplied as `REPOFLEET_GITHUB_PRIVATE_KEY` containing PEM text. A mounted PEM file is recommended for container deployments because the secret is then not embedded in the image or application configuration.
-
-The diagnostic endpoint:
-
-```text
-GET /api/github/connection
-```
-
-returns `CONNECTED`, `NOT_CONFIGURED`, or `ERROR`. It verifies GitHub App authentication and installation-token acquisition but never returns the JWT, installation token, or private key. Installation tokens are cached server-side and refreshed before their GitHub expiry.
-
-Phase 1 remains read-only; do not grant repository write permissions to the GitHub App.
-
-## Tests
+## Tests and quality gate
 
 Frontend:
 
 ```bash
 cd frontend
 npm install
+npm run typecheck
 npm test
-npm run build
+npm run build:bundle
 ```
 
 Backend:
 
 ```bash
 cd backend
-mvn test
+mvn --batch-mode --no-transfer-progress verify
 ```
 
-## Continuous integration
-
-`.github/workflows/ci.yml` is the Phase 1 quality gate for pull requests and pushes to `main`.
-
-It validates:
-
-- **Repository policy:** project conventions, secret/example hygiene, acceptance mapping, Docker/Compose structure and basic source hygiene.
-- **Frontend:** dependency installation, explicit TypeScript type checking, Vitest/Phase 1 acceptance tests and the production Vite bundle.
-- **Backend:** Java 21 Maven `verify`, including tests and Quarkus packaging.
-- **Production containers:** one Docker Compose build/smoke path that builds both images and verifies health/startup/frontend-to-backend connectivity.
-- **Quality Gate:** one stable final pass/fail check suitable for branch protection.
-
-Expensive container images are built only in the production-container job; CI does not run both the Step 22 standalone Docker smoke and the Step 23 Compose smoke for the same commit.
-
-Because the project does not yet contain an npm lockfile, CI currently uses `npm install`. Once a lockfile is committed, CI should switch to `npm ci` for fully reproducible dependency installation and caching.
+The GitHub Actions CI workflow validates repository policy, frontend, backend and the complete production Docker Compose runtime. A final stable check named **Quality Gate** provides the pull-request pass/fail signal.
 
 See `docs/ci-quality-gate.md`.
 
-## Java package convention
+## Refresh behavior
 
-All project-owned Java code must use packages beginning with:
+The backend performs repository discovery/enrichment into an in-memory snapshot.
 
-```text
-info.isaksson.erland
-```
-
-RepoFleet backend code currently uses:
+Endpoints:
 
 ```text
-info.isaksson.erland.repofleet
+GET  /api/status
+GET  /api/github/connection
+GET  /api/repositories
+GET  /api/inventory/status
+POST /api/inventory/refresh
 ```
 
-## Documentation
+A failed discovery keeps the previous successful inventory. Per-repository metadata failures are isolated and represented as partial/failed analysis rather than silently becoming “missing” data.
 
-- `docs/functional-specification.md`
-- `docs/development-plan-phase-1.md`
-- `docs/implementation-status.md`
-
-## Phase 1 progress
-
-Steps 1–3 are complete. Step 4 adds the GitHub App authentication foundation while `GET /api/repositories` intentionally continues to use deterministic sample data until Step 5.
-
-To verify Step 4 locally:
-
-```bash
-./scripts/verify-step-4.sh
-```
-
-## Repository discovery
-
-Phase 1 Step 5 replaces the deterministic sample inventory with the repositories accessible to the configured GitHub App installation. The backend uses the installation token and follows GitHub pagination with up to 100 repositories per page. Maintenance enrichment fields (topics/languages, license, Actions and releases) intentionally remain `NOT_ANALYZED` until their dedicated later steps.
-
-Run `scripts/verify-step-5.sh` to verify backend and frontend after configuring normal build dependencies. Runtime repository discovery additionally requires the GitHub App environment variables documented above.
-
-## Repository inventory cache
-
-Phase 1 now keeps the discovered repository inventory in backend memory.
-
-Useful endpoints:
-
-- `GET /api/repositories` – returns the current cached inventory.
-- `GET /api/inventory/status` – returns refresh state and timestamps.
-- `POST /api/inventory/refresh` – explicitly refreshes repository discovery from GitHub.
-
-The service performs an initial refresh on backend startup. If a later refresh fails, the last successful inventory remains available.
-
-## Repository classification enrichment
-
-Each inventory refresh now enriches discovered repositories with:
-
-- GitHub topics,
-- detected programming languages,
-- primary language based on GitHub's language byte counts.
-
-Classification failures are isolated per repository. A failed topics/languages lookup for one repository does not make the complete portfolio refresh fail, and an API failure is represented separately from an empty topics/languages result.
-
-## LICENSE analysis
-
-Repository enrichment now distinguishes:
-
-- no license-like file in the repository root,
-- a license recognized by GitHub,
-- a license file that exists but is custom/unrecognized,
-- a LICENSE analysis failure.
-
-An API failure is never reported as a missing LICENSE.
-
-## GitHub Actions analysis
-
-Repository enrichment now checks the GitHub Actions workflow inventory for each repository and records:
-
-- whether workflows are present,
-- the workflow count,
-- a failed/unknown state when the Actions API cannot be analyzed.
-
-A failed Actions API call is not interpreted as “no workflows”. The GitHub App installation needs repository **Actions: read** permission for private repositories.
-
-## GitHub Release analysis
-
-Repository enrichment now analyses published GitHub Releases separately from tags.
-
-- Draft releases are ignored.
-- A published prerelease counts as a release but is marked as a prerelease.
-- The latest published release is selected by `published_at` (falling back to `created_at`).
-- An API failure remains an unknown/failed analysis and is never reported as “no release”.
-
-## Refresh orchestration and progress
-
-A portfolio refresh now has observable lifecycle/progress data through `GET /api/inventory/status`.
-
-The status includes:
-
-- lifecycle state (`NOT_STARTED`, `RUNNING`, `COMPLETED`, `PARTIAL`, `FAILED`),
-- start/completion and last-success timestamps,
-- total and processed repository counts,
-- successful and error counts,
-- the repository currently being enriched while a refresh is running.
-
-`POST /api/inventory/refresh` starts an asynchronous refresh when the service is running normally, allowing the frontend to poll status concurrently. A second refresh request while one is already running does not start a duplicate run.
-
-Repository-level partial/failed enrichment is retained in the inventory. A mixed result produces a `PARTIAL` portfolio refresh instead of discarding successfully enriched repositories.
-
-## Frontend refresh experience
-
-The inventory page now exposes repository data freshness directly to the user:
-
-- last successful refresh,
-- explicit refresh button,
-- progress while a refresh is running,
-- current repository being analyzed,
-- complete, partial and failed refresh outcomes.
-
-Existing repository data remains visible while refresh status is polled. When a refresh finishes, the inventory is reloaded without replacing the table with an initial-loading screen.
-
-## Repository filtering
-
-Phase 1 filtering is performed client-side because the expected inventory is only hundreds of repositories.
-
-Supported filters are combinable and use **AND semantics across filter categories**:
-
-- name contains / name prefix,
-- owner and visibility,
-- active/archived and fork/non-fork,
-- topic present/absent,
-- language present/absent,
-- LICENSE present/missing,
-- GitHub Actions present/missing,
-- official release present/missing,
-- recent activity windows.
-
-Topic and language filters currently accept a single exact, case-insensitive value. When a topic/language value is entered with the neutral match mode, it means “present”. Unknown/failed analyses are never treated as “missing”.
-
-## Repository sorting and counts
-
-Filtered inventory results can now be sorted client-side by:
-
-- name,
-- owner,
-- last activity,
-- primary language,
-- LICENSE state,
-- GitHub Actions state,
-- official release state.
-
-Sorting is deterministic and does not mutate the underlying repository inventory. Maintenance-state sorting orders known present values before known missing values, with unknown/failed analysis after both. Direction can be reversed.
-
-The UI shows both the total repository count and the filtered result count so large portfolios remain easy to inspect.
-
-## Repository selection
-
-The inventory now supports explicit multi-repository selection using stable GitHub repository IDs.
-
-- Individual repositories can be selected or deselected.
-- All currently visible filtered repositories can be selected in one action.
-- Visible repositories can be deselected without losing selections hidden by filters.
-- The complete selection can be cleared explicitly.
-- Total selected count remains visible even when filters hide selected repositories.
-
-This interaction model intentionally prepares RepoFleet for later guided and pull-request-based maintenance phases without performing any repository mutations in Phase 1.
-
-## Portfolio summary indicators
-
-The Phase 1 inventory now includes summary indicators for the current filtered result set:
-
-- repository count,
-- repositories missing LICENSE,
-- repositories missing GitHub Actions,
-- repositories missing an official GitHub Release,
-- repositories containing Java,
-- archived repositories,
-- forks.
-
-Unknown or failed analysis is tracked separately and is not counted as a known missing capability. This keeps portfolio maintenance signals trustworthy when GitHub API enrichment is partial.
-
-## Repository detail view
-
-Each inventory row now exposes a read-only detail view containing the repository's currently known Phase 1 metadata:
-
-- owner, visibility, archive/fork status and default branch,
-- topics and detected languages,
-- LICENSE analysis,
-- GitHub Actions analysis and workflow count,
-- official release metadata,
-- activity timestamps,
-- repository enrichment status and message.
-
-Unknown or failed analysis remains explicit instead of being interpreted as a missing capability. The detail view links to the repository on GitHub but performs no mutations.
+The frontend polls refresh status while a refresh is running and keeps the existing repository table visible.
 
 ## Saved views
 
-Named inventory views can now be stored in the browser using `localStorage`.
+Named views are stored in browser `localStorage`.
 
-A saved view captures the current:
+A saved view contains:
 
-- repository filters,
+- filters,
 - sort field,
 - sort direction.
 
-Saved views can be loaded or deleted later in the same browser. Repository selection is deliberately not part of a saved view, keeping selection an explicit temporary action. Storage failures are handled gracefully; the application remains usable even when browser storage is blocked or unavailable.
+Repository selection is intentionally not persisted in a saved view.
 
-## GitHub API resilience
-
-Repository refresh now applies bounded resilience rules around GitHub API calls:
-
-- installation tokens are invalidated and reacquired after a `401`,
-- transient network failures, rate limits and retryable server errors receive bounded retries,
-- ordinary authorization errors and unavailable resources are not retried repeatedly,
-- errors exposed to inventory status are sanitized and never include authorization tokens,
-- overlapping repository-discovery pages are de-duplicated by stable GitHub repository ID,
-- release discovery continues to later pages when a full page contains only drafts,
-- repositories that disappear during enrichment are marked unavailable without issuing the remaining metadata requests,
-- a successful later discovery removes repositories that are no longer part of the GitHub App installation.
-
-The previous in-memory inventory is still retained when repository discovery itself fails, so transient GitHub failures cannot replace usable portfolio data with an empty result.
-
-## Accessibility and responsive behavior
-
-The Phase 1 UI includes an accessibility and responsive-layout pass:
-
-- a keyboard skip link moves directly to the main inventory,
-- interactive controls have visible `:focus-visible` treatment,
-- the repository table is labeled as a keyboard-scrollable region on larger screens,
-- repository details receive focus when opened,
-- loading, refresh, selection and result status remain exposed through appropriate live/status semantics,
-- saved-view actions have descriptive accessible names,
-- filters and controls collapse cleanly on tablet/mobile,
-- below 720 px the repository table becomes labeled card-style rows so important repository information remains usable without horizontal table navigation,
-- forced-colors and reduced-motion preferences receive basic support.
-
-Native HTML controls and explicit/wrapped labels remain the primary interaction model so keyboard use does not depend on custom widgets.
-
-## Phase 1 acceptance validation
-
-Phase 1 now has a deterministic acceptance-validation suite covering the complete read-only workflow from GitHub discovery and refresh through repository filtering, sorting, selection, saved views and repository details.
-
-The validation uses mocked GitHub API clients and fixed frontend fixtures, so CI results do not depend on the current contents of the real GitHub installation.
-
-See `docs/phase-1-acceptance-validation.md` for the criterion-by-criterion validation matrix and run `./scripts/verify-step-21.sh` to execute the full Phase 1 validation.
+Saved views are local to the current browser/device.
 
 ## Docker images
 
-The frontend and backend can now be built as independent production images:
+Independent production images can be built with:
 
 ```bash
-docker build -t repofleet-backend ./backend
-docker build -t repofleet-frontend ./frontend
+docker build -t repo-fleet-backend ./backend
+docker build -t repo-fleet-frontend ./frontend
 ```
 
-The frontend runtime uses `BACKEND_URL` to proxy `/api` requests to the backend, while GitHub App configuration remains backend-only runtime configuration. Both images include container health checks and run without local Node, Maven or Java build tooling.
+The frontend container proxies `/api/*` to a runtime-configurable `BACKEND_URL`. Both images run non-root and include health checks.
 
-See `docs/docker-images.md` and use `bash scripts/verify-step-22.sh` for the isolated two-container smoke validation. Docker Compose is intentionally deferred to Step 23.
+See `docs/docker-images.md`.
 
-## Docker Compose runtime
+## Official releases
 
-The complete Phase 1 service can now be started with one command:
+Official releases use Git tags:
+
+```text
+vMAJOR.MINOR.PATCH
+```
+
+For example:
 
 ```bash
-docker compose up --build -d
+git tag v1.0.0
+git push origin v1.0.0
 ```
 
-By default:
+The tag is the application release-version source of truth.
 
-- frontend is available at `http://localhost:8080`,
-- backend diagnostics are available at `http://localhost:8081`,
-- frontend `/api/*` requests are proxied over the private Compose network to `backend:8080`.
+The release workflow:
 
-Copy `.env.example` to `.env` to configure GitHub App credentials or change host ports. Real secrets must not be committed.
+1. revalidates the tagged source,
+2. publishes versioned frontend/backend images to GHCR,
+3. adds commit-SHA trace tags and `latest`,
+4. packages version-specific deployment assets,
+5. creates or augments the matching GitHub Release.
 
-Run `bash scripts/verify-step-23.sh` for a clean Compose startup/health/proxy smoke test. See `docs/docker-compose-runtime.md` for details.
+No GitHub App private keys/runtime secrets are packaged.
 
-## Versioned releases
+See `docs/release-publishing.md`.
 
-Official releases are driven by Git tags matching `vMAJOR.MINOR.PATCH`.
+## Phase 1 completion
 
-Pushing a tag such as `v1.0.0` runs `.github/workflows/release.yml`, which:
+The formal review is in:
 
-- reruns frontend/backend/source validation for the tagged commit,
-- publishes versioned frontend and backend images to GitHub Container Registry,
-- also publishes commit-SHA trace tags and the convenience `latest` alias,
-- packages a deployment ZIP whose Compose file references the published versioned images,
-- creates or augments the matching GitHub Release.
+- `docs/phase-1-completion-review.md`
+- `docs/phase-1-acceptance-validation.md`
+- `docs/implementation-status.md`
 
-The Git tag is the release version source of truth; source files do not need matching manually maintained release versions.
+The completion review lists the delivered requirements, intentional deviations from the broader functional specification, known limitations, Phase 2 candidates and technical debt to address before introducing GitHub write functionality.
 
-See `docs/release-publishing.md` and `bash scripts/verify-step-25.sh`.
+## Documentation index
+
+- `docs/functional-specification.md` – product scope across phases
+- `docs/development-plan-phase-1.md` – implementation plan
+- `docs/implementation-status.md` – verified step status
+- `docs/local-development.md` – native development/testing
+- `docs/github-app-setup.md` – GitHub App permissions/install/configuration
+- `docs/configuration.md` – environment-variable reference
+- `docs/docker-images.md` – individual production images
+- `docs/docker-compose-runtime.md` – complete Docker runtime
+- `docs/ci-quality-gate.md` – pull-request validation
+- `docs/release-publishing.md` – versioned GHCR/GitHub Releases
+- `docs/phase-1-acceptance-validation.md` – deterministic acceptance coverage
+- `docs/phase-1-completion-review.md` – final Phase 1 assessment
