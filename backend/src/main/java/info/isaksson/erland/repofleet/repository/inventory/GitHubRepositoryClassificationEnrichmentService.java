@@ -3,6 +3,7 @@ package info.isaksson.erland.repofleet.repository.inventory;
 import info.isaksson.erland.repofleet.github.auth.GitHubInstallationTokenService;
 import info.isaksson.erland.repofleet.github.client.GitHubContentItemResponse;
 import info.isaksson.erland.repofleet.github.client.GitHubLicenseResponse;
+import info.isaksson.erland.repofleet.github.client.GitHubReleaseResponse;
 import info.isaksson.erland.repofleet.github.client.GitHubRepositoryMetadataClient;
 import info.isaksson.erland.repofleet.github.client.GitHubTopicsResponse;
 import info.isaksson.erland.repofleet.github.client.GitHubWorkflowsResponse;
@@ -10,6 +11,7 @@ import info.isaksson.erland.repofleet.repository.api.AnalysisState;
 import info.isaksson.erland.repofleet.repository.api.GitHubActionsStatus;
 import info.isaksson.erland.repofleet.repository.api.LicensePresence;
 import info.isaksson.erland.repofleet.repository.api.LicenseStatus;
+import info.isaksson.erland.repofleet.repository.api.ReleaseStatus;
 import info.isaksson.erland.repofleet.repository.api.RepositoryRefreshStatus;
 import info.isaksson.erland.repofleet.repository.api.RepositorySummary;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -43,11 +45,13 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
         String primaryLanguage = repository.primaryLanguage();
         LicenseStatus license = repository.license();
         GitHubActionsStatus githubActions = repository.githubActions();
+        ReleaseStatus release = repository.release();
 
         boolean topicsComplete = false;
         boolean languagesComplete = false;
         boolean licenseComplete = false;
         boolean actionsComplete = false;
+        boolean releaseComplete = false;
         List<String> errors = new ArrayList<>();
 
         try {
@@ -174,15 +178,63 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
             errors.add("actions: " + safeMessage(exception));
         }
 
+
+        try {
+            List<GitHubReleaseResponse> response = client.getReleases(
+                    repository.owner(),
+                    repository.name(),
+                    authorization,
+                    GitHubInstallationTokenService.ACCEPT,
+                    GitHubInstallationTokenService.API_VERSION,
+                    100,
+                    1);
+            List<GitHubReleaseResponse> releases = response == null ? List.of() : response;
+            GitHubReleaseResponse latestPublished = releases.stream()
+                    .filter(item -> item != null && !item.draft())
+                    .max(Comparator.comparing(
+                            this::releaseTimestamp,
+                            Comparator.nullsLast(Comparator.naturalOrder())))
+                    .orElse(null);
+
+            if (latestPublished == null) {
+                release = new ReleaseStatus(
+                        AnalysisState.COMPLETE,
+                        false,
+                        null,
+                        null,
+                        null,
+                        null);
+            } else {
+                release = new ReleaseStatus(
+                        AnalysisState.COMPLETE,
+                        true,
+                        latestPublished.name(),
+                        latestPublished.tagName(),
+                        releaseTimestamp(latestPublished),
+                        latestPublished.prerelease());
+            }
+            releaseComplete = true;
+        } catch (RuntimeException exception) {
+            release = new ReleaseStatus(
+                    AnalysisState.FAILED,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null);
+            errors.add("release: " + safeMessage(exception));
+        }
+
         AnalysisState state;
         String message;
         int completedAnalyses = (topicsComplete ? 1 : 0)
                 + (languagesComplete ? 1 : 0)
                 + (licenseComplete ? 1 : 0)
-                + (actionsComplete ? 1 : 0);
-        if (completedAnalyses == 4) {
-            state = AnalysisState.PARTIAL;
-            message = "Topics, languages, LICENSE and GitHub Actions analyzed; release analysis pending.";
+                + (actionsComplete ? 1 : 0)
+                + (releaseComplete ? 1 : 0);
+        if (completedAnalyses == 5) {
+            state = AnalysisState.COMPLETE;
+            message = "Repository enrichment complete.";
         } else if (completedAnalyses > 0) {
             state = AnalysisState.PARTIAL;
             message = "Repository enrichment partially completed (" + String.join("; ", errors) + ").";
@@ -206,9 +258,13 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
                 primaryLanguage,
                 license,
                 githubActions,
-                repository.release(),
+                release,
                 repository.activity(),
                 new RepositoryRefreshStatus(state, message));
+    }
+
+    private java.time.Instant releaseTimestamp(GitHubReleaseResponse release) {
+        return release.publishedAt() != null ? release.publishedAt() : release.createdAt();
     }
 
     private boolean isLicenseFileName(String name) {

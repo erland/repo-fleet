@@ -193,3 +193,12 @@ Repository enrichment now checks the GitHub Actions workflow inventory for each 
 - a failed/unknown state when the Actions API cannot be analyzed.
 
 A failed Actions API call is not interpreted as “no workflows”. The GitHub App installation needs repository **Actions: read** permission for private repositories.
+
+## GitHub Release analysis
+
+Repository enrichment now analyses published GitHub Releases separately from tags.
+
+- Draft releases are ignored.
+- A published prerelease counts as a release but is marked as a prerelease.
+- The latest published release is selected by `published_at` (falling back to `created_at`).
+- An API failure remains an unknown/failed analysis and is never reported as “no release”.

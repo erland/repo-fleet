@@ -12,6 +12,7 @@ import info.isaksson.erland.repofleet.github.auth.GitHubInstallationTokenService
 import info.isaksson.erland.repofleet.github.client.GitHubContentItemResponse;
 import info.isaksson.erland.repofleet.github.client.GitHubLicenseInfoResponse;
 import info.isaksson.erland.repofleet.github.client.GitHubLicenseResponse;
+import info.isaksson.erland.repofleet.github.client.GitHubReleaseResponse;
 import info.isaksson.erland.repofleet.github.client.GitHubRepositoryMetadataClient;
 import info.isaksson.erland.repofleet.github.client.GitHubTopicsResponse;
 import info.isaksson.erland.repofleet.github.client.GitHubWorkflowsResponse;
@@ -54,6 +55,9 @@ class GitHubRepositoryClassificationEnrichmentServiceTest {
         when(client.getWorkflows(
                 anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyInt()))
                 .thenReturn(new GitHubWorkflowsResponse(0));
+        when(client.getReleases(
+                anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyInt()))
+                .thenReturn(List.of());
 
         service = new GitHubRepositoryClassificationEnrichmentService(tokenService, client);
     }
@@ -74,7 +78,7 @@ class GitHubRepositoryClassificationEnrichmentServiceTest {
         assertEquals(List.of("analytics", "quarkus"), enriched.topics());
         assertEquals(List.of("Java", "TypeScript"), enriched.languages());
         assertEquals("Java", enriched.primaryLanguage());
-        assertEquals(AnalysisState.PARTIAL, enriched.refreshStatus().state());
+        assertEquals(AnalysisState.COMPLETE, enriched.refreshStatus().state());
     }
 
     @Test
@@ -89,7 +93,7 @@ class GitHubRepositoryClassificationEnrichmentServiceTest {
         assertEquals(List.of(), enriched.topics());
         assertEquals(List.of(), enriched.languages());
         assertNull(enriched.primaryLanguage());
-        assertEquals(AnalysisState.PARTIAL, enriched.refreshStatus().state());
+        assertEquals(AnalysisState.COMPLETE, enriched.refreshStatus().state());
     }
 
     @Test
@@ -190,6 +194,9 @@ class GitHubRepositoryClassificationEnrichmentServiceTest {
         when(client.getWorkflows(
                 anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyInt()))
                 .thenThrow(new IllegalStateException("actions unavailable"));
+        when(client.getReleases(
+                anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyInt()))
+                .thenThrow(new IllegalStateException("releases unavailable"));
 
         RepositorySummary enriched = service.enrich(repository());
 
@@ -231,6 +238,72 @@ class GitHubRepositoryClassificationEnrichmentServiceTest {
         assertEquals(AnalysisState.FAILED, enriched.githubActions().analysisState());
         assertNull(enriched.githubActions().workflowsPresent());
         assertNull(enriched.githubActions().workflowCount());
+        assertEquals(AnalysisState.PARTIAL, enriched.refreshStatus().state());
+    }
+
+
+    @Test
+    void reportsNoOfficialReleaseWhenOnlyDraftsExist() {
+        when(client.getReleases(
+                anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyInt()))
+                .thenReturn(List.of(new GitHubReleaseResponse(
+                        1L,
+                        "Draft",
+                        "v1.0.0",
+                        true,
+                        false,
+                        Instant.parse("2026-08-13T10:00:00Z"),
+                        Instant.parse("2026-08-13T09:00:00Z"))));
+
+        RepositorySummary enriched = service.enrich(repository());
+
+        assertEquals(AnalysisState.COMPLETE, enriched.release().analysisState());
+        assertEquals(Boolean.FALSE, enriched.release().releasePresent());
+        assertNull(enriched.release().latestReleaseTag());
+    }
+
+    @Test
+    void reportsLatestPublishedReleaseAndPrereleaseFlag() {
+        when(client.getReleases(
+                anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyInt()))
+                .thenReturn(List.of(
+                        new GitHubReleaseResponse(
+                                1L,
+                                "Stable",
+                                "v1.0.0",
+                                false,
+                                false,
+                                Instant.parse("2026-08-10T10:00:00Z"),
+                                Instant.parse("2026-08-10T09:00:00Z")),
+                        new GitHubReleaseResponse(
+                                2L,
+                                "Next beta",
+                                "v1.1.0-beta.1",
+                                false,
+                                true,
+                                Instant.parse("2026-08-12T10:00:00Z"),
+                                Instant.parse("2026-08-12T09:00:00Z"))));
+
+        RepositorySummary enriched = service.enrich(repository());
+
+        assertEquals(AnalysisState.COMPLETE, enriched.release().analysisState());
+        assertEquals(Boolean.TRUE, enriched.release().releasePresent());
+        assertEquals("Next beta", enriched.release().latestReleaseName());
+        assertEquals("v1.1.0-beta.1", enriched.release().latestReleaseTag());
+        assertEquals(Instant.parse("2026-08-12T10:00:00Z"), enriched.release().latestReleaseDate());
+        assertEquals(Boolean.TRUE, enriched.release().latestReleasePrerelease());
+    }
+
+    @Test
+    void reportsReleaseAnalysisFailureWithoutClaimingReleaseIsMissing() {
+        when(client.getReleases(
+                anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyInt()))
+                .thenThrow(new IllegalStateException("releases unavailable"));
+
+        RepositorySummary enriched = service.enrich(repository());
+
+        assertEquals(AnalysisState.FAILED, enriched.release().analysisState());
+        assertNull(enriched.release().releasePresent());
         assertEquals(AnalysisState.PARTIAL, enriched.refreshStatus().state());
     }
 

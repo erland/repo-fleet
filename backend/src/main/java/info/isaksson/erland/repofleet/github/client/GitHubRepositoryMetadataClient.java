@@ -68,4 +68,17 @@ public interface GitHubRepositoryMetadataClient {
         @QueryParam("page") int page
     );
 
+
+    @GET
+    @Path("/repos/{owner}/{repository}/releases")
+    List<GitHubReleaseResponse> getReleases(
+        @PathParam("owner") String owner,
+        @PathParam("repository") String repository,
+        @HeaderParam("Authorization") String authorization,
+        @HeaderParam("Accept") String accept,
+        @HeaderParam("X-GitHub-Api-Version") String apiVersion,
+        @QueryParam("per_page") int perPage,
+        @QueryParam("page") int page
+    );
+
 }

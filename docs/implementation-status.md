@@ -24,8 +24,8 @@ Update this file whenever a development step is started, completed, blocked, or 
 | 6 | Introduce the In-Memory Repository Inventory | DONE | Verified by GitHub Actions. |
 | 7 | Add Topics and Language Enrichment | DONE | Verified by GitHub Actions. |
 | 8 | Add LICENSE Analysis | DONE | Verified by GitHub Actions. |
-| 9 | Add GitHub Actions Analysis | IN PROGRESS | GitHub Actions workflow analysis implemented with explicit zero-vs-error semantics; awaiting GitHub CI verification. |
-| 10 | Add Official Release Analysis | NOT STARTED | |
+| 9 | Add GitHub Actions Analysis | DONE | Verified by GitHub Actions. |
+| 10 | Add Official Release Analysis | IN PROGRESS | Official GitHub Release analysis implemented, excluding drafts and preserving prerelease state; awaiting GitHub CI verification. |
 | 11 | Complete Refresh Orchestration and Progress Reporting | NOT STARTED | |
 | 12 | Add Frontend Refresh Experience | NOT STARTED | |
 | 13 | Implement Repository Filtering | NOT STARTED | |
@@ -51,9 +51,9 @@ A lightweight CI workflow has been introduced ahead of planned Step 24 so GitHub
 
 ## Current Position
 
-Next step: **Step 9 – Add GitHub Actions Analysis** (awaiting CI verification)
+Next step: **Step 10 – Add Official Release Analysis** (awaiting CI verification)
 
-Completed steps: **8 / 26**
+Completed steps: **9 / 26**
 
 ## Update Convention
 
