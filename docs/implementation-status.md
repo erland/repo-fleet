@@ -32,8 +32,8 @@ Update this file whenever a development step is started, completed, blocked, or 
 | 14 | Add Sorting and Result Counts | DONE | Verified by GitHub Actions. |
 | 15 | Add Repository Selection | DONE | Verified by GitHub Actions. |
 | 16 | Add Portfolio Summary Indicators | DONE | Verified by GitHub Actions. |
-| 17 | Add Repository Detail View | IN PROGRESS | Read-only repository detail panel implemented for core metadata, topics/languages, maintenance analysis, activity and GitHub navigation; awaiting GitHub CI verification. |
-| 18 | Add Saved Views Using Browser Storage | NOT STARTED | |
+| 17 | Add Repository Detail View | DONE | Verified by GitHub Actions. |
+| 18 | Add Saved Views Using Browser Storage | IN PROGRESS | Named saved views implemented in browser localStorage for filter and sorting snapshots, with load/delete and graceful storage failure handling; awaiting GitHub CI verification. |
 | 19 | Harden GitHub API and Rate-Limit Handling | NOT STARTED | |
 | 20 | Accessibility and Responsive UI Pass | NOT STARTED | |
 | 21 | End-to-End Phase 1 Validation | NOT STARTED | |
@@ -51,9 +51,9 @@ A lightweight CI workflow has been introduced ahead of planned Step 24 so GitHub
 
 ## Current Position
 
-Next step: **Step 17 – Add Repository Detail View** (awaiting CI verification)
+Next step: **Step 18 – Add Saved Views Using Browser Storage** (awaiting CI verification)
 
-Completed steps: **16 / 26**
+Completed steps: **17 / 26**
 
 ## Update Convention
 

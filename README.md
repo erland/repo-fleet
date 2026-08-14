@@ -304,3 +304,15 @@ Each inventory row now exposes a read-only detail view containing the repository
 - repository enrichment status and message.
 
 Unknown or failed analysis remains explicit instead of being interpreted as a missing capability. The detail view links to the repository on GitHub but performs no mutations.
+
+## Saved views
+
+Named inventory views can now be stored in the browser using `localStorage`.
+
+A saved view captures the current:
+
+- repository filters,
+- sort field,
+- sort direction.
+
+Saved views can be loaded or deleted later in the same browser. Repository selection is deliberately not part of a saved view, keeping selection an explicit temporary action. Storage failures are handled gracefully; the application remains usable even when browser storage is blocked or unavailable.

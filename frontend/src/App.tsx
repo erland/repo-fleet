@@ -13,10 +13,12 @@ import { RepositoryFiltersPanel } from './RepositoryFiltersPanel'
 import { RepositoryInventory } from './RepositoryInventory'
 import { RepositorySelectionBar } from './RepositorySelectionBar'
 import { RepositorySortControls } from './RepositorySortControls'
+import { SavedViewsPanel } from './SavedViewsPanel'
 import { emptyRepositoryFilters, filterRepositories } from './repositoryFilters'
 import { defaultRepositorySort, sortRepositories } from './repositorySorting'
 import { clearRepositorySelection, deselectVisibleRepositories, selectVisibleRepositories, toggleRepositorySelection } from './repositorySelection'
 import { summarizePortfolio } from './portfolioSummary'
+import { createSavedView, loadSavedViews, persistSavedViews, removeSavedView, type SavedRepositoryView } from './savedViews'
 
 const REFRESH_POLL_INTERVAL_MS = 1000
 
@@ -31,6 +33,9 @@ export default function App() {
   const [sort, setSort] = useState(defaultRepositorySort)
   const [selectedRepositoryIds, setSelectedRepositoryIds] = useState<Set<number>>(new Set())
   const [detailRepositoryId, setDetailRepositoryId] = useState<number | null>(null)
+  const [savedViews, setSavedViews] = useState<SavedRepositoryView[]>([])
+  const [savedViewsInitialized, setSavedViewsInitialized] = useState(false)
+  const [savedViewsStorageAvailable, setSavedViewsStorageAvailable] = useState(true)
   const mountedRef = useRef(true)
 
   const loadRepositories = useCallback(async (showInitialLoading = false) => {
@@ -62,6 +67,28 @@ export default function App() {
       return null
     }
   }, [])
+
+  useEffect(() => {
+    try {
+      setSavedViews(loadSavedViews(window.localStorage))
+    } catch {
+      setSavedViewsStorageAvailable(false)
+    } finally {
+      setSavedViewsInitialized(true)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!savedViewsInitialized) return
+
+    const persisted = persistSavedViews(
+      savedViewsStorageAvailable ? window.localStorage : null,
+      savedViews,
+    )
+    if (savedViewsStorageAvailable && !persisted) {
+      setSavedViewsStorageAvailable(false)
+    }
+  }, [savedViews, savedViewsInitialized, savedViewsStorageAvailable])
 
   useEffect(() => {
     mountedRef.current = true
@@ -112,6 +139,30 @@ export default function App() {
   )
 
 
+
+  const saveCurrentView = useCallback((name: string) => {
+    setSavedViews((current) => [
+      ...current,
+      createSavedView(
+        name,
+        filters,
+        sort,
+        globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${current.length}`,
+      ),
+    ])
+  }, [filters, sort])
+
+  const loadSavedView = useCallback((viewId: string) => {
+    const view = savedViews.find((candidate) => candidate.id === viewId)
+    if (!view) return
+
+    setFilters({ ...view.filters })
+    setSort({ ...view.sort })
+  }, [savedViews])
+
+  const deleteSavedView = useCallback((viewId: string) => {
+    setSavedViews((current) => removeSavedView(current, viewId))
+  }, [])
 
   const openRepositoryDetails = useCallback((repositoryId: number) => {
     setDetailRepositoryId(repositoryId)
@@ -181,6 +232,14 @@ export default function App() {
         onChange={setFilters}
         totalCount={repositories.length}
         filteredCount={filteredRepositories.length}
+      />
+
+      <SavedViewsPanel
+        views={savedViews}
+        storageAvailable={savedViewsStorageAvailable}
+        onSave={saveCurrentView}
+        onLoad={loadSavedView}
+        onDelete={deleteSavedView}
       />
 
       <PortfolioSummaryPanel

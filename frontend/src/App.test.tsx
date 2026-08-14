@@ -8,10 +8,12 @@ import { RepositoryFiltersPanel } from './RepositoryFiltersPanel'
 import { RepositoryInventory } from './RepositoryInventory'
 import { RepositorySelectionBar } from './RepositorySelectionBar'
 import { RepositorySortControls } from './RepositorySortControls'
+import { SavedViewsPanel } from './SavedViewsPanel'
 import type { InventoryStatus, RepositorySummary } from './api'
 import { emptyRepositoryFilters } from './repositoryFilters'
 import { defaultRepositorySort } from './repositorySorting'
 import { summarizePortfolio } from './portfolioSummary'
+import { createSavedView } from './savedViews'
 
 const repository: RepositorySummary = {
   id: 1001,
@@ -389,6 +391,50 @@ describe('RepositoryDetailPanel', () => {
     )
 
     expect(html).toContain('View details')
+  })
+})
+
+describe('SavedViewsPanel', () => {
+  it('renders saved views and browser-storage guidance', () => {
+    const view = createSavedView(
+      'Java missing LICENSE',
+      { ...emptyRepositoryFilters, language: 'Java', license: 'MISSING' },
+      defaultRepositorySort,
+      'view-1',
+    )
+
+    const html = renderToString(
+      <SavedViewsPanel
+        views={[view]}
+        storageAvailable
+        onSave={() => undefined}
+        onLoad={() => undefined}
+        onDelete={() => undefined}
+      />,
+    )
+
+    expect(html).toContain('Saved views')
+    expect(html).toContain('Java missing LICENSE')
+    expect(html).toContain('1 saved view')
+    expect(html).toContain('Save current view')
+    expect(html).toContain('Load')
+    expect(html).toContain('Delete')
+    expect(html).toContain('Repository selection is not included')
+  })
+
+  it('shows a graceful warning when browser storage is unavailable', () => {
+    const html = renderToString(
+      <SavedViewsPanel
+        views={[]}
+        storageAvailable={false}
+        onSave={() => undefined}
+        onLoad={() => undefined}
+        onDelete={() => undefined}
+      />,
+    )
+
+    expect(html).toContain('Browser storage is unavailable')
+    expect(html).toContain('No saved views yet')
   })
 })
 
