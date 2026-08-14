@@ -20,7 +20,7 @@ Phase 1 is read-only and focuses on repository inventory and analytics. The proj
 - Java 21
 - Maven 3.9+
 
-Docker-based packaging/runtime is planned later in Phase 1 according to the development plan.
+For production-like local runtime, Docker Compose can run the complete service without local Java or Node tooling.
 
 ## Run the backend
 
@@ -368,3 +368,21 @@ docker build -t repofleet-frontend ./frontend
 The frontend runtime uses `BACKEND_URL` to proxy `/api` requests to the backend, while GitHub App configuration remains backend-only runtime configuration. Both images include container health checks and run without local Node, Maven or Java build tooling.
 
 See `docs/docker-images.md` and use `bash scripts/verify-step-22.sh` for the isolated two-container smoke validation. Docker Compose is intentionally deferred to Step 23.
+
+## Docker Compose runtime
+
+The complete Phase 1 service can now be started with one command:
+
+```bash
+docker compose up --build -d
+```
+
+By default:
+
+- frontend is available at `http://localhost:8080`,
+- backend diagnostics are available at `http://localhost:8081`,
+- frontend `/api/*` requests are proxied over the private Compose network to `backend:8080`.
+
+Copy `.env.example` to `.env` to configure GitHub App credentials or change host ports. Real secrets must not be committed.
+
+Run `bash scripts/verify-step-23.sh` for a clean Compose startup/health/proxy smoke test. See `docs/docker-compose-runtime.md` for details.
