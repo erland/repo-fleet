@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Locale;
 
 @ApplicationScoped
-public class GitHubRepositoryInventoryService implements RepositoryInventoryService {
+public class GitHubRepositoryInventoryService implements GitHubRepositoryDiscoveryService {
 
     static final int PAGE_SIZE = 100;
 
@@ -40,7 +40,7 @@ public class GitHubRepositoryInventoryService implements RepositoryInventoryServ
     }
 
     @Override
-    public List<RepositorySummary> listRepositories() {
+    public List<RepositorySummary> discoverRepositories() {
         String token = tokenService.getToken().value();
         List<RepositorySummary> repositories = new ArrayList<>();
         int page = 1;
