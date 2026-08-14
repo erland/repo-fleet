@@ -1,6 +1,6 @@
 package info.isaksson.erland.repofleet.repository.api;
 
-import info.isaksson.erland.repofleet.repository.inventory.GitHubRepositoryInventoryService;
+import info.isaksson.erland.repofleet.repository.inventory.RepositoryInventoryService;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,7 +18,7 @@ import static org.mockito.Mockito.when;
 class RepositoryResourceTest {
 
     @InjectMock
-    GitHubRepositoryInventoryService inventoryService;
+    RepositoryInventoryService inventoryService;
 
     @BeforeEach
     void setUp() {
