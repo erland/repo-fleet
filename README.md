@@ -218,3 +218,15 @@ The status includes:
 `POST /api/inventory/refresh` starts an asynchronous refresh when the service is running normally, allowing the frontend to poll status concurrently. A second refresh request while one is already running does not start a duplicate run.
 
 Repository-level partial/failed enrichment is retained in the inventory. A mixed result produces a `PARTIAL` portfolio refresh instead of discarding successfully enriched repositories.
+
+## Frontend refresh experience
+
+The inventory page now exposes repository data freshness directly to the user:
+
+- last successful refresh,
+- explicit refresh button,
+- progress while a refresh is running,
+- current repository being analyzed,
+- complete, partial and failed refresh outcomes.
+
+Existing repository data remains visible while refresh status is polled. When a refresh finishes, the inventory is reloaded without replacing the table with an initial-loading screen.
