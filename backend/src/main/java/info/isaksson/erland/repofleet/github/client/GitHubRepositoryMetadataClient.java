@@ -6,6 +6,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
+import java.util.List;
 import java.util.Map;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 
@@ -32,4 +33,25 @@ public interface GitHubRepositoryMetadataClient {
         @HeaderParam("Accept") String accept,
         @HeaderParam("X-GitHub-Api-Version") String apiVersion
     );
+
+    @GET
+    @Path("/repos/{owner}/{repository}/contents")
+    List<GitHubContentItemResponse> getRootContents(
+        @PathParam("owner") String owner,
+        @PathParam("repository") String repository,
+        @HeaderParam("Authorization") String authorization,
+        @HeaderParam("Accept") String accept,
+        @HeaderParam("X-GitHub-Api-Version") String apiVersion
+    );
+
+    @GET
+    @Path("/repos/{owner}/{repository}/license")
+    GitHubLicenseResponse getLicense(
+        @PathParam("owner") String owner,
+        @PathParam("repository") String repository,
+        @HeaderParam("Authorization") String authorization,
+        @HeaderParam("Accept") String accept,
+        @HeaderParam("X-GitHub-Api-Version") String apiVersion
+    );
+
 }

@@ -1,9 +1,13 @@
 package info.isaksson.erland.repofleet.repository.inventory;
 
 import info.isaksson.erland.repofleet.github.auth.GitHubInstallationTokenService;
+import info.isaksson.erland.repofleet.github.client.GitHubContentItemResponse;
+import info.isaksson.erland.repofleet.github.client.GitHubLicenseResponse;
 import info.isaksson.erland.repofleet.github.client.GitHubRepositoryMetadataClient;
 import info.isaksson.erland.repofleet.github.client.GitHubTopicsResponse;
 import info.isaksson.erland.repofleet.repository.api.AnalysisState;
+import info.isaksson.erland.repofleet.repository.api.LicensePresence;
+import info.isaksson.erland.repofleet.repository.api.LicenseStatus;
 import info.isaksson.erland.repofleet.repository.api.RepositoryRefreshStatus;
 import info.isaksson.erland.repofleet.repository.api.RepositorySummary;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -35,9 +39,11 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
         List<String> topics = repository.topics();
         List<String> languages = repository.languages();
         String primaryLanguage = repository.primaryLanguage();
+        LicenseStatus license = repository.license();
 
         boolean topicsComplete = false;
         boolean languagesComplete = false;
+        boolean licenseComplete = false;
         List<String> errors = new ArrayList<>();
 
         try {
@@ -77,18 +83,78 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
             errors.add("languages: " + safeMessage(exception));
         }
 
+
+        try {
+            List<GitHubContentItemResponse> rootContents = client.getRootContents(
+                    repository.owner(),
+                    repository.name(),
+                    authorization,
+                    GitHubInstallationTokenService.ACCEPT,
+                    GitHubInstallationTokenService.API_VERSION);
+            List<GitHubContentItemResponse> contents = rootContents == null ? List.of() : rootContents;
+            boolean licenseFilePresent = contents.stream()
+                    .filter(item -> item != null && "file".equalsIgnoreCase(item.type()))
+                    .map(GitHubContentItemResponse::name)
+                    .filter(name -> name != null)
+                    .anyMatch(this::isLicenseFileName);
+
+            if (!licenseFilePresent) {
+                license = new LicenseStatus(
+                        AnalysisState.COMPLETE,
+                        LicensePresence.MISSING,
+                        false,
+                        null,
+                        null);
+                licenseComplete = true;
+            } else {
+                try {
+                    GitHubLicenseResponse response = client.getLicense(
+                            repository.owner(),
+                            repository.name(),
+                            authorization,
+                            GitHubInstallationTokenService.ACCEPT,
+                            GitHubInstallationTokenService.API_VERSION);
+                    String key = response == null || response.license() == null ? null : response.license().key();
+                    String name = response == null || response.license() == null ? null : response.license().name();
+                    String spdxId = response == null || response.license() == null ? null : response.license().spdxId();
+                    boolean recognized = isRecognizedLicense(key, spdxId);
+                    license = new LicenseStatus(
+                            AnalysisState.COMPLETE,
+                            LicensePresence.PRESENT,
+                            recognized,
+                            key,
+                            name);
+                    licenseComplete = true;
+                } catch (jakarta.ws.rs.WebApplicationException exception) {
+                    if (exception.getResponse() != null && exception.getResponse().getStatus() == 404) {
+                        license = new LicenseStatus(
+                                AnalysisState.COMPLETE,
+                                LicensePresence.PRESENT,
+                                false,
+                                null,
+                                "Custom or unrecognized license");
+                        licenseComplete = true;
+                    } else {
+                        errors.add("license: " + safeMessage(exception));
+                    }
+                }
+            }
+        } catch (RuntimeException exception) {
+            errors.add("license: " + safeMessage(exception));
+        }
+
         AnalysisState state;
         String message;
-        if (topicsComplete && languagesComplete) {
-            // Classification is complete; other Phase 1 analyses are intentionally still pending.
+        int completedAnalyses = (topicsComplete ? 1 : 0) + (languagesComplete ? 1 : 0) + (licenseComplete ? 1 : 0);
+        if (completedAnalyses == 3) {
             state = AnalysisState.PARTIAL;
-            message = "Topics and languages enriched; remaining maintenance analyses pending.";
-        } else if (topicsComplete || languagesComplete) {
+            message = "Topics, languages and LICENSE analyzed; remaining maintenance analyses pending.";
+        } else if (completedAnalyses > 0) {
             state = AnalysisState.PARTIAL;
-            message = "Repository classification partially enriched (" + String.join("; ", errors) + ").";
+            message = "Repository enrichment partially completed (" + String.join("; ", errors) + ").";
         } else {
             state = AnalysisState.FAILED;
-            message = "Repository classification enrichment failed (" + String.join("; ", errors) + ").";
+            message = "Repository enrichment failed (" + String.join("; ", errors) + ").";
         }
 
         return new RepositorySummary(
@@ -104,11 +170,26 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
                 topics,
                 languages,
                 primaryLanguage,
-                repository.license(),
+                license,
                 repository.githubActions(),
                 repository.release(),
                 repository.activity(),
                 new RepositoryRefreshStatus(state, message));
+    }
+
+    private boolean isLicenseFileName(String name) {
+        String normalized = name.trim().toUpperCase(java.util.Locale.ROOT);
+        return normalized.equals("LICENSE")
+                || normalized.startsWith("LICENSE.")
+                || normalized.equals("LICENCE")
+                || normalized.startsWith("LICENCE.");
+    }
+
+    private boolean isRecognizedLicense(String key, String spdxId) {
+        if (spdxId != null && !spdxId.isBlank() && !"NOASSERTION".equalsIgnoreCase(spdxId)) {
+            return true;
+        }
+        return key != null && !key.isBlank() && !"other".equalsIgnoreCase(key);
     }
 
     private String safeMessage(RuntimeException exception) {
