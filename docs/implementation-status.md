@@ -26,8 +26,8 @@ Update this file whenever a development step is started, completed, blocked, or 
 | 8 | Add LICENSE Analysis | DONE | Verified by GitHub Actions. |
 | 9 | Add GitHub Actions Analysis | DONE | Verified by GitHub Actions. |
 | 10 | Add Official Release Analysis | DONE | Verified by GitHub Actions. |
-| 11 | Complete Refresh Orchestration and Progress Reporting | IN PROGRESS | CI test fix applied: the mixed refresh scenario now returns a truly COMPLETE repository for the successful branch before asserting success/error counts. Awaiting GitHub CI verification. |
-| 12 | Add Frontend Refresh Experience | NOT STARTED | |
+| 11 | Complete Refresh Orchestration and Progress Reporting | DONE | Verified by GitHub Actions. |
+| 12 | Add Frontend Refresh Experience | IN PROGRESS | CI frontend test fix applied: dynamic refresh messages are precomputed before JSX rendering so server-rendered HTML is stable and testable. Awaiting GitHub CI verification. |
 | 13 | Implement Repository Filtering | NOT STARTED | |
 | 14 | Add Sorting and Result Counts | NOT STARTED | |
 | 15 | Add Repository Selection | NOT STARTED | |
@@ -51,9 +51,9 @@ A lightweight CI workflow has been introduced ahead of planned Step 24 so GitHub
 
 ## Current Position
 
-Next step: **Step 11 – Complete Refresh Orchestration and Progress Reporting** (awaiting CI verification)
+Next step: **Step 12 – Add Frontend Refresh Experience** (awaiting CI verification)
 
-Completed steps: **10 / 26**
+Completed steps: **11 / 26**
 
 ## Update Convention
 

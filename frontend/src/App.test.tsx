@@ -1,8 +1,9 @@
 import { renderToString } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import App from './App'
+import { InventoryRefreshPanel } from './InventoryRefreshPanel'
 import { RepositoryInventory } from './RepositoryInventory'
-import type { RepositorySummary } from './api'
+import type { InventoryStatus, RepositorySummary } from './api'
 
 const repository: RepositorySummary = {
   id: 1001,
@@ -90,3 +91,103 @@ describe('RepositoryInventory', () => {
     expect((html.match(/Unknown/g) ?? []).length).toBeGreaterThanOrEqual(3)
   })
 })
+
+const inventoryStatus = (overrides: Partial<InventoryStatus> = {}): InventoryStatus => ({
+  state: 'COMPLETED',
+  lastAttemptAt: '2026-08-14T10:00:00Z',
+  lastSuccessfulRefreshAt: '2026-08-14T10:01:00Z',
+  completedAt: '2026-08-14T10:01:00Z',
+  errorMessage: null,
+  repositoryCount: 2,
+  totalCount: 2,
+  processedCount: 2,
+  successfulCount: 2,
+  errorCount: 0,
+  currentRepository: null,
+  running: false,
+  ...overrides,
+})
+
+describe('InventoryRefreshPanel', () => {
+  it('renders the idle state and refresh control', () => {
+    const html = renderToString(
+      <InventoryRefreshPanel status={null} statusError={null} refreshing={false} onRefresh={() => undefined} />,
+    )
+
+    expect(html).toContain('Last successful refresh')
+    expect(html).toContain('Never')
+    expect(html).toContain('Refresh repositories')
+  })
+
+  it('renders refresh progress without hiding existing-data guidance', () => {
+    const html = renderToString(
+      <InventoryRefreshPanel
+        status={inventoryStatus({
+          state: 'RUNNING',
+          processedCount: 3,
+          totalCount: 10,
+          successfulCount: 3,
+          currentRepository: 'erland/repo-fleet',
+          running: true,
+        })}
+        statusError={null}
+        refreshing
+        onRefresh={() => undefined}
+      />,
+    )
+
+    expect(html).toContain('3 of 10 repositories processed')
+    expect(html).toContain('30%')
+    expect(html).toContain('erland/repo-fleet')
+    expect(html).toContain('Existing repository data remains available')
+    expect(html).toContain('Refreshing')
+  })
+
+  it('renders the success state', () => {
+    const html = renderToString(
+      <InventoryRefreshPanel
+        status={inventoryStatus()}
+        statusError={null}
+        refreshing={false}
+        onRefresh={() => undefined}
+      />,
+    )
+
+    expect(html).toContain('Refresh complete')
+    expect(html).toContain('2 repositories are up to date')
+  })
+
+  it('renders the partial failure warning', () => {
+    const html = renderToString(
+      <InventoryRefreshPanel
+        status={inventoryStatus({ state: 'PARTIAL', successfulCount: 1, errorCount: 1 })}
+        statusError={null}
+        refreshing={false}
+        onRefresh={() => undefined}
+      />,
+    )
+
+    expect(html).toContain('Refresh completed with partial failures')
+    expect(html).toContain('1 repository has incomplete or failed analysis')
+  })
+
+  it('renders the failed refresh state', () => {
+    const html = renderToString(
+      <InventoryRefreshPanel
+        status={inventoryStatus({
+          state: 'FAILED',
+          errorMessage: 'GitHub unavailable',
+          successfulCount: 0,
+          errorCount: 2,
+        })}
+        statusError={null}
+        refreshing={false}
+        onRefresh={() => undefined}
+      />,
+    )
+
+    expect(html).toContain('Refresh failed')
+    expect(html).toContain('GitHub unavailable')
+  })
+})
+
