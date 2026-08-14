@@ -2,6 +2,7 @@ package info.isaksson.erland.repofleet.repository.inventory;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -13,6 +14,7 @@ import info.isaksson.erland.repofleet.github.client.GitHubLicenseInfoResponse;
 import info.isaksson.erland.repofleet.github.client.GitHubLicenseResponse;
 import info.isaksson.erland.repofleet.github.client.GitHubRepositoryMetadataClient;
 import info.isaksson.erland.repofleet.github.client.GitHubTopicsResponse;
+import info.isaksson.erland.repofleet.github.client.GitHubWorkflowsResponse;
 import info.isaksson.erland.repofleet.repository.api.ActivityStatus;
 import info.isaksson.erland.repofleet.repository.api.AnalysisState;
 import info.isaksson.erland.repofleet.repository.api.GitHubActionsStatus;
@@ -49,6 +51,9 @@ class GitHubRepositoryClassificationEnrichmentServiceTest {
                 .thenReturn(Map.of());
         when(client.getRootContents(anyString(), anyString(), anyString(), anyString(), anyString()))
                 .thenReturn(List.of());
+        when(client.getWorkflows(
+                anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyInt()))
+                .thenReturn(new GitHubWorkflowsResponse(0));
 
         service = new GitHubRepositoryClassificationEnrichmentService(tokenService, client);
     }
@@ -175,18 +180,58 @@ class GitHubRepositoryClassificationEnrichmentServiceTest {
 
 
     @Test
-    void marksRepositoryFailedWhenAllStep8EnrichmentLookupsFail() {
+    void marksRepositoryFailedWhenAllCurrentEnrichmentLookupsFail() {
         when(client.getTopics(anyString(), anyString(), anyString(), anyString(), anyString()))
                 .thenThrow(new IllegalStateException("topics unavailable"));
         when(client.getLanguages(anyString(), anyString(), anyString(), anyString(), anyString()))
                 .thenThrow(new IllegalStateException("languages unavailable"));
         when(client.getRootContents(anyString(), anyString(), anyString(), anyString(), anyString()))
                 .thenThrow(new IllegalStateException("contents unavailable"));
+        when(client.getWorkflows(
+                anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyInt()))
+                .thenThrow(new IllegalStateException("actions unavailable"));
 
         RepositorySummary enriched = service.enrich(repository());
 
         assertEquals(AnalysisState.FAILED, enriched.refreshStatus().state());
         assertEquals(AnalysisState.NOT_ANALYZED, enriched.license().analysisState());
+    }
+
+
+    @Test
+    void reportsGitHubActionsPresentWithWorkflowCount() {
+        when(client.getWorkflows(
+                anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyInt()))
+                .thenReturn(new GitHubWorkflowsResponse(3));
+
+        RepositorySummary enriched = service.enrich(repository());
+
+        assertEquals(AnalysisState.COMPLETE, enriched.githubActions().analysisState());
+        assertEquals(Boolean.TRUE, enriched.githubActions().workflowsPresent());
+        assertEquals(3, enriched.githubActions().workflowCount());
+    }
+
+    @Test
+    void reportsNoGitHubActionsWhenWorkflowCountIsZero() {
+        RepositorySummary enriched = service.enrich(repository());
+
+        assertEquals(AnalysisState.COMPLETE, enriched.githubActions().analysisState());
+        assertEquals(Boolean.FALSE, enriched.githubActions().workflowsPresent());
+        assertEquals(0, enriched.githubActions().workflowCount());
+    }
+
+    @Test
+    void reportsGitHubActionsAnalysisFailureWithoutClaimingWorkflowsAreMissing() {
+        when(client.getWorkflows(
+                anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyInt()))
+                .thenThrow(new IllegalStateException("actions unavailable"));
+
+        RepositorySummary enriched = service.enrich(repository());
+
+        assertEquals(AnalysisState.FAILED, enriched.githubActions().analysisState());
+        assertNull(enriched.githubActions().workflowsPresent());
+        assertNull(enriched.githubActions().workflowCount());
+        assertEquals(AnalysisState.PARTIAL, enriched.refreshStatus().state());
     }
 
     private RepositorySummary repository() {

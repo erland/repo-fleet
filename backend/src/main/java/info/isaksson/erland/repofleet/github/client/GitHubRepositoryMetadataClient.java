@@ -5,6 +5,7 @@ import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import java.util.List;
 import java.util.Map;
@@ -52,6 +53,19 @@ public interface GitHubRepositoryMetadataClient {
         @HeaderParam("Authorization") String authorization,
         @HeaderParam("Accept") String accept,
         @HeaderParam("X-GitHub-Api-Version") String apiVersion
+    );
+
+
+    @GET
+    @Path("/repos/{owner}/{repository}/actions/workflows")
+    GitHubWorkflowsResponse getWorkflows(
+        @PathParam("owner") String owner,
+        @PathParam("repository") String repository,
+        @HeaderParam("Authorization") String authorization,
+        @HeaderParam("Accept") String accept,
+        @HeaderParam("X-GitHub-Api-Version") String apiVersion,
+        @QueryParam("per_page") int perPage,
+        @QueryParam("page") int page
     );
 
 }
