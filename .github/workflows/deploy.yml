@@ -1,0 +1,128 @@
+name: Deploy production
+run-name: Deploy ${{ inputs.release_tag }} to production
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Official release tag to deploy, for example v1.2.3'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: repo-fleet-production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy RepoFleet
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: https://repo-fleet.isaksson.info
+
+    steps:
+      - name: Check out deployment assets
+        uses: actions/checkout@v7
+
+      - name: Validate requested official release
+        id: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$RELEASE_TAG" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            echo "Invalid release tag: $RELEASE_TAG" >&2
+            exit 1
+          fi
+          gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null
+          echo "version=${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
+          echo "owner=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+
+      - name: Configure SSH
+        env:
+          DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          install -m 0700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 0600 ~/.ssh/id_ed25519
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 0600 ~/.ssh/known_hosts
+
+      - name: Copy deployment assets to server
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT_INPUT: ${{ vars.DEPLOY_PORT }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          port="${DEPLOY_PORT_INPUT:-22}"
+          target="${DEPLOY_USER}@${DEPLOY_HOST}"
+          scp -P "$port" deploy/docker-compose.server.yml deploy/deploy.sh \
+            "$target:/opt/repo-fleet/"
+          ssh -p "$port" "$target" 'chmod 0755 /opt/repo-fleet/deploy.sh'
+
+      - name: Authenticate deployment host to GHCR
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT_INPUT: ${{ vars.DEPLOY_PORT }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          port="${DEPLOY_PORT_INPUT:-22}"
+          target="${DEPLOY_USER}@${DEPLOY_HOST}"
+          printf '%s' "$GHCR_TOKEN" | \
+            ssh -p "$port" "$target" "docker login ghcr.io --username '$GITHUB_ACTOR' --password-stdin"
+
+      - name: Deploy selected release
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT_INPUT: ${{ vars.DEPLOY_PORT }}
+          VERSION: ${{ steps.release.outputs.version }}
+          OWNER: ${{ steps.release.outputs.owner }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          port="${DEPLOY_PORT_INPUT:-22}"
+          target="${DEPLOY_USER}@${DEPLOY_HOST}"
+          ssh -p "$port" "$target" \
+            "cd /opt/repo-fleet && ./deploy.sh '$VERSION' '$OWNER'"
+
+      - name: Verify public HTTPS endpoint
+        env:
+          SITE_URL: https://repo-fleet.isaksson.info/
+        shell: bash
+        run: |
+          set -euo pipefail
+          code="$(curl --silent --show-error --location --output /dev/null \
+            --write-out '%{http_code}' --retry 5 --retry-delay 3 "$SITE_URL")"
+          case "$code" in
+            200|401) echo "Public HTTPS endpoint responded with HTTP $code." ;;
+            *) echo "Unexpected HTTP status from $SITE_URL: $code" >&2; exit 1 ;;
+          esac
+
+      - name: Log deployment host out of GHCR
+        if: always()
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT_INPUT: ${{ vars.DEPLOY_PORT }}
+        shell: bash
+        run: |
+          port="${DEPLOY_PORT_INPUT:-22}"
+          target="${DEPLOY_USER}@${DEPLOY_HOST}"
+          ssh -p "$port" "$target" 'docker logout ghcr.io >/dev/null 2>&1 || true' || true

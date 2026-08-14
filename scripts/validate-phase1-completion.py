@@ -17,6 +17,7 @@ required_docs = [
     "docs/release-publishing.md",
     "docs/phase-1-acceptance-validation.md",
     "docs/phase-1-completion-review.md",
+    "docs/debian-13-installation.md",
 ]
 
 errors: list[str] = []
@@ -85,8 +86,8 @@ for step in range(1, 26):
     if not match or match.group(1) != "DONE":
         errors.append(f"Step {step} is not recorded DONE before Phase 1 completion review")
 match26 = re.search(r"(?m)^\|\s*26\s*\|.*?\|\s*(DONE|IN PROGRESS|NOT STARTED|BLOCKED|DEFERRED)\s*\|", status)
-if not match26 or match26.group(1) not in {"IN PROGRESS", "DONE"}:
-    errors.append("Step 26 must be IN PROGRESS or DONE")
+if not match26 or match26.group(1) != "DONE":
+    errors.append("Step 26 must be DONE after Phase 1 completion verification")
 
 release = (root / ".github/workflows/release.yml").read_text(encoding="utf-8")
 if "v*.*.*" not in release or "ghcr.io" not in release:

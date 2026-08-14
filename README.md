@@ -202,6 +202,17 @@ No GitHub App private keys/runtime secrets are packaged.
 
 See `docs/release-publishing.md`.
 
+
+## Debian 13 production deployment
+
+A complete production installation guide for `repo-fleet.isaksson.info` is available in:
+
+- `docs/debian-13-installation.md`
+
+It covers a fresh Debian 13 server, `/opt/repo-fleet`, Docker/Compose, GitHub App setup, Nginx, Let's Encrypt/Certbot, Basic Auth, SSH deployment credentials and the manually triggered production deployment workflow.
+
+Production-specific deployment assets are in `deploy/`, and `.github/workflows/deploy.yml` deploys a selected official `vMAJOR.MINOR.PATCH` GitHub Release to `/opt/repo-fleet`.
+
 ## Phase 1 completion
 
 The formal review is in:

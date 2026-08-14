@@ -41,7 +41,7 @@ Update this file whenever a development step is started, completed, blocked, or 
 | 23 | Add Docker Compose Runtime | DONE | Verified by GitHub Actions, including clean Docker Compose build/startup, health checks and frontend-to-backend connectivity. |
 | 24 | CI Quality Gate | DONE | Verified by GitHub Actions with the final Quality Gate passing. |
 | 25 | Package Versioned Releases with GitHub Actions | DONE | Verified by GitHub Actions release workflow: tagged source validation, versioned GHCR images and deployment/GitHub Release packaging. |
-| 26 | Documentation and Phase 1 Completion Review | IN PROGRESS | Root/developer/GitHub App/configuration/runtime/release documentation consolidated and formal Phase 1 completion review added with deviations, limitations, Phase 2 candidates and pre-write technical debt; awaiting GitHub Quality Gate verification. |
+| 26 | Documentation and Phase 1 Completion Review | DONE | Verified by GitHub Actions Quality Gate. Phase 1 documentation/completion review is complete. |
 
 ## CI Evolution
 
@@ -49,9 +49,9 @@ The early CI bootstrap has been superseded by the completed Step 24 Quality Gate
 
 ## Current Position
 
-Next step: **Step 26 – Documentation and Phase 1 Completion Review** (awaiting Quality Gate verification)
+Next step: **Phase 1 complete.** Production deployment automation/documentation added after Phase 1; next product phase is Standards, Rules & Maintenance Insights.
 
-Completed steps: **25 / 26**
+Completed steps: **26 / 26**
 
 ## Update Convention
 
@@ -63,3 +63,13 @@ After each implementation prompt:
 4. Only mark a step `DONE` after its Definition of Done has been verified.
 
 This status file should be included in every updated project ZIP so progress survives between conversations.
+
+## Post-Phase 1 Operational Additions
+
+After Phase 1 completion, production operations were extended with:
+
+- `docs/debian-13-installation.md` for a complete Debian 13 deployment under `/opt/repo-fleet`,
+- host-level Nginx + Let's Encrypt + Basic Auth guidance for `repo-fleet.isaksson.info`,
+- `deploy/docker-compose.server.yml` with only the frontend bound to `127.0.0.1:8080`,
+- `deploy/deploy.sh` with exact version deployment and automatic health-check rollback attempt,
+- `.github/workflows/deploy.yml`, a manually triggered `workflow_dispatch` deployment of an official release via SSH and short-lived GHCR authentication.
