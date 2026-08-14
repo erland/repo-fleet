@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import App from './App'
 import { InventoryRefreshPanel } from './InventoryRefreshPanel'
 import { PortfolioSummaryPanel } from './PortfolioSummaryPanel'
+import { RepositoryDetailPanel } from './RepositoryDetailPanel'
 import { RepositoryFiltersPanel } from './RepositoryFiltersPanel'
 import { RepositoryInventory } from './RepositoryInventory'
 import { RepositorySelectionBar } from './RepositorySelectionBar'
@@ -327,6 +328,67 @@ describe('PortfolioSummaryPanel', () => {
     )
 
     expect(html).toContain('1 unknown')
+  })
+})
+
+describe('RepositoryDetailPanel', () => {
+  it('renders the full read-only repository metadata view', () => {
+    const html = renderToString(
+      <RepositoryDetailPanel repository={repository} onClose={() => undefined} />,
+    )
+
+    expect(html).toContain('Repository details')
+    expect(html).toContain('erland/roman-nollpunkten')
+    expect(html).toContain('Default branch')
+    expect(html).toContain('publishing')
+    expect(html).toContain('MIT License')
+    expect(html).toContain('3 workflows')
+    expect(html).toContain('v1.2.0')
+    expect(html).toContain('Repository analysis')
+    expect(html).toContain('Open on GitHub')
+    expect(html).toContain('Close details')
+  })
+
+  it('renders nothing when no repository is selected for details', () => {
+    expect(renderToString(
+      <RepositoryDetailPanel repository={null} onClose={() => undefined} />,
+    )).toBe('')
+  })
+
+  it('keeps unknown analysis explicit in the detail view', () => {
+    const incomplete = {
+      ...repository,
+      license: { analysisState: 'FAILED', presence: 'UNKNOWN', recognized: null, key: null, name: null },
+      githubActions: { analysisState: 'FAILED', workflowsPresent: null, workflowCount: null },
+      release: {
+        analysisState: 'FAILED',
+        releasePresent: null,
+        latestReleaseName: null,
+        latestReleaseTag: null,
+        latestReleaseDate: null,
+        latestReleasePrerelease: null,
+      },
+    } satisfies RepositorySummary
+
+    const html = renderToString(
+      <RepositoryDetailPanel repository={incomplete} onClose={() => undefined} />,
+    )
+
+    expect((html.match(/Unknown/g) ?? []).length).toBeGreaterThanOrEqual(4)
+    expect(html).toContain('Failed')
+  })
+
+  it('offers a details action for each repository row', () => {
+    const html = renderToString(
+      <RepositoryInventory
+        repositories={[repository]}
+        loading={false}
+        error={null}
+        onOpenDetails={() => undefined}
+      />,
+    )
+
+    expect(html).toContain('View details')
   })
 })
 

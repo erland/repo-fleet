@@ -8,6 +8,7 @@ import {
 } from './api'
 import { InventoryRefreshPanel } from './InventoryRefreshPanel'
 import { PortfolioSummaryPanel } from './PortfolioSummaryPanel'
+import { RepositoryDetailPanel } from './RepositoryDetailPanel'
 import { RepositoryFiltersPanel } from './RepositoryFiltersPanel'
 import { RepositoryInventory } from './RepositoryInventory'
 import { RepositorySelectionBar } from './RepositorySelectionBar'
@@ -29,6 +30,7 @@ export default function App() {
   const [filters, setFilters] = useState(emptyRepositoryFilters)
   const [sort, setSort] = useState(defaultRepositorySort)
   const [selectedRepositoryIds, setSelectedRepositoryIds] = useState<Set<number>>(new Set())
+  const [detailRepositoryId, setDetailRepositoryId] = useState<number | null>(null)
   const mountedRef = useRef(true)
 
   const loadRepositories = useCallback(async (showInitialLoading = false) => {
@@ -98,11 +100,26 @@ export default function App() {
     [filteredRepositories, sort],
   )
 
+
+  const detailRepository = useMemo(
+    () => repositories.find((repository) => repository.id === detailRepositoryId) ?? null,
+    [repositories, detailRepositoryId],
+  )
+
   const portfolioSummary = useMemo(
     () => summarizePortfolio(filteredRepositories),
     [filteredRepositories],
   )
 
+
+
+  const openRepositoryDetails = useCallback((repositoryId: number) => {
+    setDetailRepositoryId(repositoryId)
+  }, [])
+
+  const closeRepositoryDetails = useCallback(() => {
+    setDetailRepositoryId(null)
+  }, [])
 
   const toggleRepository = useCallback((repositoryId: number) => {
     setSelectedRepositoryIds((current) => toggleRepositorySelection(current, repositoryId))
@@ -178,6 +195,11 @@ export default function App() {
         filteredCount={filteredRepositories.length}
       />
 
+      <RepositoryDetailPanel
+        repository={detailRepository}
+        onClose={closeRepositoryDetails}
+      />
+
       <RepositorySelectionBar
         selection={selectedRepositoryIds}
         visibleRepositories={sortedRepositories}
@@ -193,6 +215,7 @@ export default function App() {
         emptyMessage={repositories.length > 0 ? 'No repositories match the current filters.' : undefined}
         selectedRepositoryIds={selectedRepositoryIds}
         onToggleRepository={toggleRepository}
+        onOpenDetails={openRepositoryDetails}
       />
     </main>
   )

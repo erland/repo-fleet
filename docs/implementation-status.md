@@ -31,8 +31,8 @@ Update this file whenever a development step is started, completed, blocked, or 
 | 13 | Implement Repository Filtering | DONE | Verified by GitHub Actions. |
 | 14 | Add Sorting and Result Counts | DONE | Verified by GitHub Actions. |
 | 15 | Add Repository Selection | DONE | Verified by GitHub Actions. |
-| 16 | Add Portfolio Summary Indicators | IN PROGRESS | Filtered-scope portfolio summary indicators implemented for repository count, missing LICENSE/Actions/releases, Java, archived and forks with unknown analysis tracked separately; awaiting GitHub CI verification. |
-| 17 | Add Repository Detail View | NOT STARTED | |
+| 16 | Add Portfolio Summary Indicators | DONE | Verified by GitHub Actions. |
+| 17 | Add Repository Detail View | IN PROGRESS | Read-only repository detail panel implemented for core metadata, topics/languages, maintenance analysis, activity and GitHub navigation; awaiting GitHub CI verification. |
 | 18 | Add Saved Views Using Browser Storage | NOT STARTED | |
 | 19 | Harden GitHub API and Rate-Limit Handling | NOT STARTED | |
 | 20 | Accessibility and Responsive UI Pass | NOT STARTED | |
@@ -51,9 +51,9 @@ A lightweight CI workflow has been introduced ahead of planned Step 24 so GitHub
 
 ## Current Position
 
-Next step: **Step 16 – Add Portfolio Summary Indicators** (awaiting CI verification)
+Next step: **Step 17 – Add Repository Detail View** (awaiting CI verification)
 
-Completed steps: **15 / 26**
+Completed steps: **16 / 26**
 
 ## Update Convention
 

@@ -21,6 +21,7 @@ a { color: inherit; }
 .summary-panel,
 .sort-panel,
 .selection-bar,
+.detail-panel,
 .inventory-section,
 .inventory-state {
   width: min(1440px, 100%);
@@ -61,6 +62,16 @@ a { color: inherit; }
 .selection-column { width: 4.5rem; text-align: center !important; }
 .selection-column input { width: 1rem; height: 1rem; cursor: pointer; }
 .repository-row-selected td { background: #f5f8fc; }
+
+
+.detail-panel { margin-bottom: 1rem; padding: 1.25rem 1.5rem; border: 1px solid #cfd8e4; border-radius: 1rem; background: #fff; box-shadow: 0 1rem 3rem rgb(23 32 51 / 9%); }
+.detail-heading { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
+.detail-actions { margin-top: .8rem; }
+.detail-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .8rem; margin: 1rem 0 0; }
+.detail-item { min-width: 0; padding: .75rem; border: 1px solid #e5e8ec; border-radius: .65rem; background: #fafbfc; }
+.detail-item dt { margin: 0 0 .25rem; color: #596273; font-size: .75rem; font-weight: 750; text-transform: uppercase; letter-spacing: .03em; }
+.detail-item dd { margin: 0; overflow-wrap: anywhere; }
+.table-action-button { border: 1px solid #c7ced7; border-radius: .5rem; background: #fff; padding: .4rem .6rem; font: inherit; font-size: .82rem; font-weight: 650; cursor: pointer; white-space: nowrap; }
 
 .refresh-panel { margin-bottom: 1rem; padding: 1.25rem 1.5rem; border: 1px solid #dfe4ea; border-radius: 1rem; background: #fff; box-shadow: 0 1rem 3rem rgb(23 32 51 / 7%); }
 .refresh-summary { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
@@ -128,13 +139,18 @@ h2 { margin: 0; font-size: 1.5rem; }
   .summary-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
+@media (max-width: 1100px) {
+  .detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 @media (max-width: 1000px) {
   .filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 720px) {
   .app-shell { padding: 1rem; }
-  .refresh-summary, .filter-heading-row, .summary-heading { align-items: stretch; flex-direction: column; }
+  .refresh-summary, .filter-heading-row, .summary-heading, .detail-heading { align-items: stretch; flex-direction: column; }
+  .detail-grid { grid-template-columns: 1fr; }
   .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .sort-controls { align-items: stretch; flex-direction: column; }
   .selection-bar { align-items: stretch; flex-direction: column; }
