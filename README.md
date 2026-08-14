@@ -391,3 +391,19 @@ By default:
 Copy `.env.example` to `.env` to configure GitHub App credentials or change host ports. Real secrets must not be committed.
 
 Run `bash scripts/verify-step-23.sh` for a clean Compose startup/health/proxy smoke test. See `docs/docker-compose-runtime.md` for details.
+
+## Versioned releases
+
+Official releases are driven by Git tags matching `vMAJOR.MINOR.PATCH`.
+
+Pushing a tag such as `v1.0.0` runs `.github/workflows/release.yml`, which:
+
+- reruns frontend/backend/source validation for the tagged commit,
+- publishes versioned frontend and backend images to GitHub Container Registry,
+- also publishes commit-SHA trace tags and the convenience `latest` alias,
+- packages a deployment ZIP whose Compose file references the published versioned images,
+- creates or augments the matching GitHub Release.
+
+The Git tag is the release version source of truth; source files do not need matching manually maintained release versions.
+
+See `docs/release-publishing.md` and `bash scripts/verify-step-25.sh`.

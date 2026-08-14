@@ -39,8 +39,8 @@ Update this file whenever a development step is started, completed, blocked, or 
 | 21 | End-to-End Phase 1 Validation | DONE | Verified by GitHub Actions. |
 | 22 | Dockerize Frontend and Backend | DONE | Verified by GitHub Actions, including Docker image builds, non-root container startup, health checks and frontend-to-backend proxy smoke test. |
 | 23 | Add Docker Compose Runtime | DONE | Verified by GitHub Actions, including clean Docker Compose build/startup, health checks and frontend-to-backend connectivity. |
-| 24 | CI Quality Gate | IN PROGRESS | Phase 1 CI quality gate implemented with repository policy, explicit frontend typecheck/test/bundle, backend Maven verify, single Compose production smoke path and a stable final Quality Gate job; awaiting GitHub CI verification. |
-| 25 | Package Versioned Releases with GitHub Actions | NOT STARTED | |
+| 24 | CI Quality Gate | DONE | Verified by GitHub Actions with the final Quality Gate passing. |
+| 25 | Package Versioned Releases with GitHub Actions | IN PROGRESS | Semver Git-tag release workflow implemented for source revalidation, GHCR frontend/backend publishing, immutable version/SHA tags, latest alias and GitHub Release deployment ZIP; awaiting GitHub Actions release verification. |
 | 26 | Documentation and Phase 1 Completion Review | NOT STARTED | |
 
 ## Early CI Bootstrap
@@ -51,9 +51,9 @@ A lightweight CI workflow has been introduced ahead of planned Step 24 so GitHub
 
 ## Current Position
 
-Next step: **Step 24 – CI Quality Gate** (awaiting CI verification)
+Next step: **Step 25 – Package Versioned Releases with GitHub Actions** (awaiting release workflow verification)
 
-Completed steps: **23 / 26**
+Completed steps: **24 / 26**
 
 ## Update Convention
 
