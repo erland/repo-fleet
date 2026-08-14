@@ -37,7 +37,7 @@ Update this file whenever a development step is started, completed, blocked, or 
 | 19 | Harden GitHub API and Rate-Limit Handling | DONE | Verified by GitHub Actions. |
 | 20 | Accessibility and Responsive UI Pass | DONE | Verified by GitHub Actions. |
 | 21 | End-to-End Phase 1 Validation | DONE | Verified by GitHub Actions. |
-| 22 | Dockerize Frontend and Backend | IN PROGRESS | Production frontend/backend Dockerfiles, dockerignore files, health checks, runtime configuration and isolated two-container smoke validation implemented; awaiting GitHub CI verification. |
+| 22 | Dockerize Frontend and Backend | IN PROGRESS | CI runtime fix applied: frontend Nginx image now grants the non-root nginx user write access to /etc/nginx/conf.d for envsubst output and /run for nginx.pid. Static validation extended; awaiting GitHub CI verification. |
 | 23 | Add Docker Compose Runtime | NOT STARTED | |
 | 24 | CI Quality Gate | NOT STARTED | |
 | 25 | Package Versioned Releases with GitHub Actions | NOT STARTED | |

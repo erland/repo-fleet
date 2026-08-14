@@ -13,8 +13,13 @@ RUN npm run build
 FROM nginx:1.29-alpine AS runtime
 
 RUN rm /etc/nginx/conf.d/default.conf \
-    && mkdir -p /usr/share/nginx/html \
-    && chown -R nginx:nginx /usr/share/nginx/html /var/cache/nginx /var/run
+    && mkdir -p /usr/share/nginx/html /etc/nginx/conf.d /run \
+    && chown -R nginx:nginx \
+        /usr/share/nginx/html \
+        /var/cache/nginx \
+        /var/run \
+        /run \
+        /etc/nginx/conf.d
 
 COPY --from=build --chown=nginx:nginx /workspace/dist/ /usr/share/nginx/html/
 COPY nginx/default.conf.template /etc/nginx/templates/default.conf.template

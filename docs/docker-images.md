@@ -89,3 +89,7 @@ The script:
 5. verifies the frontend HTML,
 6. verifies that the frontend `/api/status` proxy reaches the backend,
 7. removes its temporary containers/network.
+
+### Nginx non-root runtime
+
+The frontend image runs Nginx as the built-in `nginx` user. The image explicitly makes both `/etc/nginx/conf.d` and `/run` writable by that user because the official Nginx entrypoint generates the runtime proxy configuration and Nginx creates its PID file when the container starts.

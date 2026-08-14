@@ -13,6 +13,8 @@ checks = {
     "backend runtime jar": "quarkus-run.jar" in backend,
     "frontend multi-stage": frontend.count("FROM ") >= 2,
     "frontend non-root": "USER nginx" in frontend,
+    "frontend writable nginx runtime config": "/etc/nginx/conf.d" in frontend and "chown -R nginx:nginx" in frontend,
+    "frontend writable nginx pid path": "/run" in frontend and "chown -R nginx:nginx" in frontend,
     "frontend health": "HEALTHCHECK" in frontend and "/healthz" in frontend,
     "frontend runtime backend config": "BACKEND_URL" in frontend and "${BACKEND_URL}" in nginx,
     "spa fallback": "try_files $uri $uri/ /index.html;" in nginx,
