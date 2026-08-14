@@ -77,7 +77,7 @@ Step 22 intentionally does not introduce Docker Compose; that belongs to Step 23
 With Docker available, run:
 
 ```bash
-./scripts/verify-step-22.sh
+bash scripts/verify-step-22.sh
 ```
 
 The script:

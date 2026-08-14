@@ -5,6 +5,7 @@ root = Path(__file__).resolve().parents[1]
 backend = (root / "backend" / "Dockerfile").read_text(encoding="utf-8")
 frontend = (root / "frontend" / "Dockerfile").read_text(encoding="utf-8")
 nginx = (root / "frontend" / "nginx" / "default.conf.template").read_text(encoding="utf-8")
+workflow = (root / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
 
 checks = {
     "backend multi-stage": backend.count("FROM ") >= 2,
@@ -19,6 +20,7 @@ checks = {
     "frontend runtime backend config": "BACKEND_URL" in frontend and "${BACKEND_URL}" in nginx,
     "spa fallback": "try_files $uri $uri/ /index.html;" in nginx,
     "api proxy": "location /api/" in nginx and "proxy_pass ${BACKEND_URL};" in nginx,
+    "CI invokes smoke test via bash": "run: bash scripts/verify-step-22.sh" in workflow,
 }
 
 failed = [name for name, ok in checks.items() if not ok]

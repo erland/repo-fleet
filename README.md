@@ -367,4 +367,4 @@ docker build -t repofleet-frontend ./frontend
 
 The frontend runtime uses `BACKEND_URL` to proxy `/api` requests to the backend, while GitHub App configuration remains backend-only runtime configuration. Both images include container health checks and run without local Node, Maven or Java build tooling.
 
-See `docs/docker-images.md` and use `./scripts/verify-step-22.sh` for the isolated two-container smoke validation. Docker Compose is intentionally deferred to Step 23.
+See `docs/docker-images.md` and use `bash scripts/verify-step-22.sh` for the isolated two-container smoke validation. Docker Compose is intentionally deferred to Step 23.

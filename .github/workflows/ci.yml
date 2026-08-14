@@ -80,5 +80,5 @@ jobs:
         run: python3 scripts/validate-dockerfiles-step-22.py
 
       - name: Build and smoke-test containers
-        run: ./scripts/verify-step-22.sh
+        run: bash scripts/verify-step-22.sh
 
