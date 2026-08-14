@@ -94,8 +94,16 @@ export function RepositoryInventory({
         <span className="repository-count">{repositories.length} repositories</span>
       </div>
 
-      <div className="table-scroll">
+      <div
+        className="table-scroll"
+        role="region"
+        aria-label="Repository inventory table"
+        tabIndex={0}
+      >
         <table className="repository-table">
+          <caption className="sr-only">
+            Repository inventory with maintenance status and actions
+          </caption>
           <thead>
             <tr>
               <th scope="col" className="selection-column">Select</th>
@@ -114,7 +122,7 @@ export function RepositoryInventory({
           <tbody>
             {repositories.map((repository) => (
               <tr key={repository.id} className={selectedRepositoryIds.has(repository.id) ? 'repository-row-selected' : undefined}>
-                <td className="selection-column">
+                <td className="selection-column" data-label="Select">
                   <input
                     type="checkbox"
                     aria-label={`Select ${repository.fullName}`}
@@ -122,28 +130,28 @@ export function RepositoryInventory({
                     onChange={() => onToggleRepository(repository.id)}
                   />
                 </td>
-                <td>
+                <td data-label="Repository">
                   <a href={repository.url} target="_blank" rel="noreferrer" className="repository-link">
                     {repository.name}
                   </a>
                   {repository.archived && <span className="inline-badge">Archived</span>}
                   {repository.fork && <span className="inline-badge">Fork</span>}
                 </td>
-                <td>{repository.owner}</td>
-                <td>{repository.visibility.toLowerCase()}</td>
-                <td>
+                <td data-label="Owner">{repository.owner}</td>
+                <td data-label="Visibility">{repository.visibility.toLowerCase()}</td>
+                <td data-label="Topics">
                   {repository.topics.length > 0 ? (
                     <div className="topic-list">
                       {repository.topics.map((topic) => <span className="topic" key={topic}>{topic}</span>)}
                     </div>
                   ) : '—'}
                 </td>
-                <td>{repository.primaryLanguage ?? '—'}</td>
-                <td>{licenseLabel(repository.license)}</td>
-                <td>{actionsLabel(repository.githubActions)}</td>
-                <td>{releaseLabel(repository.release)}</td>
-                <td>{activityLabel(repository)}</td>
-                <td>
+                <td data-label="Language">{repository.primaryLanguage ?? '—'}</td>
+                <td data-label="License">{licenseLabel(repository.license)}</td>
+                <td data-label="Actions">{actionsLabel(repository.githubActions)}</td>
+                <td data-label="Release">{releaseLabel(repository.release)}</td>
+                <td data-label="Last activity">{activityLabel(repository)}</td>
+                <td data-label="Details">
                   <button className="table-action-button" type="button" onClick={() => onOpenDetails(repository.id)}>
                     View details
                   </button>

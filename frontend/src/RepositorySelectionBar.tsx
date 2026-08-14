@@ -26,7 +26,7 @@ export function RepositorySelectionBar({
 
   return (
     <section className="selection-bar" aria-label="Repository selection">
-      <div>
+      <div aria-live="polite" aria-atomic="true">
         <strong>{selectedCountLabel}</strong>
         <span className="selection-visible-count">{visibleCountLabel}</span>
       </div>

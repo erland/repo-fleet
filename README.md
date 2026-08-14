@@ -331,3 +331,19 @@ Repository refresh now applies bounded resilience rules around GitHub API calls:
 - a successful later discovery removes repositories that are no longer part of the GitHub App installation.
 
 The previous in-memory inventory is still retained when repository discovery itself fails, so transient GitHub failures cannot replace usable portfolio data with an empty result.
+
+## Accessibility and responsive behavior
+
+The Phase 1 UI includes an accessibility and responsive-layout pass:
+
+- a keyboard skip link moves directly to the main inventory,
+- interactive controls have visible `:focus-visible` treatment,
+- the repository table is labeled as a keyboard-scrollable region on larger screens,
+- repository details receive focus when opened,
+- loading, refresh, selection and result status remain exposed through appropriate live/status semantics,
+- saved-view actions have descriptive accessible names,
+- filters and controls collapse cleanly on tablet/mobile,
+- below 720 px the repository table becomes labeled card-style rows so important repository information remains usable without horizontal table navigation,
+- forced-colors and reduced-motion preferences receive basic support.
+
+Native HTML controls and explicit/wrapped labels remain the primary interaction model so keyboard use does not depend on custom widgets.

@@ -32,7 +32,7 @@ export function SavedViewsPanel({
         <div>
           <p className="eyebrow">Browser storage</p>
           <h2 id="saved-views-heading">Saved views</h2>
-          <p className="saved-views-help">
+          <p className="saved-views-help" id="saved-views-description">
             Save the current filters and sorting in this browser. Repository selection is not included.
           </p>
         </div>
@@ -51,7 +51,14 @@ export function SavedViewsPanel({
           <input
             value={name}
             onChange={(event) => setName(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault()
+                save()
+              }
+            }}
             placeholder="e.g. Java repos missing LICENSE"
+            aria-describedby="saved-views-description"
           />
         </label>
         <button className="secondary-button" type="button" onClick={save} disabled={!name.trim()}>
@@ -67,10 +74,10 @@ export function SavedViewsPanel({
             <li key={view.id}>
               <span>{view.name}</span>
               <div>
-                <button className="secondary-button" type="button" onClick={() => onLoad(view.id)}>
+                <button className="secondary-button" type="button" onClick={() => onLoad(view.id)} aria-label={`Load saved view ${view.name}`}>
                   Load
                 </button>
-                <button className="secondary-button" type="button" onClick={() => onDelete(view.id)}>
+                <button className="secondary-button" type="button" onClick={() => onDelete(view.id)} aria-label={`Delete saved view ${view.name}`}>
                   Delete
                 </button>
               </div>

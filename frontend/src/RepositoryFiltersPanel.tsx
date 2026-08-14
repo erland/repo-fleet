@@ -27,12 +27,12 @@ export function RepositoryFiltersPanel({
   }
 
   return (
-    <section className="filter-panel" aria-labelledby="filter-heading">
+    <section className="filter-panel" aria-labelledby="filter-heading" aria-describedby="filter-help">
       <div className="filter-heading-row">
         <div>
           <p className="eyebrow">Inventory filters</p>
           <h2 id="filter-heading">Filter repositories</h2>
-          <p className="filter-help">Filters use AND semantics across categories. Topic and language values are exact, case-insensitive matches.</p>
+          <p className="filter-help" id="filter-help">Filters use AND semantics across categories. Topic and language values are exact, case-insensitive matches.</p>
         </div>
         <button className="secondary-button" type="button" onClick={() => onChange(emptyRepositoryFilters)}>
           Clear filters

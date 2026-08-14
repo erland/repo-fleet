@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import type { AnalysisState, RepositorySummary } from './api'
 
 type RepositoryDetailPanelProps = {
@@ -56,10 +57,23 @@ function DetailItem({ label, value }: { label: string; value: string }) {
 }
 
 export function RepositoryDetailPanel({ repository, onClose }: RepositoryDetailPanelProps) {
+  const panelRef = useRef<HTMLElement>(null)
+
+  useEffect(() => {
+    if (repository) {
+      panelRef.current?.focus()
+    }
+  }, [repository])
+
   if (!repository) return null
 
   return (
-    <aside className="detail-panel" aria-labelledby="repository-detail-heading">
+    <aside
+      ref={panelRef}
+      className="detail-panel"
+      aria-labelledby="repository-detail-heading"
+      tabIndex={-1}
+    >
       <div className="detail-heading">
         <div>
           <p className="eyebrow">Repository details</p>

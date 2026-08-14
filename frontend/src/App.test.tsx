@@ -438,3 +438,79 @@ describe('SavedViewsPanel', () => {
   })
 })
 
+describe('Accessibility and responsive markup', () => {
+  it('provides a keyboard skip link to the main inventory content', () => {
+    const html = renderToString(<App />)
+
+    expect(html).toContain('Skip to repository inventory')
+    expect(html).toContain('href="#main-content"')
+    expect(html).toContain('id="main-content"')
+  })
+
+  it('labels the repository table as a keyboard-scrollable region with a caption', () => {
+    const html = renderToString(
+      <RepositoryInventory repositories={[repository]} loading={false} error={null} />,
+    )
+
+    expect(html).toContain('role="region"')
+    expect(html).toContain('aria-label="Repository inventory table"')
+    expect(html).toContain('tabindex="0"')
+    expect(html).toContain('Repository inventory with maintenance status and actions')
+    expect(html).toContain('data-label="Repository"')
+    expect(html).toContain('data-label="License"')
+    expect(html).toContain('data-label="Details"')
+  })
+
+  it('makes repository details programmatically focusable when opened', () => {
+    const html = renderToString(
+      <RepositoryDetailPanel repository={repository} onClose={() => undefined} />,
+    )
+
+    expect(html).toContain('tabindex="-1"')
+    expect(html).toContain('aria-labelledby="repository-detail-heading"')
+  })
+
+  it('gives saved-view actions descriptive accessible names', () => {
+    const view = createSavedView(
+      'Java missing LICENSE',
+      emptyRepositoryFilters,
+      defaultRepositorySort,
+      'view-1',
+    )
+
+    const html = renderToString(
+      <SavedViewsPanel
+        views={[view]}
+        storageAvailable
+        onSave={() => undefined}
+        onLoad={() => undefined}
+        onDelete={() => undefined}
+      />,
+    )
+
+    expect(html).toContain('aria-label="Load saved view Java missing LICENSE"')
+    expect(html).toContain('aria-label="Delete saved view Java missing LICENSE"')
+    expect(html).toContain('aria-describedby="saved-views-description"')
+  })
+
+  it('associates refresh progress with its visible text label', () => {
+    const html = renderToString(
+      <InventoryRefreshPanel
+        status={inventoryStatus({
+          state: 'RUNNING',
+          totalCount: 10,
+          processedCount: 2,
+          currentRepository: 'erland/repo-fleet',
+          running: true,
+        })}
+        statusError={null}
+        refreshing
+        onRefresh={() => undefined}
+      />,
+    )
+
+    expect(html).toContain('id="refresh-progress-label"')
+    expect(html).toContain('aria-labelledby="refresh-progress-label"')
+  })
+})
+
