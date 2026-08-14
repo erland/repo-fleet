@@ -1,6 +1,6 @@
 package info.isaksson.erland.repofleet.repository.inventory;
 
-import info.isaksson.erland.repofleet.repository.model.RepositorySummary;
+import info.isaksson.erland.repofleet.repository.api.RepositorySummary;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;

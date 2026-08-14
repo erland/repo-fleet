@@ -21,7 +21,7 @@ Update this file whenever a development step is started, completed, blocked, or 
 | 3 | Build the Initial Repository Inventory UI | DONE | Verified by green GitHub Actions frontend and backend build. |
 | 4 | Add GitHub App Authentication Foundation | DONE | Verified by GitHub Actions. |
 | 5 | Replace Sample Inventory with Real Repository Discovery | DONE | Verified by GitHub Actions. |
-| 6 | Introduce the In-Memory Repository Inventory | IN PROGRESS | Implemented in-memory inventory/cache and refresh lifecycle; awaiting GitHub CI verification. |
+| 6 | Introduce the In-Memory Repository Inventory | IN PROGRESS | CI compile fix applied: Step 6 now imports `RepositorySummary` from its actual package `info.isaksson.erland.repofleet.repository.api`. Awaiting GitHub CI verification. |
 | 7 | Add Topics and Language Enrichment | NOT STARTED | |
 | 8 | Add LICENSE Analysis | NOT STARTED | |
 | 9 | Add GitHub Actions Analysis | NOT STARTED | |

@@ -3,7 +3,7 @@ package info.isaksson.erland.repofleet.repository.inventory;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
-import info.isaksson.erland.repofleet.repository.model.RepositorySummary;
+import info.isaksson.erland.repofleet.repository.api.RepositorySummary;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
