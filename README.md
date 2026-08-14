@@ -183,3 +183,13 @@ Repository enrichment now distinguishes:
 - a LICENSE analysis failure.
 
 An API failure is never reported as a missing LICENSE.
+
+## GitHub Actions analysis
+
+Repository enrichment now checks the GitHub Actions workflow inventory for each repository and records:
+
+- whether workflows are present,
+- the workflow count,
+- a failed/unknown state when the Actions API cannot be analyzed.
+
+A failed Actions API call is not interpreted as “no workflows”. The GitHub App installation needs repository **Actions: read** permission for private repositories.

@@ -5,7 +5,9 @@ import info.isaksson.erland.repofleet.github.client.GitHubContentItemResponse;
 import info.isaksson.erland.repofleet.github.client.GitHubLicenseResponse;
 import info.isaksson.erland.repofleet.github.client.GitHubRepositoryMetadataClient;
 import info.isaksson.erland.repofleet.github.client.GitHubTopicsResponse;
+import info.isaksson.erland.repofleet.github.client.GitHubWorkflowsResponse;
 import info.isaksson.erland.repofleet.repository.api.AnalysisState;
+import info.isaksson.erland.repofleet.repository.api.GitHubActionsStatus;
 import info.isaksson.erland.repofleet.repository.api.LicensePresence;
 import info.isaksson.erland.repofleet.repository.api.LicenseStatus;
 import info.isaksson.erland.repofleet.repository.api.RepositoryRefreshStatus;
@@ -40,10 +42,12 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
         List<String> languages = repository.languages();
         String primaryLanguage = repository.primaryLanguage();
         LicenseStatus license = repository.license();
+        GitHubActionsStatus githubActions = repository.githubActions();
 
         boolean topicsComplete = false;
         boolean languagesComplete = false;
         boolean licenseComplete = false;
+        boolean actionsComplete = false;
         List<String> errors = new ArrayList<>();
 
         try {
@@ -143,12 +147,42 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
             errors.add("license: " + safeMessage(exception));
         }
 
+
+        try {
+            GitHubWorkflowsResponse response = client.getWorkflows(
+                    repository.owner(),
+                    repository.name(),
+                    authorization,
+                    GitHubInstallationTokenService.ACCEPT,
+                    GitHubInstallationTokenService.API_VERSION,
+                    1,
+                    1);
+            if (response == null) {
+                throw new IllegalStateException("GitHub returned an empty workflows response.");
+            }
+            int workflowCount = Math.max(0, response.totalCount());
+            githubActions = new GitHubActionsStatus(
+                    AnalysisState.COMPLETE,
+                    workflowCount > 0,
+                    workflowCount);
+            actionsComplete = true;
+        } catch (RuntimeException exception) {
+            githubActions = new GitHubActionsStatus(
+                    AnalysisState.FAILED,
+                    null,
+                    null);
+            errors.add("actions: " + safeMessage(exception));
+        }
+
         AnalysisState state;
         String message;
-        int completedAnalyses = (topicsComplete ? 1 : 0) + (languagesComplete ? 1 : 0) + (licenseComplete ? 1 : 0);
-        if (completedAnalyses == 3) {
+        int completedAnalyses = (topicsComplete ? 1 : 0)
+                + (languagesComplete ? 1 : 0)
+                + (licenseComplete ? 1 : 0)
+                + (actionsComplete ? 1 : 0);
+        if (completedAnalyses == 4) {
             state = AnalysisState.PARTIAL;
-            message = "Topics, languages and LICENSE analyzed; remaining maintenance analyses pending.";
+            message = "Topics, languages, LICENSE and GitHub Actions analyzed; release analysis pending.";
         } else if (completedAnalyses > 0) {
             state = AnalysisState.PARTIAL;
             message = "Repository enrichment partially completed (" + String.join("; ", errors) + ").";
@@ -171,7 +205,7 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
                 languages,
                 primaryLanguage,
                 license,
-                repository.githubActions(),
+                githubActions,
                 repository.release(),
                 repository.activity(),
                 new RepositoryRefreshStatus(state, message));
