@@ -104,16 +104,21 @@ mvn test
 
 ## Continuous integration
 
-A lightweight GitHub Actions workflow is available at `.github/workflows/ci.yml`.
+`.github/workflows/ci.yml` is the Phase 1 quality gate for pull requests and pushes to `main`.
 
-It runs on pull requests and pushes to `main` and validates the two application components independently:
+It validates:
 
-- **Frontend:** installs dependencies, runs Vitest and creates the production Vite build.
-- **Backend:** sets up Java 21 and runs the Maven `verify` lifecycle.
+- **Repository policy:** project conventions, secret/example hygiene, acceptance mapping, Docker/Compose structure and basic source hygiene.
+- **Frontend:** dependency installation, explicit TypeScript type checking, Vitest/Phase 1 acceptance tests and the production Vite bundle.
+- **Backend:** Java 21 Maven `verify`, including tests and Quarkus packaging.
+- **Production containers:** one Docker Compose build/smoke path that builds both images and verifies health/startup/frontend-to-backend connectivity.
+- **Quality Gate:** one stable final pass/fail check suitable for branch protection.
 
-The jobs run in parallel so a failure can be attributed directly to frontend or backend. Docker image publishing and release packaging are intentionally left for the later Phase 1 packaging steps.
+Expensive container images are built only in the production-container job; CI does not run both the Step 22 standalone Docker smoke and the Step 23 Compose smoke for the same commit.
 
-Because the project does not yet contain an npm lockfile, CI currently uses `npm install`. Once a lockfile is committed, CI should switch to `npm ci` for reproducible dependency installation and dependency caching.
+Because the project does not yet contain an npm lockfile, CI currently uses `npm install`. Once a lockfile is committed, CI should switch to `npm ci` for fully reproducible dependency installation and caching.
+
+See `docs/ci-quality-gate.md`.
 
 ## Java package convention
 
