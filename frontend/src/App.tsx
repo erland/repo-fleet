@@ -211,7 +211,9 @@ export default function App() {
   }, [inventoryStatus?.state, loadRepositories, refreshing])
 
   return (
-    <main className="app-shell">
+    <>
+      <a className="skip-link" href="#main-content">Skip to repository inventory</a>
+      <main className="app-shell" id="main-content" tabIndex={-1}>
       <header className="app-header">
         <div>
           <p className="eyebrow">Repository portfolio management</p>
@@ -276,6 +278,7 @@ export default function App() {
         onToggleRepository={toggleRepository}
         onOpenDetails={openRepositoryDetails}
       />
-    </main>
+      </main>
+    </>
   )
 }

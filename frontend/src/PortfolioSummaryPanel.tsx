@@ -13,11 +13,11 @@ type IndicatorProps = {
 
 function Indicator({ label, value, detail }: IndicatorProps) {
   return (
-    <article className="summary-card">
-      <span className="summary-label">{label}</span>
-      <strong className="summary-value">{value}</strong>
-      {detail && <span className="summary-detail">{detail}</span>}
-    </article>
+    <div className="summary-card">
+      <dt className="summary-label">{label}</dt>
+      <dd className="summary-value">{value}</dd>
+      {detail && <dd className="summary-detail">{detail}</dd>}
+    </div>
   )
 }
 
@@ -39,7 +39,7 @@ export function PortfolioSummaryPanel({
         <span className="summary-scope">{scopeLabel}</span>
       </div>
 
-      <div className="summary-grid">
+      <dl className="summary-grid">
         <Indicator label="Repositories" value={summary.total} />
         <Indicator label="Missing LICENSE" value={summary.missingLicense} detail={summary.unknownLicense ? `${summary.unknownLicense} unknown` : undefined} />
         <Indicator label="Missing Actions" value={summary.missingActions} detail={summary.unknownActions ? `${summary.unknownActions} unknown` : undefined} />
@@ -47,7 +47,7 @@ export function PortfolioSummaryPanel({
         <Indicator label="Java repositories" value={summary.javaRepositories} />
         <Indicator label="Archived" value={summary.archived} />
         <Indicator label="Forks" value={summary.forks} />
-      </div>
+      </dl>
     </section>
   )
 }

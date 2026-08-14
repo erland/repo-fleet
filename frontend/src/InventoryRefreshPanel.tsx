@@ -61,10 +61,11 @@ export function InventoryRefreshPanel({
       {running && status && (
         <div className="refresh-progress" role="status" aria-live="polite">
           <div className="progress-row">
-            <span>{progressLabel(status)}</span>
+            <span id="refresh-progress-label">{progressLabel(status)}</span>
             {progressPercent && <span>{progressPercent}</span>}
           </div>
           <progress
+            aria-labelledby="refresh-progress-label"
             max={Math.max(status.totalCount, 1)}
             value={Math.min(status.processedCount, Math.max(status.totalCount, 1))}
           />
