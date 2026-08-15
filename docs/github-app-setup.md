@@ -85,3 +85,19 @@ No browser-side GitHub credential is used.
 Phase 1 is read-only. Do not add repository write permissions merely to make a read endpoint work. If a required analysis endpoint cannot be accessed, RepoFleet should report an unknown/failed analysis rather than broaden permissions silently.
 
 Write permissions should be reconsidered only when later maintenance phases introduce explicit repository changes.
+
+
+## User login configuration for production
+
+RepoFleet production also uses the GitHub App's OAuth web application flow for interactive sign-in. In the GitHub App settings:
+
+1. Keep the existing repository permissions read-only. User login does **not** require broader repository permissions.
+2. Under **Identifying and authorizing users**, add callback URL:
+
+   `https://repo-fleet.isaksson.info/api/auth/github/callback`
+
+3. Generate a **Client secret** and store it only in `/opt/repo-fleet/.env` as `REPOFLEET_AUTH_CLIENT_SECRET`.
+4. Copy the App's **Client ID** (different from App ID) into `REPOFLEET_AUTH_CLIENT_ID`.
+5. Configure `REPOFLEET_AUTH_ALLOWED_USERS` with the GitHub login(s) that may access RepoFleet.
+
+Do not enable write repository permissions just for login. Repository inventory continues to use installation authentication independently of the user login.

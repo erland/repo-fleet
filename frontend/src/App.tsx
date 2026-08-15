@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
+  fetchAuthSession,
   fetchInventoryStatus,
   fetchRepositories,
+  logout,
   startInventoryRefresh,
+  type AuthSession,
   type InventoryStatus,
   type RepositorySummary,
 } from './api'
@@ -23,6 +26,8 @@ import { createSavedView, loadSavedViews, persistSavedViews, removeSavedView, ty
 const REFRESH_POLL_INTERVAL_MS = 1000
 
 export default function App() {
+  const [authSession, setAuthSession] = useState<AuthSession | null>(null)
+  const [authError, setAuthError] = useState<string | null>(null)
   const [repositories, setRepositories] = useState<RepositorySummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -69,6 +74,22 @@ export default function App() {
   }, [])
 
   useEffect(() => {
+    mountedRef.current = true
+    void fetchAuthSession()
+      .then((session) => {
+        if (!mountedRef.current) return
+        setAuthSession(session)
+        setAuthError(null)
+      })
+      .catch(() => {
+        if (!mountedRef.current) return
+        setAuthError('Authentication status could not be loaded.')
+      })
+
+    return () => { mountedRef.current = false }
+  }, [])
+
+  useEffect(() => {
     try {
       setSavedViews(loadSavedViews(window.localStorage))
     } catch {
@@ -91,6 +112,7 @@ export default function App() {
   }, [savedViews, savedViewsInitialized, savedViewsStorageAvailable])
 
   useEffect(() => {
+    if (!authSession || (authSession.authEnabled && !authSession.authenticated)) return
     mountedRef.current = true
     void loadRepositories(true)
     void loadStatus()
@@ -98,7 +120,7 @@ export default function App() {
     return () => {
       mountedRef.current = false
     }
-  }, [loadRepositories, loadStatus])
+  }, [authSession, loadRepositories, loadStatus])
 
   useEffect(() => {
     if (inventoryStatus?.state !== 'RUNNING') return
@@ -210,6 +232,58 @@ export default function App() {
     }
   }, [inventoryStatus?.state, loadRepositories, refreshing])
 
+  const signOut = useCallback(async () => {
+    try {
+      await logout()
+    } finally {
+      window.location.assign('/')
+    }
+  }, [])
+
+  const loginError = typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search).get('auth_error')
+    : null
+
+  if (authError) {
+    return (
+      <main className="auth-shell">
+        <section className="auth-card" role="alert">
+          <p className="eyebrow">Repository portfolio management</p>
+          <h1>RepoFleet</h1>
+          <p>{authError}</p>
+          <button type="button" onClick={() => window.location.reload()}>Try again</button>
+        </section>
+      </main>
+    )
+  }
+
+  if (!authSession) {
+    return (
+      <main className="auth-shell">
+        <section className="auth-card">
+          <p className="eyebrow">Repository portfolio management</p>
+          <h1>RepoFleet</h1>
+          <p>Checking authentication…</p>
+        </section>
+      </main>
+    )
+  }
+
+  if (authSession.authEnabled && !authSession.authenticated) {
+    return (
+      <main className="auth-shell">
+        <section className="auth-card">
+          <p className="eyebrow">Repository portfolio management</p>
+          <h1>RepoFleet</h1>
+          <p>Sign in with an authorized GitHub account to access the repository portfolio.</p>
+          {loginError === 'not_allowed' && <p className="auth-error" role="alert">This GitHub account is not allowed to use RepoFleet.</p>}
+          {loginError && loginError !== 'not_allowed' && <p className="auth-error" role="alert">GitHub sign-in did not complete. Please try again.</p>}
+          <a className="primary-action" href="/api/auth/login">Sign in with GitHub</a>
+        </section>
+      </main>
+    )
+  }
+
   return (
     <>
       <a className="skip-link" href="#main-content">Skip to repository inventory</a>
@@ -220,6 +294,13 @@ export default function App() {
           <h1>RepoFleet</h1>
           <p className="intro">Analytics and maintenance for a large GitHub repository portfolio.</p>
         </div>
+        {authSession.authenticated && authSession.user && (
+          <div className="auth-user">
+            {authSession.user.avatarUrl && <img src={authSession.user.avatarUrl} alt="" width="32" height="32" />}
+            <span>{authSession.user.login}</span>
+            <button type="button" onClick={() => void signOut()}>Sign out</button>
+          </div>
+        )}
       </header>
 
       <InventoryRefreshPanel

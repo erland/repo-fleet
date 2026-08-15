@@ -311,3 +311,12 @@ h2 { margin: 0; font-size: 1.5rem; }
     border: 1px solid CanvasText;
   }
 }
+
+
+.auth-shell { min-height: 100vh; display: grid; place-items: center; padding: 2rem; }
+.auth-card { width: min(32rem, 100%); padding: 2rem; border: 1px solid currentColor; border-radius: 0.75rem; }
+.auth-card h1 { margin-top: 0.25rem; }
+.auth-card .primary-action { display: inline-block; margin-top: 1rem; padding: 0.75rem 1rem; border: 1px solid currentColor; border-radius: 0.4rem; text-decoration: none; font-weight: 700; }
+.auth-error { font-weight: 700; }
+.auth-user { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+.auth-user img { border-radius: 50%; }

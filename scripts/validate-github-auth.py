@@ -1,0 +1,68 @@
+from pathlib import Path
+
+root = Path(__file__).resolve().parents[1]
+backend = root / "backend/src/main/java/info/isaksson/erland/repofleet/auth"
+app = (root / "frontend/src/App.tsx").read_text(encoding="utf-8")
+api = (root / "frontend/src/api.ts").read_text(encoding="utf-8")
+compose = (root / "deploy/docker-compose.server.yml").read_text(encoding="utf-8")
+env = (root / "deploy/.env.server.example").read_text(encoding="utf-8")
+nginx = (root / "deploy/nginx/repo-fleet.conf").read_text(encoding="utf-8")
+manual = (root / "docs/debian-13-installation.md").read_text(encoding="utf-8")
+
+required_backend = [
+    "AuthConfig.java",
+    "AuthResource.java",
+    "AuthRequestFilter.java",
+    "AuthSessionTokenService.java",
+    "GitHubUserAuthService.java",
+]
+
+checks = {
+    "backend auth files": all((backend / name).is_file() for name in required_backend),
+    "OAuth state": "state" in (backend / "GitHubUserAuthService.java").read_text(encoding="utf-8"),
+    "PKCE S256": "code_challenge_method=S256" in (backend / "GitHubUserAuthService.java").read_text(encoding="utf-8") and "code_verifier" in (backend / "GitHubUserAuthService.java").read_text(encoding="utf-8"),
+    "GitHub token not stored as session": "repofleet_session" in (backend / "AuthResource.java").read_text(encoding="utf-8") and "accessToken" not in (backend / "AuthSessionTokenService.java").read_text(encoding="utf-8"),
+    "signed session": "HmacSHA256" in (backend / "AuthSessionTokenService.java").read_text(encoding="utf-8"),
+    "secure session cookie": "HttpOnly" in (backend / "AuthResource.java").read_text(encoding="utf-8") and "SameSite=Lax" in (backend / "AuthResource.java").read_text(encoding="utf-8"),
+    "allowlist": "REPOFLEET_AUTH_ALLOWED_USERS" in (backend / "GitHubUserAuthService.java").read_text(encoding="utf-8"),
+    "API protected": "ContainerRequestFilter" in (backend / "AuthRequestFilter.java").read_text(encoding="utf-8"),
+    "frontend login": "Sign in with GitHub" in app and "/api/auth/login" in app,
+    "frontend logout": "Sign out" in app and "logout()" in app,
+    "frontend session API": "/api/auth/session" in api,
+    "production auth enabled": "REPOFLEET_AUTH_ENABLED: ${REPOFLEET_AUTH_ENABLED:-true}" in compose,
+    "production client secret": "REPOFLEET_AUTH_CLIENT_SECRET" in compose,
+    "production session secret": "REPOFLEET_AUTH_SESSION_SECRET" in compose,
+    "production allowlist": "REPOFLEET_AUTH_ALLOWED_USERS" in compose,
+    "server env template": all(name in env for name in ["REPOFLEET_AUTH_CLIENT_ID", "REPOFLEET_AUTH_CLIENT_SECRET", "REPOFLEET_AUTH_SESSION_SECRET", "REPOFLEET_AUTH_ALLOWED_USERS"]),
+    "nginx no basic auth": "auth_basic" not in nginx and ".htpasswd" not in nginx,
+    "certbot nginx manual": "sudo certbot --nginx -d repo-fleet.isaksson.info" in manual,
+    "configurable production port": "REPOFLEET_FRONTEND_PORT=8082" in env and "${REPOFLEET_FRONTEND_PORT:-8082}" in compose,
+}
+
+failed = [name for name, ok in checks.items() if not ok]
+if failed:
+    raise SystemExit("GitHub authentication validation failed: " + ", ".join(failed))
+print("RepoFleet GitHub user authentication validation passed.")
+
+# AuthRequestFilter is a REST provider instantiated during Quarkus static init.
+# Keep its injected ConfigMapping available during that phase.
+_auth_config_text = (root / "backend/src/main/java/info/isaksson/erland/repofleet/auth/AuthConfig.java").read_text(encoding="utf-8")
+if "@StaticInitSafe" not in _auth_config_text:
+    raise SystemExit("GitHub auth validation failed: AuthConfig must be @StaticInitSafe for REST provider startup.")
+
+_auth_config_text = (root / "backend/src/main/java/info/isaksson/erland/repofleet/auth/AuthConfig.java").read_text(encoding="utf-8")
+if "import io.quarkus.runtime.annotations.StaticInitSafe;" not in _auth_config_text:
+    raise SystemExit("GitHub auth validation failed: AuthConfig must import io.quarkus.runtime.annotations.StaticInitSafe.")
+
+_auth_config_text = (root / "backend/src/main/java/info/isaksson/erland/repofleet/auth/AuthConfig.java").read_text(encoding="utf-8")
+if "Optional<String> allowedUsers();" not in _auth_config_text:
+    raise SystemExit("GitHub auth validation failed: allowedUsers must be optional so disabled auth can start without an empty-string mapping.")
+
+_auth_filter_text = (root / "backend/src/main/java/info/isaksson/erland/repofleet/auth/AuthRequestFilter.java").read_text(encoding="utf-8")
+if 'if (path.startsWith("/")) path = path.substring(1);' not in _auth_filter_text:
+    raise SystemExit("GitHub auth validation failed: AuthRequestFilter must normalize a leading slash before public-path checks.")
+
+for _java in (root / "backend/src").rglob("*.java"):
+    _text = _java.read_text(encoding="utf-8")
+    if '.orElse("").orElse("")' in _text:
+        raise SystemExit(f"GitHub auth validation failed: duplicate Optional fallback in {_java.relative_to(root)}")

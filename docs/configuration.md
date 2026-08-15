@@ -53,3 +53,19 @@ The root `.gitignore` excludes common environment/private-key files. Release pac
 The stock Compose file intentionally does not assume a host secret-file location. Therefore a path such as `/run/secrets/github-app.pem` only works after the operator explicitly mounts that file into the backend container.
 
 For a minimal local Compose setup, `REPOFLEET_GITHUB_PRIVATE_KEY` is the direct option. For a hosted/managed deployment, prefer a platform secret mount and `REPOFLEET_GITHUB_PRIVATE_KEY_PATH`.
+
+
+## GitHub user authentication
+
+| Variable | Production | Purpose |
+|---|---|---|
+| `REPOFLEET_AUTH_ENABLED` | `true` | Protect RepoFleet API with GitHub login. |
+| `REPOFLEET_AUTH_CLIENT_ID` | required | GitHub App Client ID, distinct from App ID. |
+| `REPOFLEET_AUTH_CLIENT_SECRET` | secret | GitHub App Client Secret used only by the backend OAuth exchange. |
+| `REPOFLEET_AUTH_SESSION_SECRET` | secret | HMAC key for RepoFleet session cookies; minimum 32 characters. |
+| `REPOFLEET_AUTH_CALLBACK_URL` | production URL | Exact registered GitHub App callback URL. |
+| `REPOFLEET_AUTH_ALLOWED_USERS` | required | Comma-separated GitHub logins allowed to enter RepoFleet. |
+| `REPOFLEET_AUTH_SESSION_HOURS` | `12` | RepoFleet session lifetime. |
+| `REPOFLEET_AUTH_COOKIE_SECURE` | `true` | Require HTTPS for the session cookie. |
+
+The GitHub user access token is used only to retrieve the authenticated identity and is not persisted as the RepoFleet session.
