@@ -2,9 +2,11 @@ package info.isaksson.erland.repofleet.auth;
 
 import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
+import io.quarkus.runtime.configuration.StaticInitSafe;
 
 import java.util.Optional;
 
+@StaticInitSafe
 @ConfigMapping(prefix = "repofleet.auth")
 public interface AuthConfig {
     @WithDefault("false")

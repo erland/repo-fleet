@@ -43,3 +43,9 @@ failed = [name for name, ok in checks.items() if not ok]
 if failed:
     raise SystemExit("GitHub authentication validation failed: " + ", ".join(failed))
 print("RepoFleet GitHub user authentication validation passed.")
+
+# AuthRequestFilter is a REST provider instantiated during Quarkus static init.
+# Keep its injected ConfigMapping available during that phase.
+_auth_config_text = (root / "backend/src/main/java/info/isaksson/erland/repofleet/auth/AuthConfig.java").read_text(encoding="utf-8")
+if "@StaticInitSafe" not in _auth_config_text:
+    raise SystemExit("GitHub auth validation failed: AuthConfig must be @StaticInitSafe for REST provider startup.")
