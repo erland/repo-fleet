@@ -27,7 +27,7 @@ class AuthSessionTokenServiceTest {
             public Optional<String> clientSecret() { return Optional.of("secret"); }
             public Optional<String> sessionSecret() { return Optional.of(SECRET); }
             public Optional<String> callbackUrl() { return Optional.of("https://example.invalid/api/auth/github/callback"); }
-            public String allowedUsers() { return "erland"; }
+            public Optional<String> allowedUsers() { return Optional.of("erland"); }
             public long sessionHours() { return 12; }
             public boolean cookieSecure() { return true; }
             public String githubWebBaseUrl() { return "https://github.com"; }

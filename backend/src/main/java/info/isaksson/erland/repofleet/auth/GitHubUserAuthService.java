@@ -144,7 +144,7 @@ public class GitHubUserAuthService {
     }
 
     private Set<String> allowedUsers() {
-        Set<String> users = Arrays.stream(config.allowedUsers().split(","))
+        Set<String> users = Arrays.stream(config.allowedUsers().orElse("").orElse("").split(","))
             .map(String::trim)
             .filter(value -> !value.isBlank())
             .map(value -> value.toLowerCase(Locale.ROOT))

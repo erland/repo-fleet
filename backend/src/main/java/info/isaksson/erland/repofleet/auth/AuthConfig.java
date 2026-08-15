@@ -17,8 +17,7 @@ public interface AuthConfig {
     Optional<String> sessionSecret();
     Optional<String> callbackUrl();
 
-    @WithDefault("")
-    String allowedUsers();
+    Optional<String> allowedUsers();
 
     @WithDefault("12")
     long sessionHours();

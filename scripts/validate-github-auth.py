@@ -53,3 +53,11 @@ if "@StaticInitSafe" not in _auth_config_text:
 _auth_config_text = (root / "backend/src/main/java/info/isaksson/erland/repofleet/auth/AuthConfig.java").read_text(encoding="utf-8")
 if "import io.quarkus.runtime.annotations.StaticInitSafe;" not in _auth_config_text:
     raise SystemExit("GitHub auth validation failed: AuthConfig must import io.quarkus.runtime.annotations.StaticInitSafe.")
+
+_auth_config_text = (root / "backend/src/main/java/info/isaksson/erland/repofleet/auth/AuthConfig.java").read_text(encoding="utf-8")
+if "Optional<String> allowedUsers();" not in _auth_config_text:
+    raise SystemExit("GitHub auth validation failed: allowedUsers must be optional so disabled auth can start without an empty-string mapping.")
+
+_auth_filter_text = (root / "backend/src/main/java/info/isaksson/erland/repofleet/auth/AuthRequestFilter.java").read_text(encoding="utf-8")
+if 'if (path.startsWith("/")) path = path.substring(1);' not in _auth_filter_text:
+    raise SystemExit("GitHub auth validation failed: AuthRequestFilter must normalize a leading slash before public-path checks.")

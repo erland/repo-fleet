@@ -28,6 +28,7 @@ public class AuthRequestFilter implements ContainerRequestFilter {
         if (!config.enabled()) return;
 
         String path = requestContext.getUriInfo().getPath();
+        if (path.startsWith("/")) path = path.substring(1);
         if (path.equals("api/status") || path.startsWith("api/auth/")) return;
 
         var cookie = requestContext.getCookies().get(AuthResource.SESSION_COOKIE);
