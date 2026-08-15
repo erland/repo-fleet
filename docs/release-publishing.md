@@ -1,5 +1,44 @@
 # Release Publishing
 
+RepoFleet has two publish paths:
+
+- **Release candidates** such as `1.1.0-rc.3` are published manually from the default branch without creating a Git tag or GitHub Release.
+- **Official releases** such as `1.1.0` are still driven by the Git tag `v1.1.0` and create/augment a GitHub Release.
+
+Both paths publish immutable versioned frontend/backend images to GHCR. Production deployment always selects an exact version; the moving `rc` and `latest` aliases are convenience pointers only and are never used as deployment identifiers.
+
+## Release candidates
+
+Run **Actions → Publish release candidate → Run workflow** from the default branch and enter, for example:
+
+```text
+1.1.0-rc.3
+```
+
+`.github/workflows/release-candidate.yml` reruns repository/deployment validation, frontend typecheck/tests/build and backend Maven verification before publishing:
+
+```text
+ghcr.io/<owner>/repo-fleet-frontend:1.1.0-rc.3
+ghcr.io/<owner>/repo-fleet-backend:1.1.0-rc.3
+```
+
+It also publishes the source trace tag `sha-<12-char-commit>` and updates the convenience alias `rc`. It does **not** create a GitHub Release.
+
+The RC number is supplied explicitly. This keeps the official release version source in Git tags and avoids adding another project-wide version file solely for candidates.
+
+## Deploying candidates and official versions
+
+**Actions → Deploy production** accepts either:
+
+```text
+1.1.0-rc.3
+1.1.0
+```
+
+For an RC, the deploy workflow does not require a GitHub Release; it validates the RC format and pulls the exact immutable GHCR tags. For a non-RC version such as `1.1.0`, it still verifies that the matching official GitHub Release `v1.1.0` exists before deploying. An unpublished/mistyped RC therefore fails naturally during image pull.
+
+## Official releases
+
 Official RepoFleet releases use Git tags matching:
 
 ```text

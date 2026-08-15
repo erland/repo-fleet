@@ -9,8 +9,8 @@ fi
 VERSION="$1"
 OWNER="${2,,}"
 
-if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-  echo "Invalid release version: $VERSION" >&2
+if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$ ]]; then
+  echo "Invalid deployable version: $VERSION" >&2
   exit 2
 fi
 

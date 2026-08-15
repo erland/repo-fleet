@@ -173,6 +173,12 @@ The frontend container proxies `/api/*` to a runtime-configurable `BACKEND_URL`.
 
 See `docs/docker-images.md`.
 
+## Release candidates
+
+A deployable release candidate does not require a Git tag or GitHub Release. Run **Publish release candidate** manually on the default branch with a version such as `1.1.0-rc.3`. After its validation/build succeeds, the exact RC images are published to GHCR and can be selected directly in **Deploy production**.
+
+See `docs/release-publishing.md`.
+
 ## Official releases
 
 Official releases use Git tags:

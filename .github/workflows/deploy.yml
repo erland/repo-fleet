@@ -1,11 +1,11 @@
 name: Deploy production
-run-name: Deploy ${{ inputs.release_tag }} to production
+run-name: Deploy ${{ inputs.version }} to production
 
 on:
   workflow_dispatch:
     inputs:
-      release_tag:
-        description: 'Official release tag to deploy, for example v1.2.3'
+      version:
+        description: 'Published version to deploy, for example 1.1.0-rc.3 or 1.1.0'
         required: true
         type: string
 
@@ -27,23 +27,39 @@ jobs:
       url: https://repo-fleet.isaksson.info
 
     steps:
+      - name: Require default branch dispatch
+        shell: bash
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REF" != "refs/heads/${DEFAULT_BRANCH}" ]]; then
+            echo "Production deploys must be dispatched from the default branch (${DEFAULT_BRANCH})." >&2
+            exit 1
+          fi
+
       - name: Check out deployment assets
         uses: actions/checkout@v7
 
-      - name: Validate requested official release
-        id: release
+      - name: Validate requested version
+        id: version
         env:
+          DEPLOY_VERSION: ${{ inputs.version }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ inputs.release_tag }}
         shell: bash
         run: |
           set -euo pipefail
-          if [[ ! "$RELEASE_TAG" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
-            echo "Invalid release tag: $RELEASE_TAG" >&2
+          if [[ ! "$DEPLOY_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$ ]]; then
+            echo "Invalid deployment version: $DEPLOY_VERSION" >&2
+            echo "Expected MAJOR.MINOR.PATCH or MAJOR.MINOR.PATCH-rc.NUMBER" >&2
             exit 1
           fi
-          gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null
-          echo "version=${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
+
+          if [[ "$DEPLOY_VERSION" != *-rc.* ]]; then
+            gh release view "v${DEPLOY_VERSION}" --repo "$GITHUB_REPOSITORY" >/dev/null
+          fi
+
+          echo "version=$DEPLOY_VERSION" >> "$GITHUB_OUTPUT"
           echo "owner=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
 
       - name: Configure SSH
@@ -87,13 +103,13 @@ jobs:
           printf '%s' "$GHCR_TOKEN" | \
             ssh -p "$port" "$target" "docker login ghcr.io --username '$GITHUB_ACTOR' --password-stdin"
 
-      - name: Deploy selected release
+      - name: Deploy selected version
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
           DEPLOY_PORT_INPUT: ${{ vars.DEPLOY_PORT }}
-          VERSION: ${{ steps.release.outputs.version }}
-          OWNER: ${{ steps.release.outputs.owner }}
+          VERSION: ${{ steps.version.outputs.version }}
+          OWNER: ${{ steps.version.outputs.owner }}
         shell: bash
         run: |
           set -euo pipefail

@@ -35,6 +35,11 @@ jobs:
       - name: Validate Docker Compose model
         run: python3 scripts/validate-compose-step-23.py
 
+      - name: Validate release candidate and deployment workflows
+        run: |
+          python3 scripts/validate-release-candidate.py
+          python3 scripts/validate-deployment-step.py
+
   frontend:
     name: Frontend
     runs-on: ubuntu-latest
