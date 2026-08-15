@@ -10,6 +10,7 @@ required_docs = [
     "docs/implementation-status.md",
     "docs/local-development.md",
     "docs/github-app-setup.md",
+    "docs/github-user-authentication.md",
     "docs/configuration.md",
     "docs/docker-images.md",
     "docs/docker-compose-runtime.md",
@@ -29,6 +30,7 @@ readme = (root / "README.md").read_text(encoding="utf-8")
 for needle in (
     "docs/local-development.md",
     "docs/github-app-setup.md",
+    "docs/github-user-authentication.md",
     "docs/configuration.md",
     "docs/docker-compose-runtime.md",
     "docs/release-publishing.md",

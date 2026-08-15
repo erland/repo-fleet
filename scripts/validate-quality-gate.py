@@ -27,6 +27,21 @@ for secret_name in (
     if match and match.group(1).strip():
         errors.append(f".env.example contains a non-empty {secret_name}")
 
+server_env_example = (root / "deploy" / ".env.server.example").read_text(encoding="utf-8")
+for secret_name in (
+    "REPOFLEET_GITHUB_APP_ID",
+    "REPOFLEET_GITHUB_INSTALLATION_ID",
+    "REPOFLEET_AUTH_CLIENT_ID",
+    "REPOFLEET_AUTH_CLIENT_SECRET",
+    "REPOFLEET_AUTH_SESSION_SECRET",
+    "REPOFLEET_AUTH_ALLOWED_USERS",
+):
+    match = re.search(rf"(?m)^{re.escape(secret_name)}=(.*)$", server_env_example)
+    if not match:
+        errors.append(f"deploy/.env.server.example is missing {secret_name}")
+    elif match.group(1).strip():
+        errors.append(f"deploy/.env.server.example contains a non-empty {secret_name}")
+
 # Generated build output and local dependencies must remain ignored.
 gitignore = (root / ".gitignore").read_text(encoding="utf-8")
 for required in ("frontend/node_modules/", "frontend/dist/", "backend/target/", ".env", "*.pem", "*.key"):

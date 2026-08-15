@@ -8,11 +8,11 @@ Den här manualen beskriver en ny produktionsinstallation av RepoFleet på **Deb
 - GitHub Container Registry (GHCR) för versionerade images,
 - Nginx som reverse proxy på servern,
 - HTTPS för `repo-fleet.isaksson.info` med Let's Encrypt/Certbot,
-- Nginx Basic Auth framför tjänsten,
+- GitHub-inloggning via RepoFleet GitHub App framför tjänstens data/API,
 - en dedikerad SSH-användare för GitHub Actions-deploy,
 - manuellt startad GitHub Action för deployment av en vald officiell version eller release candidate.
 
-> **Viktigt om åtkomstskydd:** RepoFleet Phase 1 har ingen egen användarinloggning. Eftersom tjänsten kan visa namn och metadata från privata repositories bör den inte exponeras anonymt på Internet. Den här manualen använder därför Nginx Basic Auth framför hela tjänsten.
+> **Viktigt om åtkomstskydd:** RepoFleet använder GitHub-inloggning med en explicit allowlist. GitHub App-installationen styr vilka repositories tjänsten får analysera, medan den inloggade GitHub-identiteten styr vem som får använda webbgränssnittet. Nginx Basic Auth används inte.
 
 ---
 
@@ -106,7 +106,6 @@ sudo apt install -y \
   gnupg \
   openssh-server \
   nginx \
-  apache2-utils \
   python3 \
   python3-dev \
   python3-venv \
@@ -279,9 +278,10 @@ På GitHub:
 ```text
 GitHub App name: RepoFleet
 Homepage URL:    https://repo-fleet.isaksson.info
+Callback URL:    https://repo-fleet.isaksson.info/api/auth/github/callback
 ```
 
-4. RepoFleet Phase 1 använder inga webhooks. Stäng därför av webhook-funktionen/`Active` om GitHub-formuläret tillåter det.
+4. RepoFleet använder inga webhooks i den här fasen. Stäng av webhook-funktionen/`Active` om GitHub-formuläret tillåter det.
 5. Under **Repository permissions**, använd read-only:
 
 ```text
@@ -290,13 +290,23 @@ Contents: Read-only
 Actions: Read-only
 ```
 
-6. Ge inga write-permissions i Phase 1.
+6. Ge inga write-permissions enbart för inloggningen.
 7. Välj om appen bara får installeras på ditt konto eller enligt den installationsmodell du önskar.
 8. Skapa appen.
 
-Notera **App ID** från appens inställningssida.
+Notera följande tre separata värden från appens inställningssida:
 
-GitHub-installationens repository-listning kan användas med ett installation access token, och den övergripande read-only-modellen håller GitHub som source of truth.
+- **App ID** – används för installation/autentisering mot repositories.
+- **Client ID** – används för användarinloggning och är inte samma sak som App ID.
+- **Client Secret** – generera ett nytt under appens inställningar och behandla det som en hemlighet.
+
+Callback URL kan också läggas till i efterhand under **Identifying and authorizing users**. Den måste vara exakt:
+
+```text
+https://repo-fleet.isaksson.info/api/auth/github/callback
+```
+
+RepoFleet använder GitHub Apps web application flow med `state` och PKCE för användarinloggning. Repositoryinventeringen fortsätter oberoende av detta att använda installation access token.
 
 ---
 
@@ -357,41 +367,68 @@ Här är `12345678` installation ID.
 
 ## 11. Skapa serverns RepoFleet-konfiguration
 
-Skapa `/opt/repo-fleet/.env`:
+Skapa först en slumpmässig sessionshemlighet. Den används av RepoFleet för att signera den egna HttpOnly-sessionen efter GitHub-login:
+
+```bash
+openssl rand -base64 48
+```
+
+Skapa därefter `/opt/repo-fleet/.env`:
 
 ```bash
 sudo -u repofleet-deploy tee /opt/repo-fleet/.env >/dev/null <<'EOF_ENV'
 COMPOSE_PROJECT_NAME=repo-fleet
+REPOFLEET_FRONTEND_PORT=8082
+
 REPOFLEET_GITHUB_APP_ID=<GITHUB_APP_ID>
 REPOFLEET_GITHUB_INSTALLATION_ID=<GITHUB_INSTALLATION_ID>
 REPOFLEET_GITHUB_TOKEN_REFRESH_MARGIN_SECONDS=300
 GITHUB_API_URL=https://api.github.com
+
+REPOFLEET_AUTH_ENABLED=true
+REPOFLEET_AUTH_CLIENT_ID=<GITHUB_APP_CLIENT_ID>
+REPOFLEET_AUTH_CLIENT_SECRET=<GITHUB_APP_CLIENT_SECRET>
+REPOFLEET_AUTH_SESSION_SECRET=<SLUMPMÄSSIG_SESSION_SECRET>
+REPOFLEET_AUTH_CALLBACK_URL=https://repo-fleet.isaksson.info/api/auth/github/callback
+REPOFLEET_AUTH_ALLOWED_USERS=<GITHUB_LOGIN>
+REPOFLEET_AUTH_SESSION_HOURS=12
+REPOFLEET_AUTH_COOKIE_SECURE=true
+
 JAVA_OPTS=-XX:MaxRAMPercentage=75.0
-REPOFLEET_FRONTEND_PORT=8082
 EOF_ENV
 
 sudo chmod 0600 /opt/repo-fleet/.env
 ```
 
-Sätt in riktiga värden för App ID och Installation ID.
+`REPOFLEET_AUTH_ALLOWED_USERS` kan innehålla flera GitHub-login separerade med komma, exempelvis:
 
-Image-referenser läggs **inte** permanent i `.env`; deploy-scriptet skriver en separat `.images.env` med exakt release-version.
+```text
+REPOFLEET_AUTH_ALLOWED_USERS=user-one,user-two
+```
 
-`REPOFLEET_FRONTEND_PORT=8082` är host-porten som Nginx använder. Containerporten är fortfarande `8080`. Porten är konfigurerbar för att RepoFleet ska kunna samexistera med andra tjänster på samma server.
+Sätt in riktiga värden men checka **aldrig** in serverns `.env`. `deploy/.env.server.example` i repositoryt är endast en mall utan hemligheter.
+
+### Om porten
+
+`REPOFLEET_FRONTEND_PORT` är **host-porten** där RepoFleet frontend publiceras på loopback. Standard/rekommendation i denna installation är `8082` eftersom andra tjänster på samma server redan kan använda exempelvis `8080`.
+
+```text
+Nginx → 127.0.0.1:${REPOFLEET_FRONTEND_PORT} → frontend-container:8080 → backend-container:8080
+```
+
+Du kan välja en annan ledig port genom att ändra `REPOFLEET_FRONTEND_PORT` i `/opt/repo-fleet/.env`. Nginx läser inte `.env`, så `proxy_pass` i Nginx-konfigurationen måste använda **samma host-port**.
+
+Image-referenser läggs inte permanent i `.env`; deploy-scriptet skriver en separat `.images.env` med exakt deployad version.
 
 ---
 
 # Del E – Nginx och HTTPS
 
-## 12. Förbered HTTP för Let's Encrypt
+## 12. Skapa Nginx reverse proxy över HTTP
 
-Skapa webroot för ACME challenge:
+Innan Certbot körs behöver Nginx ha en fungerande HTTP-vhost för domänen. Exemplet nedan utgår från `REPOFLEET_FRONTEND_PORT=8082` i `/opt/repo-fleet/.env`.
 
-```bash
-sudo install -d -m 0755 /var/www/letsencrypt
-```
-
-Skapa bootstrap-vhost:
+> Om du valt en annan port i `.env`, byt `8082` i `proxy_pass` till samma värde.
 
 ```bash
 sudo tee /etc/nginx/sites-available/repo-fleet.isaksson.info >/dev/null <<'EOF_NGINX'
@@ -400,130 +437,6 @@ server {
     listen [::]:80;
     server_name repo-fleet.isaksson.info;
 
-    location ^~ /.well-known/acme-challenge/ {
-        root /var/www/letsencrypt;
-        default_type text/plain;
-        auth_basic off;
-    }
-
-    location / {
-        default_type text/plain;
-        return 200 "RepoFleet HTTPS bootstrap\n";
-    }
-}
-EOF_NGINX
-```
-
-Aktivera siten:
-
-```bash
-sudo ln -sfn \
-  /etc/nginx/sites-available/repo-fleet.isaksson.info \
-  /etc/nginx/sites-enabled/repo-fleet.isaksson.info
-
-sudo nginx -t
-sudo systemctl reload nginx
-```
-
-Verifiera utifrån:
-
-```bash
-curl -v http://repo-fleet.isaksson.info/
-```
-
-Du ska få `RepoFleet HTTPS bootstrap`.
-
-Om det inte fungerar: kontrollera DNS, serverns/provider-brandvägg och att inkommande **TCP 80** är tillåten.
-
----
-
-## 13. Installera Certbot
-
-Installera Certbot i den rekommenderade separata Python-miljön:
-
-```bash
-sudo python3 -m venv /opt/certbot
-sudo /opt/certbot/bin/pip install --upgrade pip
-sudo /opt/certbot/bin/pip install certbot certbot-nginx
-sudo ln -sfn /opt/certbot/bin/certbot /usr/local/bin/certbot
-```
-
----
-
-## 14. Beställ certifikat
-
-Byt `<EMAIL_ADDRESS>` till din e-postadress för Let's Encrypt-meddelanden:
-
-```bash
-sudo certbot certonly \
-  --webroot \
-  --webroot-path /var/www/letsencrypt \
-  --domain repo-fleet.isaksson.info \
-  --email <EMAIL_ADDRESS> \
-  --agree-tos \
-  --no-eff-email
-```
-
-Certifikatet ska nu finnas under:
-
-```text
-/etc/letsencrypt/live/repo-fleet.isaksson.info/
-```
-
----
-
-## 15. Skapa Basic Auth-användare
-
-Exempel med användarnamnet `erland`:
-
-```bash
-sudo htpasswd -c /etc/nginx/.htpasswd-repo-fleet <REPOFLEET_USER>
-```
-
-Ange ett starkt, unikt lösenord.
-
-För ytterligare användare används `htpasswd` utan `-c`:
-
-```bash
-sudo htpasswd /etc/nginx/.htpasswd-repo-fleet <ANVÄNDARE>
-```
-
----
-
-## 16. Aktivera slutlig HTTPS reverse proxy
-
-Ersätt Nginx-konfigurationen:
-
-```bash
-sudo tee /etc/nginx/sites-available/repo-fleet.isaksson.info >/dev/null <<'EOF_NGINX'
-server {
-    listen 80;
-    listen [::]:80;
-    server_name repo-fleet.isaksson.info;
-
-    location ^~ /.well-known/acme-challenge/ {
-        root /var/www/letsencrypt;
-        default_type text/plain;
-        auth_basic off;
-    }
-
-    location / {
-        return 301 https://$host$request_uri;
-    }
-}
-
-server {
-    listen 443 ssl;
-    listen [::]:443 ssl;
-    server_name repo-fleet.isaksson.info;
-
-    ssl_certificate /etc/letsencrypt/live/repo-fleet.isaksson.info/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/repo-fleet.isaksson.info/privkey.pem;
-
-    auth_basic "RepoFleet";
-    auth_basic_user_file /etc/nginx/.htpasswd-repo-fleet;
-
-    add_header Strict-Transport-Security "max-age=31536000" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header Referrer-Policy "same-origin" always;
 
@@ -540,76 +453,127 @@ server {
 }
 EOF_NGINX
 
+sudo ln -sfn \
+  /etc/nginx/sites-available/repo-fleet.isaksson.info \
+  /etc/nginx/sites-enabled/repo-fleet.isaksson.info
+
 sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-Innan första application deployment kommer HTTPS-sidan normalt svara `502 Bad Gateway` efter Basic Auth. Det är förväntat tills frontend-containern kör på `127.0.0.1:8082`.
+Det är normalt att du får `502 Bad Gateway` innan RepoFleet-containern har deployats. Det viktiga inför Certbot är att Nginx-konfigurationen är giltig och att DNS/port 80 når rätt server.
 
 ---
 
-## 17. Automatisk certifikatförnyelse
+## 13. Installera eller verifiera Certbot med Nginx-plugin
 
-Skapa reload-hook:
-
-```bash
-sudo install -d -m 0755 /etc/letsencrypt/renewal-hooks/deploy
-sudo tee /etc/letsencrypt/renewal-hooks/deploy/reload-nginx >/dev/null <<'EOF_HOOK'
-#!/bin/sh
-systemctl reload nginx
-EOF_HOOK
-sudo chmod 0755 /etc/letsencrypt/renewal-hooks/deploy/reload-nginx
-```
-
-Skapa systemd service:
+Om servern redan använder Certbot/Nginx på samma sätt som andra tjänster behöver du **inte** installera en separat RepoFleet-instans av Certbot. Verifiera först:
 
 ```bash
-sudo tee /etc/systemd/system/certbot-renew.service >/dev/null <<'EOF_SERVICE'
-[Unit]
-Description=Renew Let's Encrypt certificates with Certbot
-
-[Service]
-Type=oneshot
-ExecStart=/usr/local/bin/certbot renew -q
-EOF_SERVICE
+certbot --version
 ```
 
-Skapa timer som provar två gånger per dygn med slumpmässig fördröjning:
+Om Certbot inte finns kan du använda samma installationsmetod som för övriga Nginx-siter på servern. RepoFleet kräver att Nginx-pluginen finns så `certbot --nginx` kan läsa och uppdatera vhosten.
+
+Den tidigare RepoFleet-guidens `certonly --webroot`-modell används inte längre.
+
+---
+
+## 14. Beställ och installera HTTPS-certifikatet med Nginx-plugin
+
+Kontrollera först:
 
 ```bash
-sudo tee /etc/systemd/system/certbot-renew.timer >/dev/null <<'EOF_TIMER'
-[Unit]
-Description=Twice-daily Certbot renewal check
-
-[Timer]
-OnCalendar=*-*-* 00,12:00:00
-RandomizedDelaySec=3600
-Persistent=true
-
-[Install]
-WantedBy=timers.target
-EOF_TIMER
+sudo nginx -t
 ```
 
-Aktivera:
+Kör sedan samma Certbot-modell som för `zip-github`:
 
 ```bash
-sudo systemctl daemon-reload
-sudo systemctl enable --now certbot-renew.timer
-systemctl list-timers certbot-renew.timer
+sudo certbot --nginx -d repo-fleet.isaksson.info
 ```
 
-Testa renewal:
+Följ Certbots frågor. När Certbot erbjuder redirect från HTTP till HTTPS, välj redirect om din installerade version frågar efter detta.
+
+Nginx-pluginen hämtar certifikatet **och ändrar Nginx-konfigurationen** med bland annat `listen 443 ssl`, certifikatvägar och HTTPS/redirect. Redigera därför inte in en separat manuell TLS-server från den gamla guiden efteråt.
+
+Verifiera:
+
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+curl -I https://repo-fleet.isaksson.info/
+```
+
+Innan första application deployment kan HTTPS fortfarande ge `502 Bad Gateway`, eftersom Nginx då ännu inte har något på `127.0.0.1:8082`.
+
+### Flera HTTPS-siter på samma Nginx
+
+Om servern redan har andra Certbot-hanterade siter, använd konsekventa listen-rader. Ett tidigare problem med `duplicate listen options for [::]:443` kan uppstå om en site explicit har `ipv6only=on` och en annan delar samma `[::]:443`-listener.
+
+Standardisera i så fall exempelvis till:
+
+```nginx
+listen 443 ssl;
+listen [::]:443 ssl;
+```
+
+på de berörda HTTPS-vhostarna och kör alltid `sudo nginx -t` före reload.
+
+---
+
+## 15. Verifiera automatisk certifikatförnyelse
+
+Certbot-installationer har normalt redan cron eller systemd-timer för `certbot renew`. Skapa inte en andra RepoFleet-specifik renewal-timer innan du kontrollerat vad servern redan har.
+
+Kontrollera exempelvis:
+
+```bash
+systemctl list-timers | grep -i certbot || true
+sudo grep -R "certbot renew" /etc/cron* 2>/dev/null || true
+```
+
+Testa sedan hela renewal-flödet:
 
 ```bash
 sudo certbot renew --dry-run
 ```
 
-Uppdatera Certbot-miljön regelbundet, exempelvis månadsvis i samband med serverunderhåll:
+Eftersom certifikatet skapades med Nginx-pluginen återanvänder `certbot renew` samma plugin vid förnyelse.
 
-```bash
-sudo /opt/certbot/bin/pip install --upgrade certbot certbot-nginx
+---
+
+## 16. GitHub-login ersätter Basic Authentication
+
+Skapa **ingen** `/etc/nginx/.htpasswd-repo-fleet` och lägg inte `auth_basic` i vhosten.
+
+Efter deployment laddas RepoFleet-gränssnittet normalt via HTTPS. En besökare utan giltig RepoFleet-session får en **Sign in with GitHub**-vy. Efter GitHub-login verifierar backend att login finns i `REPOFLEET_AUTH_ALLOWED_USERS` och skapar därefter en Secure/HttpOnly-session-cookie.
+
+Nginx ansvarar alltså för TLS/reverse proxy; RepoFleet ansvarar för användarautentisering.
+
+---
+
+## 17. Kontrollera slutlig Nginx-konfiguration
+
+Efter `certbot --nginx` bör konfigurationen funktionellt motsvara:
+
+```text
+Internet :443
+   ↓
+Nginx / Certbot TLS
+   ↓
+127.0.0.1:<REPOFLEET_FRONTEND_PORT>
+   ↓
+RepoFleet frontend
+   ↓ /api
+RepoFleet backend
+   ↓
+GitHub user login/session + installation API
 ```
+
+Certbots exakta genererade TLS-rader kan skilja sig mellan versioner. Behåll de rader som markeras `managed by Certbot` så länge `sudo nginx -t` är lyckad.
+
+Kontrollera särskilt att `proxy_pass` fortfarande pekar på samma port som `REPOFLEET_FRONTEND_PORT` i `/opt/repo-fleet/.env`.
 
 ---
 
@@ -630,7 +594,7 @@ Eftersom du redan kör andra tjänster på servern ska du **inte ersätta befint
 RepoFleets Docker Compose för serverdrift publicerar endast frontend på:
 
 ```text
-127.0.0.1:8082
+127.0.0.1:${REPOFLEET_FRONTEND_PORT}
 ```
 
 Backend publiceras inte till hostens nätverk alls. Docker-portarna behöver därför inte öppnas externt.
@@ -796,7 +760,7 @@ På GitHub:
 1. Gå till **Actions**.
 2. Välj **Deploy production**.
 3. Klicka **Run workflow**.
-4. Ange en publicerad immutable version, exempelvis:
+4. Ange en redan publicerad immutable version, exempelvis en RC:
 
 ```text
 1.0.1-rc.1
@@ -810,19 +774,19 @@ eller en officiell version:
 
 5. Starta workflowet.
 
-Workflowet gör följande:
+Workflowet:
 
-1. validerar att input följer `vMAJOR.MINOR.PATCH`,
-2. verifierar att GitHub Release faktiskt finns,
+1. validerar versionsformatet,
+2. kräver GitHub Release endast för officiella versioner (RC kräver ingen formell release),
 3. kopierar `docker-compose.server.yml` och `deploy.sh` till `/opt/repo-fleet`,
 4. loggar in servern temporärt mot GHCR med workflowets kortlivade `GITHUB_TOKEN`,
 5. pullar exakt vald frontend/backend-version,
 6. startar Compose med health checks,
-7. försöker återgå till föregående image-version om ny version inte blir healthy,
-8. verifierar att publika HTTPS-endpointen svarar med giltig TLS,
+7. försöker återgå till föregående image-version om den nya versionen inte blir healthy,
+8. verifierar HTTPS och RepoFleets auth-session-endpoint,
 9. loggar ut servern från GHCR.
 
-Servern behöver därmed ingen permanent GitHub Packages-token.
+Servern behöver inget Git-repository checkout och ingen permanent GitHub Packages-token för denna deploymodell. Driftfilerna kopieras från workflowets checkout och applikationen körs från versionerade GHCR-images.
 
 ---
 
@@ -849,83 +813,70 @@ Kontrollera image-versioner:
 sudo -u repofleet-deploy cat /opt/repo-fleet/.images.env
 ```
 
-Exempel:
+Kontrollera den host-port som är satt i `.env`:
 
-```text
-REPOFLEET_FRONTEND_IMAGE=ghcr.io/erland/repo-fleet-frontend:1.0.0
-REPOFLEET_BACKEND_IMAGE=ghcr.io/erland/repo-fleet-backend:1.0.0
+```bash
+grep '^REPOFLEET_FRONTEND_PORT=' /opt/repo-fleet/.env
+sudo ss -ltnp | grep ':8082'
 ```
 
-Kontrollera frontend lokalt:
+Om du valt annan port än `8082`, använd den i kontrollen. Porten ska vara bunden till `127.0.0.1`, inte `0.0.0.0`.
+
+Kontrollera frontend lokalt med samma port:
 
 ```bash
 curl -I http://127.0.0.1:8082/
 ```
 
-Kontrollera HTTPS:
+Kontrollera publik HTTPS:
 
 ```bash
 curl -I https://repo-fleet.isaksson.info/
 ```
 
-Utan Basic Auth credentials ska HTTPS-endpointen normalt svara:
+Den statiska frontend-sidan ska kunna svara `200 OK` även när du ännu inte är inloggad; känsliga API-endpoints skyddas i backend. Kontrollera auth-status:
 
-```text
-HTTP/1.1 401 Unauthorized
+```bash
+curl -sS https://repo-fleet.isaksson.info/api/auth/session
 ```
 
-Det visar att TLS och Basic Auth fungerar.
+Före login ska svaret motsvara:
 
-Testa sedan i webbläsare:
-
-```text
-https://repo-fleet.isaksson.info
+```json
+{"authEnabled":true,"authenticated":false,"user":null}
 ```
 
-Logga in med Basic Auth-användaren från steg 15.
+Öppna därefter tjänsten i webbläsaren och fortsätt med GitHub-login i steg 25.
 
 ---
 
-## 25. Verifiera GitHub-anslutningen i RepoFleet
+## 25. Verifiera GitHub-inloggning och GitHub App-anslutning
 
-Efter Basic Auth-inloggning kan du kontrollera via UI eller endpoint:
-
-```text
-https://repo-fleet.isaksson.info/api/github/connection
-```
-
-Förväntat är:
+Öppna:
 
 ```text
-CONNECTED
+https://repo-fleet.isaksson.info/
 ```
 
-Starta därefter en inventory refresh i UI:t och verifiera att förväntade repositories dyker upp.
+Du ska först se **Sign in with GitHub**. Klicka på knappen och godkänn GitHub App-användarauktoriseringen.
 
-Om status är `NOT_CONFIGURED`, kontrollera `/opt/repo-fleet/.env`.
+Efter callback ska du komma tillbaka till RepoFleet som inloggad användare. Headern visar GitHub-login och en **Sign out**-knapp.
 
-Om status är `ERROR`, kontrollera:
+Verifiera session via webbläsaren eller, efter login, genom UI:t. Om en annan GitHub-användare som inte finns i `REPOFLEET_AUTH_ALLOWED_USERS` försöker logga in ska RepoFleet neka åtkomst.
 
-- App ID,
-- Installation ID,
-- private key-filen,
-- GitHub App-installationen,
-- read-only permissions,
-- serverns klocka,
-- containerloggar.
+Repositoryinventeringen använder fortfarande GitHub App-installationen. Kontrollera därför också att GitHub-anslutningen fungerar och att repositories kan refreshas. Om login fungerar men inventory inte gör det är det normalt en separat App ID/Installation ID/private-key-fråga.
 
-Containerloggar:
+Vid felsökning:
 
 ```bash
 sudo -u repofleet-deploy -H bash -lc '
   cd /opt/repo-fleet
-  docker compose \
-    --env-file .env \
-    --env-file .images.env \
-    -f docker-compose.server.yml \
-    logs --tail=200 backend
+  docker compose --env-file .env --env-file .images.env \
+    -f docker-compose.server.yml logs --tail=200 backend
 '
 ```
+
+Vanliga auth-konfigurationsfel är fel **Client ID**, fel **Client Secret**, callback URL som inte exakt matchar GitHub App-inställningen, för kort sessionshemlighet eller att login saknas i allowlist.
 
 ---
 
@@ -1034,20 +985,19 @@ sudo journalctl -u docker --since today
 
 ```bash
 sudo certbot certificates
-systemctl status certbot-renew.timer
+systemctl list-timers | grep -i certbot || true
 ```
 
 ---
 
 ## 29. Backup
 
-Phase 1 har ingen databas. Det viktigaste server-specifika innehållet att säkerhetskopiera är därför:
+Phase 1 har ingen databas. Det viktigaste server-specifika innehållet att säkerhetskopiera är därför (observera att `.env` nu även innehåller GitHub OAuth Client Secret och RepoFleets sessionshemlighet):
 
 ```text
 /opt/repo-fleet/.env
 /opt/repo-fleet/secrets/github-app.pem
 /etc/nginx/sites-available/repo-fleet.isaksson.info
-/etc/nginx/.htpasswd-repo-fleet
 /etc/letsencrypt/
 ```
 
@@ -1057,7 +1007,7 @@ Deployment-filerna och images kan återskapas från GitHub/GHCR.
 
 ---
 
-## 30. Uppdatering av Debian/Docker/Certbot
+## 30. Uppdatering av Debian, Docker och Certbot
 
 Planera normalt underhåll:
 
@@ -1068,11 +1018,7 @@ sudo apt full-upgrade
 
 Docker uppgraderas via det officiella Docker apt-repositoryt.
 
-Certbot-miljön uppdateras separat:
-
-```bash
-sudo /opt/certbot/bin/pip install --upgrade certbot certbot-nginx
-```
+Uppdatera Certbot enligt den installationsmetod som används gemensamt på servern. Kontrollera därefter att renewal fortfarande fungerar.
 
 Efter större Docker/Nginx-uppdateringar, kontrollera:
 
@@ -1096,11 +1042,11 @@ och kör vid behov en RepoFleet deployment av aktuell release igen.
 - [ ] GitHub App är skapad med read-only Metadata/Contents/Actions.
 - [ ] GitHub App är installerad på rätt repositories.
 - [ ] GitHub App private key finns i `/opt/repo-fleet/secrets/github-app.pem`.
-- [ ] `/opt/repo-fleet/.env` innehåller rätt App ID och Installation ID.
+- [ ] `/opt/repo-fleet/.env` innehåller rätt App ID, Installation ID, auth Client ID/Secret, session secret, allowlist och vald frontend-port.
 - [ ] Nginx svarar för `repo-fleet.isaksson.info`.
 - [ ] Let's Encrypt-certifikatet är installerat.
-- [ ] Certbot renewal timer och dry-run fungerar.
-- [ ] Basic Auth är aktiverad.
+- [ ] Certbots befintliga automatiska renewal-schemaläggning är verifierad och `renew --dry-run` fungerar.
+- [ ] GitHub App Callback URL, Client ID och Client Secret är konfigurerade för RepoFleet-login.
 - [ ] Serverbrandväggen tillåter 80/443 och nödvändig SSH-port.
 - [ ] GitHub Environment `production` finns.
 - [ ] Deploy-secrets och verifierad `DEPLOY_KNOWN_HOSTS` finns.
@@ -1108,6 +1054,6 @@ och kör vid behov en RepoFleet deployment av aktuell release igen.
 - [ ] Minst en deploybar immutable version finns i GHCR (`MAJOR.MINOR.PATCH-rc.N` eller `MAJOR.MINOR.PATCH`).
 - [ ] `Deploy production` har körts för vald version.
 - [ ] Frontend och backend är `healthy`.
-- [ ] HTTPS svarar och kräver Basic Auth.
-- [ ] `/api/github/connection` visar `CONNECTED`.
+- [ ] HTTPS visar RepoFleets GitHub-login och en allowlistad GitHub-användare kan logga in.
+- [ ] Efter GitHub-login visar repositoryinventeringen förväntad anslutning/data och refresh fungerar.
 - [ ] Inventory refresh visar förväntade repositories.

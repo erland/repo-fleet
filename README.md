@@ -63,7 +63,7 @@ http://localhost:8080
 
 Backend diagnostics are exposed at `http://localhost:8081` by default.
 
-The service can start without GitHub credentials, but live repository discovery requires a configured GitHub App.
+The service can start without GitHub credentials for local development. Production uses the configured GitHub App both for repository discovery and for allowlisted GitHub user sign-in.
 
 Full Compose instructions: `docs/docker-compose-runtime.md`.
 
@@ -215,9 +215,9 @@ A complete production installation guide for `repo-fleet.isaksson.info` is avail
 
 - `docs/debian-13-installation.md`
 
-It covers a fresh Debian 13 server, `/opt/repo-fleet`, Docker/Compose, GitHub App setup, Nginx, Let's Encrypt/Certbot, Basic Auth, SSH deployment credentials and the manually triggered production deployment workflow.
+It covers a fresh Debian 13 server, `/opt/repo-fleet`, Docker/Compose, GitHub App setup, GitHub user sign-in, Nginx, Let's Encrypt via `certbot --nginx`, configurable loopback port, SSH deployment credentials and the manually triggered production deployment workflow.
 
-Production-specific deployment assets are in `deploy/`, and `.github/workflows/deploy.yml` deploys a selected official `vMAJOR.MINOR.PATCH` GitHub Release to `/opt/repo-fleet`.
+Production-specific deployment assets are in `deploy/`. `.github/workflows/deploy.yml` deploys a selected immutable official version or release candidate to `/opt/repo-fleet`; RC versions do not require a formal GitHub Release.
 
 ## Phase 1 completion
 
@@ -236,6 +236,7 @@ The completion review lists the delivered requirements, intentional deviations f
 - `docs/implementation-status.md` – verified step status
 - `docs/local-development.md` – native development/testing
 - `docs/github-app-setup.md` – GitHub App permissions/install/configuration
+- `docs/github-user-authentication.md` – GitHub login, allowlist and session model
 - `docs/configuration.md` – environment-variable reference
 - `docs/docker-images.md` – individual production images
 - `docs/docker-compose-runtime.md` – complete Docker runtime
@@ -243,3 +244,8 @@ The completion review lists the delivered requirements, intentional deviations f
 - `docs/release-publishing.md` – versioned GHCR/GitHub Releases
 - `docs/phase-1-acceptance-validation.md` – deterministic acceptance coverage
 - `docs/phase-1-completion-review.md` – final Phase 1 assessment
+
+
+## Production access authentication
+
+Production RepoFleet uses **Sign in with GitHub** through the existing GitHub App instead of Nginx Basic Authentication. An allowlist controls which GitHub logins may enter the service. The signed-in user's GitHub token is not used for repository inventory and is not retained as the RepoFleet session. See `docs/github-user-authentication.md`.

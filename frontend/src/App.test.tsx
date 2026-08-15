@@ -48,7 +48,7 @@ describe('App', () => {
 
     expect(html).toContain('RepoFleet')
     expect(html).toContain('Repository portfolio management')
-    expect(html).toContain('Loading repository inventory')
+    expect(html).toContain('Checking authentication')
   })
 })
 
@@ -439,12 +439,11 @@ describe('SavedViewsPanel', () => {
 })
 
 describe('Accessibility and responsive markup', () => {
-  it('provides a keyboard skip link to the main inventory content', () => {
+  it('renders the authentication bootstrap in a semantic main region', () => {
     const html = renderToString(<App />)
 
-    expect(html).toContain('Skip to repository inventory')
-    expect(html).toContain('href="#main-content"')
-    expect(html).toContain('id="main-content"')
+    expect(html).toContain('<main')
+    expect(html).toContain('Checking authentication')
   })
 
   it('labels the repository table as a keyboard-scrollable region with a caption', () => {

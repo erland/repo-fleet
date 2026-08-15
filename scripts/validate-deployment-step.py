@@ -26,7 +26,12 @@ checks = {
     "backend not published": "ports:" not in compose.split("frontend:")[0],
     "github pem mounted": "./secrets/github-app.pem:/run/secrets/github-app.pem:ro" in compose,
     "https hostname documented": "repo-fleet.isaksson.info" in manual,
-    "basic auth documented": "Basic Auth" in manual,
+    "GitHub auth documented": "Sign in with GitHub" in manual and "REPOFLEET_AUTH_ALLOWED_USERS" in manual,
+    "certbot nginx command documented": "certbot --nginx -d repo-fleet.isaksson.info" in manual,
+    "no nginx basic auth": "auth_basic_user_file" not in (root / "deploy/nginx/repo-fleet.conf").read_text(encoding="utf-8"),
+    "auth callback runtime": "REPOFLEET_AUTH_CALLBACK_URL" in compose,
+    "auth client secret runtime": "REPOFLEET_AUTH_CLIENT_SECRET" in compose,
+    "auth allowlist runtime": "REPOFLEET_AUTH_ALLOWED_USERS" in compose,
     "certbot documented": "certbot" in manual.lower(),
 }
 

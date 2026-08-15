@@ -118,18 +118,21 @@ jobs:
           ssh -p "$port" "$target" \
             "cd /opt/repo-fleet && ./deploy.sh '$VERSION' '$OWNER'"
 
-      - name: Verify public HTTPS endpoint
+      - name: Verify public HTTPS and authentication endpoint
         env:
           SITE_URL: https://repo-fleet.isaksson.info/
         shell: bash
         run: |
           set -euo pipefail
-          code="$(curl --silent --show-error --location --output /dev/null \
-            --write-out '%{http_code}' --retry 5 --retry-delay 3 "$SITE_URL")"
-          case "$code" in
-            200|401) echo "Public HTTPS endpoint responded with HTTP $code." ;;
-            *) echo "Unexpected HTTP status from $SITE_URL: $code" >&2; exit 1 ;;
-          esac
+          curl --fail --silent --show-error --location \
+            --retry 5 --retry-delay 3 --output /dev/null "$SITE_URL"
+          auth_json="$(curl --fail --silent --show-error \
+            --retry 5 --retry-delay 3 "${SITE_URL}api/auth/session")"
+          printf '%s' "$auth_json" | grep -q '"authEnabled":true' || {
+            echo "RepoFleet GitHub authentication is not enabled in production." >&2
+            exit 1
+          }
+          echo "Public HTTPS endpoint and GitHub authentication endpoint are healthy."
 
       - name: Log deployment host out of GHCR
         if: always()
