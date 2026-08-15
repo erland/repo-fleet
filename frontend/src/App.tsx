@@ -128,11 +128,13 @@ export default function App() {
     setRefreshing(true)
     const timer = window.setInterval(async () => {
       const nextStatus = await loadStatus()
-      if (!nextStatus || nextStatus.state === 'RUNNING') return
+      if (!nextStatus) return
+
+      await loadRepositories(false)
+      if (nextStatus.state === 'RUNNING') return
 
       window.clearInterval(timer)
       if (mountedRef.current) setRefreshing(false)
-      await loadRepositories(false)
     }, REFRESH_POLL_INTERVAL_MS)
 
     return () => window.clearInterval(timer)
@@ -354,7 +356,11 @@ export default function App() {
         repositories={sortedRepositories}
         loading={loading}
         error={error}
-        emptyMessage={repositories.length > 0 ? 'No repositories match the current filters.' : undefined}
+        emptyMessage={repositories.length > 0
+          ? 'No repositories match the current filters.'
+          : inventoryStatus?.state === 'RUNNING'
+            ? 'Repository discovery is in progress…'
+            : undefined}
         selectedRepositoryIds={selectedRepositoryIds}
         onToggleRepository={toggleRepository}
         onOpenDetails={openRepositoryDetails}
