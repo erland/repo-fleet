@@ -367,6 +367,7 @@ REPOFLEET_GITHUB_INSTALLATION_ID=<GITHUB_INSTALLATION_ID>
 REPOFLEET_GITHUB_TOKEN_REFRESH_MARGIN_SECONDS=300
 GITHUB_API_URL=https://api.github.com
 JAVA_OPTS=-XX:MaxRAMPercentage=75.0
+REPOFLEET_FRONTEND_PORT=8082
 EOF_ENV
 
 sudo chmod 0600 /opt/repo-fleet/.env
@@ -375,6 +376,8 @@ sudo chmod 0600 /opt/repo-fleet/.env
 Sätt in riktiga värden för App ID och Installation ID.
 
 Image-referenser läggs **inte** permanent i `.env`; deploy-scriptet skriver en separat `.images.env` med exakt release-version.
+
+`REPOFLEET_FRONTEND_PORT=8082` är host-porten som Nginx använder. Containerporten är fortfarande `8080`. Porten är konfigurerbar för att RepoFleet ska kunna samexistera med andra tjänster på samma server.
 
 ---
 
@@ -525,7 +528,7 @@ server {
     add_header Referrer-Policy "same-origin" always;
 
     location / {
-        proxy_pass http://127.0.0.1:8080;
+        proxy_pass http://127.0.0.1:8082;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -541,7 +544,7 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-Innan första application deployment kommer HTTPS-sidan normalt svara `502 Bad Gateway` efter Basic Auth. Det är förväntat tills frontend-containern kör på `127.0.0.1:8080`.
+Innan första application deployment kommer HTTPS-sidan normalt svara `502 Bad Gateway` efter Basic Auth. Det är förväntat tills frontend-containern kör på `127.0.0.1:8082`.
 
 ---
 
@@ -627,7 +630,7 @@ Eftersom du redan kör andra tjänster på servern ska du **inte ersätta befint
 RepoFleets Docker Compose för serverdrift publicerar endast frontend på:
 
 ```text
-127.0.0.1:8080
+127.0.0.1:8082
 ```
 
 Backend publiceras inte till hostens nätverk alls. Docker-portarna behöver därför inte öppnas externt.
@@ -635,10 +638,10 @@ Backend publiceras inte till hostens nätverk alls. Docker-portarna behöver dä
 Efter deployment kan du verifiera:
 
 ```bash
-sudo ss -ltnp | grep -E ':(80|443|8080)\b'
+sudo ss -ltnp | grep -E ':(80|443|8082)\b'
 ```
 
-Port `8080` ska visas på loopback (`127.0.0.1`), inte på `0.0.0.0`.
+Port `8082` ska visas på loopback (`127.0.0.1`), inte på `0.0.0.0`.
 
 ---
 
@@ -842,7 +845,7 @@ REPOFLEET_BACKEND_IMAGE=ghcr.io/erland/repo-fleet-backend:1.0.0
 Kontrollera frontend lokalt:
 
 ```bash
-curl -I http://127.0.0.1:8080/
+curl -I http://127.0.0.1:8082/
 ```
 
 Kontrollera HTTPS:
