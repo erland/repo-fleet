@@ -61,3 +61,8 @@ if "Optional<String> allowedUsers();" not in _auth_config_text:
 _auth_filter_text = (root / "backend/src/main/java/info/isaksson/erland/repofleet/auth/AuthRequestFilter.java").read_text(encoding="utf-8")
 if 'if (path.startsWith("/")) path = path.substring(1);' not in _auth_filter_text:
     raise SystemExit("GitHub auth validation failed: AuthRequestFilter must normalize a leading slash before public-path checks.")
+
+for _java in (root / "backend/src").rglob("*.java"):
+    _text = _java.read_text(encoding="utf-8")
+    if '.orElse("").orElse("")' in _text:
+        raise SystemExit(f"GitHub auth validation failed: duplicate Optional fallback in {_java.relative_to(root)}")
