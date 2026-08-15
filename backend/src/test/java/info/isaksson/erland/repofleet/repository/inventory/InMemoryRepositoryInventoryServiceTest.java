@@ -10,6 +10,9 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
@@ -173,6 +176,80 @@ class InMemoryRepositoryInventoryServiceTest {
         assertEquals(2, holder[0].getStatus().processedCount());
         assertEquals(2, holder[0].getStatus().successfulCount());
         assertEquals(0, holder[0].getStatus().errorCount());
+    }
+
+
+    @Test
+    void initializationStartsRefreshAsynchronouslyInsteadOfBlockingFirstApiUse() throws Exception {
+        CountDownLatch discoveryStarted = new CountDownLatch(1);
+        CountDownLatch allowDiscoveryToFinish = new CountDownLatch(1);
+        GitHubRepositoryDiscoveryService discovery = () -> {
+            discoveryStarted.countDown();
+            try {
+                if (!allowDiscoveryToFinish.await(5, TimeUnit.SECONDS)) {
+                    throw new IllegalStateException("timed out waiting for test release");
+                }
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException(exception);
+            }
+            return List.of(repository(1L, "one"));
+        };
+
+        var executor = Executors.newSingleThreadExecutor();
+        var service = new InMemoryRepositoryInventoryService(discovery, this::complete, CLOCK, executor);
+        try {
+            service.initialize();
+
+            assertTrue(discoveryStarted.await(1, TimeUnit.SECONDS));
+            assertEquals(InventoryRefreshState.RUNNING, service.getStatus().state());
+            assertTrue(service.listRepositories().isEmpty());
+        } finally {
+            allowDiscoveryToFinish.countDown();
+            service.shutdown();
+        }
+    }
+
+    @Test
+    void publishesRepositoriesProgressivelyWhileEnrichmentContinues() throws Exception {
+        CountDownLatch secondEnrichmentStarted = new CountDownLatch(1);
+        CountDownLatch allowSecondEnrichmentToFinish = new CountDownLatch(1);
+        GitHubRepositoryDiscoveryService discovery =
+                () -> List.of(repository(1L, "one"), repository(2L, "two"));
+        RepositoryEnrichmentService enrichment = repository -> {
+            if (repository.id() == 2L) {
+                secondEnrichmentStarted.countDown();
+                try {
+                    if (!allowSecondEnrichmentToFinish.await(5, TimeUnit.SECONDS)) {
+                        throw new IllegalStateException("timed out waiting for test release");
+                    }
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException(exception);
+                }
+            }
+            return complete(repository);
+        };
+
+        var executor = Executors.newSingleThreadExecutor();
+        var service = new InMemoryRepositoryInventoryService(discovery, enrichment, CLOCK, executor);
+        try {
+            service.startRefresh();
+            assertTrue(secondEnrichmentStarted.await(1, TimeUnit.SECONDS));
+
+            List<RepositorySummary> snapshot = service.listRepositories();
+            assertEquals(2, snapshot.size());
+            assertEquals(
+                    info.isaksson.erland.repofleet.repository.api.AnalysisState.COMPLETE,
+                    snapshot.get(0).refreshStatus().state());
+            assertEquals(
+                    info.isaksson.erland.repofleet.repository.api.AnalysisState.NOT_ANALYZED,
+                    snapshot.get(1).refreshStatus().state());
+            assertEquals(1, service.getStatus().processedCount());
+        } finally {
+            allowSecondEnrichmentToFinish.countDown();
+            service.shutdown();
+        }
     }
 
     @Test

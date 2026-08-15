@@ -62,7 +62,7 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
 
     @PostConstruct
     void initialize() {
-        refresh();
+        startRefresh();
     }
 
     @PreDestroy
@@ -133,21 +133,25 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
             int successful = 0;
             int errors = 0;
             int hardFailures = 0;
-            List<RepositorySummary> refreshed = new ArrayList<>(total);
 
+            List<RepositorySummary> working = progressiveSnapshot(discovered);
+            repositories = List.copyOf(working);
             status = runningStatus(startedAt, total, 0, 0, 0, null);
 
-            for (RepositorySummary repository : discovered) {
+            for (int index = 0; index < discovered.size(); index++) {
+                RepositorySummary repository = discovered.get(index);
                 status = runningStatus(
                         startedAt,
                         total,
-                        refreshed.size(),
+                        index,
                         successful,
                         errors,
                         repository.fullName());
 
                 RepositorySummary enriched = enrichSafely(repository);
-                refreshed.add(enriched);
+                working.set(index, enriched);
+                repositories = List.copyOf(working);
+
                 AnalysisState repositoryState = enriched.refreshStatus() == null
                         ? AnalysisState.FAILED
                         : enriched.refreshStatus().state();
@@ -163,13 +167,14 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
                 status = runningStatus(
                         startedAt,
                         total,
-                        refreshed.size(),
+                        index + 1,
                         successful,
                         errors,
                         null);
             }
 
-            repositories = List.copyOf(refreshed);
+            List<RepositorySummary> refreshed = List.copyOf(working);
+            repositories = refreshed;
             Instant completedAt = clock.instant();
             InventoryRefreshState finalState =
                     errors == 0 ? InventoryRefreshState.COMPLETED
@@ -220,6 +225,21 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
                 currentRepository);
     }
 
+
+
+    private List<RepositorySummary> progressiveSnapshot(List<RepositorySummary> discovered) {
+        if (repositories.isEmpty()) {
+            return new ArrayList<>(discovered);
+        }
+
+        java.util.Map<Long, RepositorySummary> previousById = repositories.stream()
+                .collect(java.util.stream.Collectors.toMap(RepositorySummary::id, repository -> repository));
+        List<RepositorySummary> snapshot = new ArrayList<>(discovered.size());
+        for (RepositorySummary repository : discovered) {
+            snapshot.add(previousById.getOrDefault(repository.id(), repository));
+        }
+        return snapshot;
+    }
 
     private RepositorySummary enrichSafely(RepositorySummary repository) {
         try {

@@ -74,6 +74,7 @@ After Phase 1 completion, production operations were extended with:
 - `deploy/deploy.sh` with exact version deployment and automatic health-check rollback attempt,
 - `.github/workflows/deploy.yml`, a manually triggered `workflow_dispatch` deployment of official versions or RCs via SSH and short-lived GHCR authentication,
 - GitHub App web-flow user authentication with allowlisted GitHub logins and signed HttpOnly RepoFleet sessions.
+- non-blocking automatic inventory startup and progressive repository snapshots so `/api/repositories` can respond immediately while GitHub enrichment continues.
 
 ## Post-Phase-1 RC deployment
 
