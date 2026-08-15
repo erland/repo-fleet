@@ -49,3 +49,7 @@ print("RepoFleet GitHub user authentication validation passed.")
 _auth_config_text = (root / "backend/src/main/java/info/isaksson/erland/repofleet/auth/AuthConfig.java").read_text(encoding="utf-8")
 if "@StaticInitSafe" not in _auth_config_text:
     raise SystemExit("GitHub auth validation failed: AuthConfig must be @StaticInitSafe for REST provider startup.")
+
+_auth_config_text = (root / "backend/src/main/java/info/isaksson/erland/repofleet/auth/AuthConfig.java").read_text(encoding="utf-8")
+if "import io.quarkus.runtime.annotations.StaticInitSafe;" not in _auth_config_text:
+    raise SystemExit("GitHub auth validation failed: AuthConfig must import io.quarkus.runtime.annotations.StaticInitSafe.")

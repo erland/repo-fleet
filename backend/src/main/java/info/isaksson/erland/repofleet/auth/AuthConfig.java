@@ -2,7 +2,7 @@ package info.isaksson.erland.repofleet.auth;
 
 import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
-import io.quarkus.runtime.configuration.StaticInitSafe;
+import io.quarkus.runtime.annotations.StaticInitSafe;
 
 import java.util.Optional;
 
