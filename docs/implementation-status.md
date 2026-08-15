@@ -70,6 +70,6 @@ After Phase 1 completion, production operations were extended with:
 
 - `docs/debian-13-installation.md` for a complete Debian 13 deployment under `/opt/repo-fleet`,
 - host-level Nginx + Let's Encrypt + Basic Auth guidance for `repo-fleet.isaksson.info`,
-- `deploy/docker-compose.server.yml` with only the frontend bound to `127.0.0.1:8080`,
+- `deploy/docker-compose.server.yml` with only the frontend bound to configurable loopback port `127.0.0.1:${REPOFLEET_FRONTEND_PORT:-8082}`,
 - `deploy/deploy.sh` with exact version deployment and automatic health-check rollback attempt,
 - `.github/workflows/deploy.yml`, a manually triggered `workflow_dispatch` deployment of an official release via SSH and short-lived GHCR authentication.
