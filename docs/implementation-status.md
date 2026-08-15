@@ -73,3 +73,7 @@ After Phase 1 completion, production operations were extended with:
 - `deploy/docker-compose.server.yml` with only the frontend bound to configurable loopback port `127.0.0.1:${REPOFLEET_FRONTEND_PORT:-8082}`,
 - `deploy/deploy.sh` with exact version deployment and automatic health-check rollback attempt,
 - `.github/workflows/deploy.yml`, a manually triggered `workflow_dispatch` deployment of an official release via SSH and short-lived GHCR authentication.
+
+## Post-Phase-1 RC deployment
+
+Production deployment now supports immutable `MAJOR.MINOR.PATCH-rc.N` images published from the default branch without a formal GitHub Release. Official releases remain Git-tag driven.

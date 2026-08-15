@@ -10,7 +10,7 @@ Den här manualen beskriver en ny produktionsinstallation av RepoFleet på **Deb
 - HTTPS för `repo-fleet.isaksson.info` med Let's Encrypt/Certbot,
 - Nginx Basic Auth framför tjänsten,
 - en dedikerad SSH-användare för GitHub Actions-deploy,
-- manuellt startad GitHub Action för deployment av en vald release.
+- manuellt startad GitHub Action för deployment av en vald officiell version eller release candidate.
 
 > **Viktigt om åtkomstskydd:** RepoFleet Phase 1 har ingen egen användarinloggning. Eftersom tjänsten kan visa namn och metadata från privata repositories bör den inte exponeras anonymt på Internet. Den här manualen använder därför Nginx Basic Auth framför hela tjänsten.
 
@@ -26,7 +26,7 @@ Du behöver:
 - GitHub-repositoryt `erland/repo-fleet`,
 - rätt att skapa en GitHub App,
 - rätt att administrera GitHub Actions Environments/secrets i repositoryt,
-- minst en officiell RepoFleet-release, t.ex. `v1.0.0`, när första deploymenten ska göras.
+- minst en publicerad RepoFleet-imageversion i GHCR när första deploymenten ska göras; det kan vara en release candidate som `1.0.1-rc.1` eller en officiell version som `1.0.0`.
 
 Om servern har fungerande publik IPv6 kan även en AAAA-post användas. Skapa inte AAAA-post om IPv6-routing eller brandvägg inte fungerar korrekt.
 
@@ -647,29 +647,37 @@ Port `8082` ska visas på loopback (`127.0.0.1`), inte på `0.0.0.0`.
 
 # Del G – GitHub Release/GHCR
 
-## 19. Skapa minst en officiell release
+## 19. Publicera en deploybar version
 
-RepoFleet använder release-taggar:
+För den första driftsättningen kan du välja antingen en release candidate eller en officiell release.
+
+### Alternativ A – release candidate utan formell release
+
+Gå till **Actions → Publish release candidate → Run workflow** på `main` och ange exempelvis:
 
 ```text
-vMAJOR.MINOR.PATCH
+1.0.1-rc.1
 ```
 
-Exempel:
+Workflowet validerar/testar källan och publicerar därefter:
+
+```text
+ghcr.io/erland/repo-fleet-frontend:1.0.1-rc.1
+ghcr.io/erland/repo-fleet-backend:1.0.1-rc.1
+```
+
+Ingen Git-tag eller GitHub Release skapas för RC-versionen.
+
+### Alternativ B – officiell release
+
+RepoFleet använder officiella release-taggar `vMAJOR.MINOR.PATCH`, exempelvis:
 
 ```bash
 git tag v1.0.0
 git push origin v1.0.0
 ```
 
-Release-workflowet ska slutföras och skapa:
-
-```text
-ghcr.io/erland/repo-fleet-frontend:1.0.0
-ghcr.io/erland/repo-fleet-backend:1.0.0
-```
-
-samt GitHub Release `v1.0.0`.
+Release-workflowet publicerar då `:1.0.0`-images och skapar/uppdaterar GitHub Release `v1.0.0`.
 
 På GitHub Packages-inställningarna för båda packages, kontrollera att repositoryt `erland/repo-fleet` har Actions-åtkomst till dem. När packages är kopplade till repositoryt kan workflowets `GITHUB_TOKEN` användas för `packages: read` under deployment.
 
@@ -788,10 +796,16 @@ På GitHub:
 1. Gå till **Actions**.
 2. Välj **Deploy production**.
 3. Klicka **Run workflow**.
-4. Ange en existerande officiell release, exempelvis:
+4. Ange en publicerad immutable version, exempelvis:
 
 ```text
-v1.0.0
+1.0.1-rc.1
+```
+
+eller en officiell version:
+
+```text
+1.0.0
 ```
 
 5. Starta workflowet.
@@ -919,14 +933,20 @@ sudo -u repofleet-deploy -H bash -lc '
 
 ## 26. Deploya en ny version
 
-När en ny release, exempelvis `v1.1.0`, har skapats och release-workflowet är grönt:
+När en ny RC eller officiell version har publicerats och dess workflow är grönt:
 
 1. **Actions → Deploy production**
 2. **Run workflow**
-3. `release_tag`:
+3. `version`, exempelvis:
 
 ```text
-v1.1.0
+1.1.0-rc.3
+```
+
+eller:
+
+```text
+1.1.0
 ```
 
 4. Kör.
@@ -939,13 +959,15 @@ Ingen serverinloggning eller manuell ändring av `.env` behövs för normal vers
 
 En deployment som inte blir healthy försöker automatiskt starta föregående image-konfiguration igen.
 
-För en explicit rollback kör du bara deployment-workflowet manuellt med föregående officiella release, exempelvis:
+För en explicit rollback kör du deployment-workflowet manuellt med en tidigare fortfarande publicerad immutable version, exempelvis:
 
 ```text
-v1.0.0
+1.0.0
 ```
 
-Det är en av anledningarna till att deployment alltid använder immutable release-taggar istället för enbart `latest`.
+eller en tidigare RC om du uttryckligen vill återgå till den.
+
+Det är en av anledningarna till att deployment alltid använder immutable versions-taggar istället för de rörliga aliasen `rc` eller `latest`.
 
 ---
 
@@ -1083,8 +1105,8 @@ och kör vid behov en RepoFleet deployment av aktuell release igen.
 - [ ] GitHub Environment `production` finns.
 - [ ] Deploy-secrets och verifierad `DEPLOY_KNOWN_HOSTS` finns.
 - [ ] GHCR packages kan läsas av repositoryts Actions-workflow.
-- [ ] En officiell `vMAJOR.MINOR.PATCH` release finns.
-- [ ] `Deploy production` har körts för vald release.
+- [ ] Minst en deploybar immutable version finns i GHCR (`MAJOR.MINOR.PATCH-rc.N` eller `MAJOR.MINOR.PATCH`).
+- [ ] `Deploy production` har körts för vald version.
 - [ ] Frontend och backend är `healthy`.
 - [ ] HTTPS svarar och kräver Basic Auth.
 - [ ] `/api/github/connection` visar `CONNECTED`.
