@@ -249,3 +249,7 @@ The completion review lists the delivered requirements, intentional deviations f
 ## Production access authentication
 
 Production RepoFleet uses **Sign in with GitHub** through the existing GitHub App instead of Nginx Basic Authentication. An allowlist controls which GitHub logins may enter the service. The signed-in user's GitHub token is not used for repository inventory and is not retained as the RepoFleet session. See `docs/github-user-authentication.md`.
+
+## Phase 2
+
+Phase 2 development is planned step-by-step in [`docs/development-plan-phase-2.md`](docs/development-plan-phase-2.md).
