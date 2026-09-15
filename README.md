@@ -208,6 +208,15 @@ No GitHub App private keys/runtime secrets are packaged.
 
 See `docs/release-publishing.md`.
 
+## Coolify deployment
+
+RepoFleet can also be deployed as a Docker Compose application in Coolify using:
+
+```text
+deploy/coolify/compose.yaml
+```
+
+The Coolify deployment consumes the GHCR images published by the existing release/release-candidate workflows and uses project-specific service names to avoid Docker DNS collisions on shared Coolify networks. Setup details and required environment variables are documented in `deploy/coolify/README.md`.
 
 ## Debian 13 production deployment
 
