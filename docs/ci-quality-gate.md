@@ -78,7 +78,7 @@ Source checks:
 python3 scripts/validate-quality-gate.py
 
 cd frontend
-npm install
+npm ci
 npm run typecheck
 npm test
 npm run build:bundle

@@ -3,8 +3,8 @@
 FROM node:24-alpine AS build
 WORKDIR /workspace
 
-COPY package.json ./
-RUN npm install --no-audit --no-fund
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
 
 COPY tsconfig*.json vite.config.ts index.html ./
 COPY src ./src
