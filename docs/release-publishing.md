@@ -3,7 +3,7 @@
 RepoFleet has two publish paths:
 
 - **Release candidates** such as `1.1.0-rc.3` are published manually from the default branch without creating a Git tag or GitHub Release.
-- **Official releases** such as `1.1.0` are still driven by the Git tag `v1.1.0` and create/augment a GitHub Release.
+- **Official releases** such as `1.1.0` are driven by the Git tag `v1.1.0`, must point to a commit already present on the default branch, and create/augment a GitHub Release.
 
 Both paths publish immutable versioned frontend/backend images to GHCR. Production deployment always selects an exact version; the moving `rc` and `latest` aliases are convenience pointers only and are never used as deployment identifiers.
 
@@ -45,9 +45,13 @@ Official RepoFleet releases use Git tags matching:
 vMAJOR.MINOR.PATCH
 ```
 
+The tagged commit must already be reachable from the repository's default branch. A tag created on a branch-only commit is rejected before images or a GitHub Release are published.
+
 Example:
 
 ```bash
+git switch main
+git pull --ff-only
 git tag v1.0.0
 git push origin v1.0.0
 ```
@@ -60,12 +64,15 @@ The tag is the release version source of truth. No matching version must be manu
 
 ### 1. Validate tagged source
 
-The workflow validates the semver tag and reruns the source quality checks:
+The workflow:
 
-- repository policy,
-- Docker/Compose static validation,
-- frontend dependency install, typecheck, tests and production bundle,
-- backend Maven `verify`.
+- validates the semver tag,
+- fetches the repository default branch and verifies that the tagged commit is already present on it,
+- reruns repository policy and Docker/Compose static validation,
+- runs frontend dependency install, typecheck, tests and production bundle,
+- runs backend Maven `verify`.
+
+A tag that points to a commit outside the default branch fails before any image is published.
 
 No live GitHub App credentials are needed.
 
