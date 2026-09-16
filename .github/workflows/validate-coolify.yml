@@ -1,0 +1,69 @@
+name: Validate Coolify deployment
+
+on:
+  pull_request:
+    paths:
+      - 'deploy/coolify/**'
+      - '.github/workflows/validate-coolify.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'deploy/coolify/**'
+      - '.github/workflows/validate-coolify.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-coolify-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-coolify:
+    name: Validate Coolify deployment
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Render Coolify Compose configuration
+        env:
+          REPOFLEET_GITHUB_APP_ID: '12345'
+          REPOFLEET_GITHUB_INSTALLATION_ID: '67890'
+          REPOFLEET_GITHUB_PRIVATE_KEY: 'test-private-key'
+          REPOFLEET_AUTH_CLIENT_ID: 'test-client-id'
+          REPOFLEET_AUTH_CLIENT_SECRET: 'test-client-secret'
+          REPOFLEET_AUTH_SESSION_SECRET: 'test-session-secret'
+          REPOFLEET_AUTH_ALLOWED_USERS: 'test-user'
+        run: |
+          set -euo pipefail
+          docker compose -f deploy/coolify/compose.yaml config --quiet
+          docker compose -f deploy/coolify/compose.yaml config > /tmp/repo-fleet-coolify-compose.yaml
+
+      - name: Validate Coolify service topology
+        run: |
+          set -euo pipefail
+          rendered=/tmp/repo-fleet-coolify-compose.yaml
+
+          grep -Eq '^  repo-fleet-backend:$' "$rendered" || {
+            echo 'Missing repo-fleet-backend service.' >&2
+            exit 1
+          }
+          grep -Eq '^  repo-fleet-frontend:$' "$rendered" || {
+            echo 'Missing repo-fleet-frontend service.' >&2
+            exit 1
+          }
+          if grep -Eq '^  (backend|frontend):$' "$rendered"; then
+            echo 'Generic backend/frontend service name detected; this can reintroduce shared-network DNS collisions.' >&2
+            exit 1
+          fi
+          grep -Fq 'BACKEND_URL: http://repo-fleet-backend:8080' "$rendered" || {
+            echo 'Frontend BACKEND_URL does not target repo-fleet-backend:8080.' >&2
+            exit 1
+          }
+
+          echo 'RepoFleet Coolify deployment validation passed.'
