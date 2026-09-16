@@ -30,22 +30,13 @@ jobs:
         working-directory: frontend
         run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
 
-      - name: Switch automated installs to npm ci
+      - name: Update Dockerfile and documentation
         shell: bash
         run: |
           python3 - <<'PY'
           from pathlib import Path
 
           replacements = {
-              Path('.github/workflows/ci.yml'): [
-                  ('npm install --no-audit --no-fund', 'npm ci --no-audit --no-fund'),
-              ],
-              Path('.github/workflows/release.yml'): [
-                  ('npm install --no-audit --no-fund', 'npm ci --no-audit --no-fund'),
-              ],
-              Path('.github/workflows/release-candidate.yml'): [
-                  ('npm install --no-audit --no-fund', 'npm ci --no-audit --no-fund'),
-              ],
               Path('frontend/Dockerfile'): [
                   ('COPY package.json ./', 'COPY package.json package-lock.json ./'),
                   ('RUN npm install --no-audit --no-fund', 'RUN npm ci --no-audit --no-fund'),
@@ -65,13 +56,10 @@ jobs:
 
           for path, changes in replacements.items():
               text = path.read_text(encoding='utf-8')
-              original = text
               for old, new in changes:
                   if old not in text:
                       raise SystemExit(f'Expected text not found in {path}: {old!r}')
                   text = text.replace(old, new)
-              if text == original:
-                  raise SystemExit(f'No changes made to {path}')
               path.write_text(text, encoding='utf-8')
           PY
 
@@ -84,20 +72,15 @@ jobs:
           npm test
           npm run build:bundle
 
-      - name: Remove one-shot workflow and commit
+      - name: Commit generated lockfile and non-workflow changes
         shell: bash
         run: |
-          rm .github/workflows/repository-fixer-npm-lockfile.yml
           git config user.name "Erland Lindmark"
           git config user.email "erland@isaksson.info"
           git add frontend/package-lock.json \
             frontend/Dockerfile \
-            .github/workflows/ci.yml \
-            .github/workflows/release.yml \
-            .github/workflows/release-candidate.yml \
             README.md \
             docs/local-development.md \
-            docs/ci-quality-gate.md \
-            .github/workflows/repository-fixer-npm-lockfile.yml
+            docs/ci-quality-gate.md
           git commit -m "Lock frontend dependencies for reproducible builds"
           git push origin HEAD:repository-fixer/npm-lockfile
