@@ -40,7 +40,7 @@ In another terminal:
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
@@ -58,7 +58,7 @@ Frontend:
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm run typecheck
 npm test
 npm run build:bundle
