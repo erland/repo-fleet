@@ -262,3 +262,7 @@ Production RepoFleet uses **Sign in with GitHub** through the existing GitHub Ap
 ## Phase 2
 
 Phase 2 development is planned step-by-step in [`docs/development-plan-phase-2.md`](docs/development-plan-phase-2.md).
+
+## License
+
+RepoFleet is licensed under the [MIT License](LICENSE). Copyright (c) 2026 Erland Lindmark.
