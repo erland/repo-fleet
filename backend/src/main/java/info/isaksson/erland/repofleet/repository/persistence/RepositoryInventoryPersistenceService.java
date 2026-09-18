@@ -13,10 +13,14 @@ import java.util.Set;
 public class RepositoryInventoryPersistenceService {
 
     private final RepositoryIdentityRepository repository;
+    private final RepositoryChangeFingerprintService changeFingerprintService;
 
     @Inject
-    public RepositoryInventoryPersistenceService(RepositoryIdentityRepository repository) {
+    public RepositoryInventoryPersistenceService(
+            RepositoryIdentityRepository repository,
+            RepositoryChangeFingerprintService changeFingerprintService) {
         this.repository = repository;
+        this.changeFingerprintService = changeFingerprintService;
     }
 
     @Transactional
@@ -27,8 +31,11 @@ public class RepositoryInventoryPersistenceService {
             seenRepositoryIds.add(summary.id());
 
             var existing = repository.findByGitHubRepositoryId(summary.id());
+            RepositoryChangeClassification classification =
+                    changeFingerprintService.classify(existing.orElse(null), summary);
+            RepositoryIdentity stored;
             if (existing.isPresent()) {
-                repository.update(
+                stored = repository.update(
                         summary.id(),
                         summary.owner(),
                         summary.name(),
@@ -42,7 +49,7 @@ public class RepositoryInventoryPersistenceService {
                         seenAt,
                         true);
             } else {
-                repository.insert(
+                stored = repository.insert(
                         summary.id(),
                         summary.owner(),
                         summary.name(),
@@ -55,6 +62,8 @@ public class RepositoryInventoryPersistenceService {
                         summary.activity() == null ? null : summary.activity().pushedAt(),
                         seenAt);
             }
+            stored.changeClassification = classification.name();
+            stored.changeDetectedAt = seenAt;
         }
 
         repository.markMissingRepositoriesInactive(seenRepositoryIds);
