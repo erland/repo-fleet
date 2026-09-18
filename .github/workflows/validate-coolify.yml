@@ -39,6 +39,7 @@ jobs:
           REPOFLEET_AUTH_CLIENT_SECRET: 'test-client-secret'
           REPOFLEET_AUTH_SESSION_SECRET: 'test-session-secret'
           REPOFLEET_AUTH_ALLOWED_USERS: 'test-user'
+          REPOFLEET_DB_PASSWORD: 'ci-only'
         run: |
           set -euo pipefail
           docker compose -f deploy/coolify/compose.yaml config --quiet
@@ -49,7 +50,49 @@ jobs:
           set -euo pipefail
           rendered=/tmp/repo-fleet-coolify-compose.yaml
 
-          grep -Eq '^  repo-fleet-backend:$' "$rendered" || {
+          grep -Eq '^  repo-fleet-postgres:            echo 'Missing repo-fleet-backend service.' >&2
+            exit 1
+          }
+          grep -Eq '^  repo-fleet-frontend:$' "$rendered" || {
+            echo 'Missing repo-fleet-frontend service.' >&2
+            exit 1
+          }
+          if grep -Eq '^  (backend|frontend):$' "$rendered"; then
+            echo 'Generic backend/frontend service name detected; this can reintroduce shared-network DNS collisions.' >&2
+            exit 1
+          fi
+          grep -Fq 'REPOFLEET_DB_URL: jdbc:postgresql://repo-fleet-postgres:5432/repofleet' "$rendered" || {
+            echo 'Backend database URL does not target repo-fleet-postgres.' >&2
+            exit 1
+          }
+          grep -Fq 'BACKEND_URL: http://repo-fleet-backend:8080' "$rendered" || {
+            echo 'Frontend BACKEND_URL does not target repo-fleet-backend:8080.' >&2
+            exit 1
+          }
+
+          echo 'RepoFleet Coolify deployment validation passed.'
+ "$rendered" || {
+            echo 'Missing repo-fleet-postgres service.' >&2
+            exit 1
+          }
+          grep -Eq '^  repo-fleet-backend:            echo 'Missing repo-fleet-backend service.' >&2
+            exit 1
+          }
+          grep -Eq '^  repo-fleet-frontend:$' "$rendered" || {
+            echo 'Missing repo-fleet-frontend service.' >&2
+            exit 1
+          }
+          if grep -Eq '^  (backend|frontend):$' "$rendered"; then
+            echo 'Generic backend/frontend service name detected; this can reintroduce shared-network DNS collisions.' >&2
+            exit 1
+          fi
+          grep -Fq 'BACKEND_URL: http://repo-fleet-backend:8080' "$rendered" || {
+            echo 'Frontend BACKEND_URL does not target repo-fleet-backend:8080.' >&2
+            exit 1
+          }
+
+          echo 'RepoFleet Coolify deployment validation passed.'
+ "$rendered" || {
             echo 'Missing repo-fleet-backend service.' >&2
             exit 1
           }
