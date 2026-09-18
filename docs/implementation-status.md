@@ -53,8 +53,8 @@ The early CI bootstrap has been superseded by the completed Step 24 Quality Gate
 |---:|---|---|---|
 | 1 | Phase 2 persistence foundation | DONE | Verified by green CI and Coolify validation on PR #38. PostgreSQL/Flyway foundation is in place; inventory remains in memory. |
 | 2 | Persistent repository identity model | DONE | Verified by green CI and Coolify validation on PR #38. Repository identity is stored uniquely by GitHub repository ID. |
-| 3 | Persist discovered repository inventory | IN PROGRESS | Synchronizing successful GitHub discovery results into repository_identity before enrichment. |
-| 4 | Serve cached repositories immediately on startup | NOT STARTED | |
+| 3 | Persist discovered repository inventory | DONE | Verified by green CI #104 and Coolify validation #24 on PR #38. Successful discovery synchronizes repository identity and active state. |
+| 4 | Serve cached repositories immediately on startup | IN PROGRESS | Loading active repository identities from PostgreSQL before asynchronous GitHub refresh starts. |
 | 5 | Persistent enrichment snapshot model | NOT STARTED | |
 | 6 | Persist progressive enrichment results | NOT STARTED | |
 | 7 | Refresh history and observability | NOT STARTED | |
@@ -88,10 +88,10 @@ The early CI bootstrap has been superseded by the completed Step 24 Quality Gate
 
 ## Current Position
 
-Current step: **Phase 2 Step 3 – Persist discovered repository inventory (IN PROGRESS).**
+Current step: **Phase 2 Step 4 – Serve cached repositories immediately on startup (IN PROGRESS).**
 
 Phase 1 completed steps: **26 / 26**  
-Phase 2 completed steps: **2 / 34**
+Phase 2 completed steps: **3 / 34**
 
 ## Update Convention
 
