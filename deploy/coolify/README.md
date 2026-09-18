@@ -76,3 +76,54 @@ The GitHub OAuth App callback URL must match `REPOFLEET_AUTH_CALLBACK_URL`. For 
 ```text
 https://repo-fleet.apps.isaksson.info/api/auth/github/callback
 ```
+
+
+## Phase 2 backup and restore
+
+RepoFleet's PostgreSQL volume is production state. Before deploying a version that contains new Flyway
+migrations, create and verify a logical backup.
+
+From the Coolify server, identify the Compose project/container names for RepoFleet and run `pg_dump`
+against the `repo-fleet-postgres` service/container. Example when executing inside the PostgreSQL
+container:
+
+```bash
+pg_dump --format=custom --no-owner --no-privileges \
+  --username="$REPOFLEET_DB_USER" "$REPOFLEET_DB_NAME" \
+  > /tmp/repofleet-backup.dump
+```
+
+Copy the dump to protected persistent/off-host storage and verify it with:
+
+```bash
+pg_restore --list repofleet-backup.dump >/dev/null
+```
+
+For restore, stop `repo-fleet-backend`, recreate the application database, restore with `pg_restore`,
+then start the backend and confirm that Flyway validation and the backend health check succeed.
+
+## Upgrade and rollback
+
+Recommended production sequence:
+
+1. pin `REPOFLEET_VERSION` to an immutable release/release-candidate version;
+2. take and verify a database backup before a migration-bearing release;
+3. deploy and wait for PostgreSQL/backend health;
+4. inspect backend logs for Flyway failures;
+5. verify login, inventory, compliance and refresh diagnostics.
+
+Flyway migrations are forward-only. If a new schema is not compatible with the previous application image,
+a rollback requires both the previous application version and restoration of the matching pre-upgrade
+database backup.
+
+Do not delete `repo-fleet-postgres-data` during redeployments. Do not use a Docker/Coolify cleanup action
+that removes persistent volumes unless the intent is to destroy RepoFleet's production data.
+
+## Disk and secrets
+
+Monitor the host filesystem and the RepoFleet PostgreSQL volume. Keep enough free space for the live
+database plus backups.
+
+Treat `REPOFLEET_DB_PASSWORD`, GitHub App credentials, session secret and webhook secret as production
+secrets. Store backups outside the Git repository and restrict access because they contain RepoFleet
+application state and repository metadata.
