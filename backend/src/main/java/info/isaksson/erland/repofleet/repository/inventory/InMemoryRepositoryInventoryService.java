@@ -209,6 +209,10 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
         return startRefresh("MANUAL");
     }
 
+    public InventoryStatus startScheduledConsistencyRefresh() {
+        return startRefresh("SCHEDULED_CONSISTENCY");
+    }
+
     private InventoryStatus startRefresh(String triggerType) {
         if (status.running()) {
             return status;
