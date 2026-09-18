@@ -337,7 +337,22 @@ describe('PortfolioSummaryPanel', () => {
 describe('RepositoryDetailPanel', () => {
   it('renders the full read-only repository metadata view', () => {
     const html = renderToString(
-      <RepositoryDetailPanel repository={repository} onClose={() => undefined} />,
+      <RepositoryDetailPanel
+        repository={repository}
+        compliance={[{
+          ruleKey: 'license-required',
+          ruleName: 'License required',
+          ruleType: 'LICENSE_REQUIRED',
+          severity: 'REQUIRED',
+          result: 'FAIL',
+          reason: 'Repository does not contain a license.',
+          observedValue: 'MISSING',
+          evaluatedAt: '2026-09-18T12:00:00Z',
+        }]}
+        complianceLoading={false}
+        complianceError={null}
+        onClose={() => undefined}
+      />,
     )
 
     expect(html).toContain('Repository details')
@@ -350,6 +365,11 @@ describe('RepositoryDetailPanel', () => {
     expect(html).toContain('Repository analysis')
     expect(html).toContain('Open on GitHub')
     expect(html).toContain('Close details')
+    expect(html).toContain('Compliance detail')
+    expect(html).toContain('License required')
+    expect(html).toContain('Repository does not contain a license.')
+    expect(html).toContain('MISSING')
+    expect(html).toContain('Last evaluated')
   })
 
   it('renders nothing when no repository is selected for details', () => {
