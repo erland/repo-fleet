@@ -6,6 +6,7 @@ import info.isaksson.erland.repofleet.repository.api.RepositorySummary;
 import info.isaksson.erland.repofleet.repository.persistence.CachedRepositoryInventoryService;
 import info.isaksson.erland.repofleet.repository.persistence.RepositoryInventoryPersistenceService;
 import info.isaksson.erland.repofleet.repository.persistence.RepositoryEnrichmentSnapshotService;
+import info.isaksson.erland.repofleet.repository.persistence.RepositoryRefreshHistoryService;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -28,6 +29,7 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
     private final RepositoryInventoryPersistenceService persistenceService;
     private final CachedRepositoryInventoryService cachedInventoryService;
     private final RepositoryEnrichmentSnapshotService snapshotService;
+    private final RepositoryRefreshHistoryService refreshHistoryService;
     private final ReentrantLock refreshLock = new ReentrantLock();
 
     private volatile List<RepositorySummary> repositories = List.of();
@@ -39,7 +41,8 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
             RepositoryEnrichmentService enrichmentService,
             RepositoryInventoryPersistenceService persistenceService,
             CachedRepositoryInventoryService cachedInventoryService,
-            RepositoryEnrichmentSnapshotService snapshotService) {
+            RepositoryEnrichmentSnapshotService snapshotService,
+            RepositoryRefreshHistoryService refreshHistoryService) {
         this(
                 discoveryService,
                 enrichmentService,
@@ -51,14 +54,15 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
                 }),
                 persistenceService,
                 cachedInventoryService,
-                snapshotService);
+                snapshotService,
+                refreshHistoryService);
     }
 
     InMemoryRepositoryInventoryService(
             GitHubRepositoryDiscoveryService discoveryService,
             RepositoryEnrichmentService enrichmentService,
             Clock clock) {
-        this(discoveryService, enrichmentService, clock, null, null, null, null);
+        this(discoveryService, enrichmentService, clock, null, null, null, null, null);
     }
 
     InMemoryRepositoryInventoryService(
@@ -66,7 +70,7 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
             RepositoryEnrichmentService enrichmentService,
             Clock clock,
             ExecutorService refreshExecutor) {
-        this(discoveryService, enrichmentService, clock, refreshExecutor, null, null, null);
+        this(discoveryService, enrichmentService, clock, refreshExecutor, null, null, null, null);
     }
 
     InMemoryRepositoryInventoryService(
@@ -76,7 +80,8 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
             ExecutorService refreshExecutor,
             RepositoryInventoryPersistenceService persistenceService,
             CachedRepositoryInventoryService cachedInventoryService,
-            RepositoryEnrichmentSnapshotService snapshotService) {
+            RepositoryEnrichmentSnapshotService snapshotService,
+            RepositoryRefreshHistoryService refreshHistoryService) {
         this.discoveryService = discoveryService;
         this.enrichmentService = enrichmentService;
         this.clock = clock;
@@ -84,6 +89,7 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
         this.persistenceService = persistenceService;
         this.cachedInventoryService = cachedInventoryService;
         this.snapshotService = snapshotService;
+        this.refreshHistoryService = refreshHistoryService;
     }
 
     @PostConstruct
@@ -91,7 +97,7 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
         if (cachedInventoryService != null) {
             repositories = List.copyOf(cachedInventoryService.loadActiveRepositories());
         }
-        startRefresh();
+        startRefresh("AUTOMATIC");
     }
 
     @PreDestroy
@@ -113,28 +119,36 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
 
     @Override
     public InventoryStatus startRefresh() {
+        return startRefresh("MANUAL");
+    }
+
+    private InventoryStatus startRefresh(String triggerType) {
         if (status.running()) {
             return status;
         }
         if (refreshExecutor == null) {
-            return refresh();
+            return refreshFrom(clock.instant(), triggerType);
         }
 
         Instant startedAt = clock.instant();
         status = runningStatus(startedAt, 0, 0, 0, 0, null);
-        refreshExecutor.submit(() -> refreshFrom(startedAt));
+        refreshExecutor.submit(() -> refreshFrom(startedAt, triggerType));
         return status;
     }
 
     @Override
     public InventoryStatus refresh() {
-        return refreshFrom(clock.instant());
+        return refreshFrom(clock.instant(), "MANUAL");
     }
 
-    private InventoryStatus refreshFrom(Instant startedAt) {
+    private InventoryStatus refreshFrom(Instant startedAt, String triggerType) {
         if (!refreshLock.tryLock()) {
             return status;
         }
+
+        Long refreshRunId = refreshHistoryService == null
+                ? null
+                : refreshHistoryService.startRun(triggerType, startedAt);
 
         try {
             status = runningStatus(startedAt, 0, 0, 0, 0, null);
@@ -143,11 +157,12 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
             try {
                 discovered = List.copyOf(discoveryService.discoverRepositories());
             } catch (RuntimeException exception) {
+                Instant completedAt = clock.instant();
                 status = new InventoryStatus(
                         InventoryRefreshState.FAILED,
                         startedAt,
                         status.lastSuccessfulRefreshAt(),
-                        clock.instant(),
+                        completedAt,
                         safeMessage(exception),
                         repositories.size(),
                         0,
@@ -155,6 +170,7 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
                         0,
                         0,
                         null);
+                completeHistory(refreshRunId, status);
                 return status;
             }
 
@@ -162,11 +178,12 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
                 try {
                     persistenceService.synchronize(discovered, clock.instant());
                 } catch (RuntimeException exception) {
+                    Instant completedAt = clock.instant();
                     status = new InventoryStatus(
                             InventoryRefreshState.FAILED,
                             startedAt,
                             status.lastSuccessfulRefreshAt(),
-                            clock.instant(),
+                            completedAt,
                             "Repository inventory persistence failed: " + safeMessage(exception),
                             repositories.size(),
                             discovered.size(),
@@ -174,6 +191,7 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
                             0,
                             0,
                             null);
+                    completeHistory(refreshRunId, status);
                     return status;
                 }
             }
@@ -250,6 +268,7 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
                     successful,
                     errors,
                     null);
+            completeHistory(refreshRunId, status);
             return status;
         } finally {
             refreshLock.unlock();
@@ -318,6 +337,21 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
                             AnalysisState.FAILED,
                             "Repository enrichment failed: " + safeMessage(exception)));
         }
+    }
+
+    private void completeHistory(Long refreshRunId, InventoryStatus completedStatus) {
+        if (refreshRunId == null || refreshHistoryService == null) {
+            return;
+        }
+        refreshHistoryService.completeRun(
+                refreshRunId,
+                completedStatus.state(),
+                completedStatus.completedAt(),
+                completedStatus.totalCount(),
+                completedStatus.processedCount(),
+                completedStatus.successfulCount(),
+                completedStatus.errorCount(),
+                completedStatus.errorMessage());
     }
 
     private String safeMessage(RuntimeException exception) {
