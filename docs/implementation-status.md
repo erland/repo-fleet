@@ -61,8 +61,8 @@ The early CI bootstrap has been superseded by the completed Step 24 Quality Gate
 | 8 | Repository change fingerprinting | DONE | Verified by green CI #132 and Coolify validation #52 on PR #38. Discovery results are classified against persisted GitHub metadata. |
 | 9 | Incremental refresh planner | DONE | Verified by green CI #140 and Coolify validation #60 on PR #38. Unchanged repositories with complete snapshots reuse cached enrichment. |
 | 10 | GitHub conditional request infrastructure | DONE | Verified by green CI #145 and Coolify validation #65 on PR #38. Persistent ETag state and generic 200/304 handling are available. |
-| 11 | Conditional topics and languages refresh | IN PROGRESS | Applying conditional requests to topics and languages while preserving cached values on 304 or transient failure. |
-| 12 | Conditional license, workflows and release refresh | NOT STARTED | |
+| 11 | Conditional topics and languages refresh | DONE | Verified by green CI #150 and Coolify validation #70 on PR #38. Topics/languages use ETag requests and preserve cached values. |
+| 12 | Conditional license, workflows and release refresh | IN PROGRESS | Extending conditional refresh to license, workflows and releases while preserving cached values on transient failures. |
 | 13 | Refresh policy and cache freshness | NOT STARTED | |
 | 14 | Controlled enrichment concurrency | NOT STARTED | |
 | 15 | Repository standards domain model | NOT STARTED | |
@@ -88,10 +88,10 @@ The early CI bootstrap has been superseded by the completed Step 24 Quality Gate
 
 ## Current Position
 
-Current step: **Phase 2 Step 11 – Conditional topics and languages refresh (IN PROGRESS).**
+Current step: **Phase 2 Step 12 – Conditional license, workflows and release refresh (IN PROGRESS).**
 
 Phase 1 completed steps: **26 / 26**  
-Phase 2 completed steps: **10 / 34**
+Phase 2 completed steps: **11 / 34**
 
 ## Update Convention
 
