@@ -64,4 +64,10 @@ public class RepositoryIdentity extends PanacheEntityBase {
 
     @Column(nullable = false)
     public boolean active;
+
+    @Column(name = "change_classification")
+    public String changeClassification;
+
+    @Column(name = "change_detected_at")
+    public Instant changeDetectedAt;
 }
