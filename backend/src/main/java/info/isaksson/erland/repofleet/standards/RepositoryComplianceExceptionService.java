@@ -70,6 +70,32 @@ public class RepositoryComplianceExceptionService {
     }
 
     @Transactional
+    public boolean expire(long repositoryId, String ruleKey, Instant now) {
+        RepositoryComplianceException entity = RepositoryComplianceException.find(
+                        "githubRepositoryId = ?1 and ruleKey = ?2",
+                        repositoryId,
+                        ruleKey)
+                .firstResultOptional()
+                .map(RepositoryComplianceException.class::cast)
+                .orElse(null);
+        if (entity == null) {
+            return false;
+        }
+        entity.expiresAt = now;
+        entity.state = RepositoryComplianceExceptionState.EXPIRED;
+        entity.updatedAt = now;
+        return true;
+    }
+
+    @Transactional
+    public boolean remove(long repositoryId, String ruleKey) {
+        return RepositoryComplianceException.delete(
+                "githubRepositoryId = ?1 and ruleKey = ?2",
+                repositoryId,
+                ruleKey) > 0;
+    }
+
+    @Transactional
     public List<RepositoryComplianceExceptionDefinition> listForRepository(long repositoryId) {
         Instant now = clock.instant();
         return RepositoryComplianceException.list(
