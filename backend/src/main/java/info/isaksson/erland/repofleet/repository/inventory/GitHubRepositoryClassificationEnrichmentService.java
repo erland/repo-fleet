@@ -187,7 +187,11 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
                         response -> response.readEntity(new GenericType<List<GitHubContentItemResponse>>() {}),
                         () -> null);
 
-                if (contentsResult.notModified() && cachedEnrichmentComplete) {
+                if (contentsResult.notModified()) {
+                    if (!cachedEnrichmentComplete) {
+                        throw new IllegalStateException(
+                                "Root contents were not modified but no complete cached license state is available.");
+                    }
                     license = cachedLicense;
                 } else {
                     List<GitHubContentItemResponse> contents =
