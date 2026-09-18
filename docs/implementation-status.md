@@ -62,8 +62,8 @@ The early CI bootstrap has been superseded by the completed Step 24 Quality Gate
 | 9 | Incremental refresh planner | DONE | Verified by green CI #140 and Coolify validation #60 on PR #38. Unchanged repositories with complete snapshots reuse cached enrichment. |
 | 10 | GitHub conditional request infrastructure | DONE | Verified by green CI #145 and Coolify validation #65 on PR #38. Persistent ETag state and generic 200/304 handling are available. |
 | 11 | Conditional topics and languages refresh | DONE | Verified by green CI #150 and Coolify validation #70 on PR #38. Topics/languages use ETag requests and preserve cached values. |
-| 12 | Conditional license, workflows and release refresh | IN PROGRESS | Extending conditional refresh to license, workflows and releases while preserving cached values on transient failures. |
-| 13 | Refresh policy and cache freshness | NOT STARTED | |
+| 12 | Conditional license, workflows and release refresh | DONE | Verified by green CI #155 and Coolify validation #75 on PR #38. License, workflows and releases now preserve cached data on 304/transient failures. |
+| 13 | Refresh policy and cache freshness | IN PROGRESS | Adding configurable identity/enrichment/full-consistency TTLs and explicit freshness status. |
 | 14 | Controlled enrichment concurrency | NOT STARTED | |
 | 15 | Repository standards domain model | NOT STARTED | |
 | 16 | Repository groups | NOT STARTED | |
@@ -88,10 +88,10 @@ The early CI bootstrap has been superseded by the completed Step 24 Quality Gate
 
 ## Current Position
 
-Current step: **Phase 2 Step 12 – Conditional license, workflows and release refresh (IN PROGRESS).**
+Current step: **Phase 2 Step 13 – Refresh policy and cache freshness (IN PROGRESS).**
 
 Phase 1 completed steps: **26 / 26**  
-Phase 2 completed steps: **11 / 34**
+Phase 2 completed steps: **12 / 34**
 
 ## Update Convention
 
