@@ -83,6 +83,19 @@ public class RepositoryComplianceExceptionService {
     }
 
     @Transactional
+    public List<RepositoryComplianceExceptionDefinition> listForRule(String ruleKey) {
+        Instant now = clock.instant();
+        return RepositoryComplianceException.list(
+                        "ruleKey = ?1 order by githubRepositoryId",
+                        ruleKey)
+                .stream()
+                .map(RepositoryComplianceException.class::cast)
+                .map(entity -> refreshState(entity, now))
+                .map(this::toDefinition)
+                .toList();
+    }
+
+    @Transactional
     public boolean hasActiveException(long repositoryId, String ruleKey) {
         Instant now = clock.instant();
         RepositoryComplianceException entity = RepositoryComplianceException.find(
