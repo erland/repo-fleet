@@ -7,6 +7,7 @@ import info.isaksson.erland.repofleet.repository.api.RepositoryVisibility;
 import info.isaksson.erland.repofleet.repository.persistence.RepositoryEnrichmentSnapshotRepository;
 import info.isaksson.erland.repofleet.repository.persistence.RepositoryIdentity;
 import info.isaksson.erland.repofleet.repository.persistence.RepositoryIdentityRepository;
+import info.isaksson.erland.repofleet.repository.refresh.RepositoryRefreshQueueService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -29,17 +30,20 @@ public class GitHubWebhookEventProcessor {
     private final RepositoryIdentityRepository identities;
     private final RepositoryEnrichmentSnapshotRepository snapshots;
     private final GitHubConditionalRequestStateService conditionalStates;
+    private final RepositoryRefreshQueueService refreshQueue;
 
     @Inject
     public GitHubWebhookEventProcessor(
             ObjectMapper objectMapper,
             RepositoryIdentityRepository identities,
             RepositoryEnrichmentSnapshotRepository snapshots,
-            GitHubConditionalRequestStateService conditionalStates) {
+            GitHubConditionalRequestStateService conditionalStates,
+            RepositoryRefreshQueueService refreshQueue) {
         this.objectMapper = objectMapper;
         this.identities = identities;
         this.snapshots = snapshots;
         this.conditionalStates = conditionalStates;
+        this.refreshQueue = refreshQueue;
     }
 
     @Transactional
@@ -143,6 +147,7 @@ public class GitHubWebhookEventProcessor {
                     "Repository metadata changed via GitHub webhook; enrichment refresh pending.";
             snapshot.updatedAt = receivedAt;
         });
+        refreshQueue.enqueue(repositoryId, "WEBHOOK_REPOSITORY", receivedAt);
     }
 
     private void processPush(JsonNode root, Instant receivedAt) {
@@ -175,6 +180,11 @@ public class GitHubWebhookEventProcessor {
             if (updatedAt != null) snapshot.activityUpdatedAt = updatedAt;
             snapshot.updatedAt = receivedAt;
         });
+        if (identities.findByGitHubRepositoryId(repositoryId)
+                .filter(identity -> identity.active)
+                .isPresent()) {
+            refreshQueue.enqueue(repositoryId, "WEBHOOK_PUSH", receivedAt);
+        }
     }
 
     private void invalidateRepositoryCategory(
@@ -191,6 +201,12 @@ public class GitHubWebhookEventProcessor {
             identity.lastSeenAt = receivedAt;
             identity.changeClassification = "LIKELY_CHANGED";
             identity.changeDetectedAt = receivedAt;
+            if (identity.active) {
+                refreshQueue.enqueue(
+                        repositoryId,
+                        "WEBHOOK_" + resourceCategory.toUpperCase(),
+                        receivedAt);
+            }
         });
     }
 
@@ -203,6 +219,7 @@ public class GitHubWebhookEventProcessor {
                 identity.lastSeenAt = receivedAt;
                 identity.changeClassification = "LIKELY_CHANGED";
                 identity.changeDetectedAt = receivedAt;
+                refreshQueue.enqueue(repositoryId, "WEBHOOK_INSTALLATION_ADDED", receivedAt);
             });
         }
 
