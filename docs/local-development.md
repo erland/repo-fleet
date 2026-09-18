@@ -106,3 +106,26 @@ python3 scripts/validate-phase1-completion.py
 Normal tests use deterministic fixtures and do not require GitHub credentials.
 
 For live repository discovery, configure the GitHub App as documented in `docs/github-app-setup.md` and explicitly refresh the inventory.
+
+## Phase 2 database foundation
+
+Phase 2 requires PostgreSQL even though repository inventory is still in memory in Step 1.
+
+The simplest local setup is the root Compose runtime:
+
+```bash
+cp .env.example .env
+docker compose up --build
+```
+
+This starts PostgreSQL, backend and frontend. PostgreSQL data is stored in the named volume `repofleet-postgres-data`.
+
+For native backend development, start PostgreSQL separately and configure:
+
+```text
+REPOFLEET_DB_URL=jdbc:postgresql://localhost:5432/repofleet
+REPOFLEET_DB_USER=repofleet
+REPOFLEET_DB_PASSWORD=repofleet
+```
+
+Flyway runs automatically at backend startup. Database readiness is exposed through Quarkus health at `/q/health/ready`.
