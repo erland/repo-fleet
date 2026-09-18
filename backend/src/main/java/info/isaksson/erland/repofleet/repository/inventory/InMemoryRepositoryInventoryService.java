@@ -1,6 +1,7 @@
 package info.isaksson.erland.repofleet.repository.inventory;
 
 import info.isaksson.erland.repofleet.repository.api.AnalysisState;
+import info.isaksson.erland.repofleet.repository.api.CacheFreshness;
 import info.isaksson.erland.repofleet.repository.api.RepositoryRefreshStatus;
 import info.isaksson.erland.repofleet.repository.api.RepositorySummary;
 import info.isaksson.erland.repofleet.repository.persistence.CachedRepositoryInventoryService;
@@ -262,7 +263,7 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
                     : refreshPlan.items().stream()
                             .map(item -> item.action() == RepositoryRefreshAction.REUSE_CACHED
                                     ? item.cached()
-                                    : item.discovered())
+                                    : withFreshness(item.discovered(), CacheFreshness.REFRESHING))
                             .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
             repositories = List.copyOf(working);
             status = runningStatus(startedAt, total, 0, 0, 0, null);
@@ -283,6 +284,14 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
                     enriched = planItem.cached();
                 } else {
                     enriched = enrichSafely(repository);
+                    AnalysisState enrichedState = enriched.refreshStatus() == null
+                            ? AnalysisState.FAILED
+                            : enriched.refreshStatus().state();
+                    enriched = withFreshness(
+                            enriched,
+                            enrichedState == AnalysisState.COMPLETE
+                                    ? CacheFreshness.FRESH
+                                    : CacheFreshness.STALE);
                     if (snapshotService != null) {
                         snapshotService.persistProgressiveResult(enriched, clock.instant());
                     }
@@ -386,6 +395,33 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
             snapshot.add(previousById.getOrDefault(repository.id(), repository));
         }
         return snapshot;
+    }
+
+    private RepositorySummary withFreshness(
+            RepositorySummary repository,
+            CacheFreshness freshness) {
+        RepositoryRefreshStatus current = repository.refreshStatus();
+        return new RepositorySummary(
+                repository.id(),
+                repository.owner(),
+                repository.name(),
+                repository.fullName(),
+                repository.url(),
+                repository.visibility(),
+                repository.archived(),
+                repository.fork(),
+                repository.defaultBranch(),
+                repository.topics(),
+                repository.languages(),
+                repository.primaryLanguage(),
+                repository.license(),
+                repository.githubActions(),
+                repository.release(),
+                repository.activity(),
+                new RepositoryRefreshStatus(
+                        current == null ? AnalysisState.NOT_ANALYZED : current.state(),
+                        current == null ? null : current.message(),
+                        freshness));
     }
 
     private RepositorySummary enrichSafely(RepositorySummary repository) {
