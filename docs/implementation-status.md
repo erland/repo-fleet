@@ -1,6 +1,6 @@
 # RepoFleet – Implementation Status
 
-This document tracks implementation progress against `development-plan-phase-1.md`.
+This document tracks implementation progress against `development-plan-phase-1.md` and `development-plan-phase-2.md`.
 
 Update this file whenever a development step is started, completed, blocked, or intentionally deferred.
 
@@ -47,11 +47,51 @@ Update this file whenever a development step is started, completed, blocked, or 
 
 The early CI bootstrap has been superseded by the completed Step 24 Quality Gate. Pull requests now validate repository policy, frontend, backend and production Compose packaging before the final `Quality Gate` result.
 
+## Phase 2 Progress
+
+| Step | Development step | Status | Notes |
+|---:|---|---|---|
+| 1 | Phase 2 persistence foundation | IN PROGRESS | PostgreSQL, Flyway, runtime/CI configuration and documentation are being introduced. Inventory remains in memory. |
+| 2 | Persistent repository identity model | NOT STARTED | |
+| 3 | Persist discovered repository inventory | NOT STARTED | |
+| 4 | Serve cached repositories immediately on startup | NOT STARTED | |
+| 5 | Persistent enrichment snapshot model | NOT STARTED | |
+| 6 | Persist progressive enrichment results | NOT STARTED | |
+| 7 | Refresh history and observability | NOT STARTED | |
+| 8 | Repository change fingerprinting | NOT STARTED | |
+| 9 | Incremental refresh planner | NOT STARTED | |
+| 10 | GitHub conditional request infrastructure | NOT STARTED | |
+| 11 | Conditional topics and languages refresh | NOT STARTED | |
+| 12 | Conditional license, workflows and release refresh | NOT STARTED | |
+| 13 | Refresh policy and cache freshness | NOT STARTED | |
+| 14 | Controlled enrichment concurrency | NOT STARTED | |
+| 15 | Repository standards domain model | NOT STARTED | |
+| 16 | Repository groups | NOT STARTED | |
+| 17 | Rule-to-group assignments | NOT STARTED | |
+| 18 | Rule evaluation engine | NOT STARTED | |
+| 19 | Persist compliance results | NOT STARTED | |
+| 20 | Compliance summary API | NOT STARTED | |
+| 21 | Compliance overview UI | NOT STARTED | |
+| 22 | Repository compliance detail | NOT STARTED | |
+| 23 | Rule detail and affected repositories | NOT STARTED | |
+| 24 | Repository exceptions / accepted deviations | NOT STARTED | |
+| 25 | Exception management UI | NOT STARTED | |
+| 26 | GitHub webhook endpoint foundation | NOT STARTED | |
+| 27 | Repository lifecycle webhook handling | NOT STARTED | |
+| 28 | Push/release/workflow webhook invalidation | NOT STARTED | |
+| 29 | Targeted background refresh queue | NOT STARTED | |
+| 30 | Scheduled consistency refresh | NOT STARTED | |
+| 31 | Rate-limit and refresh diagnostics UI | NOT STARTED | |
+| 32 | Phase 2 end-to-end acceptance suite | NOT STARTED | |
+| 33 | Production migration and backup documentation | NOT STARTED | |
+| 34 | Phase 2 completion review | NOT STARTED | |
+
 ## Current Position
 
-Next step: **Phase 1 complete.** Production deployment automation/documentation added after Phase 1; next product phase is Standards, Rules & Maintenance Insights.
+Current step: **Phase 2 Step 1 – Phase 2 persistence foundation (IN PROGRESS).**
 
-Completed steps: **26 / 26**
+Phase 1 completed steps: **26 / 26**  
+Phase 2 completed steps: **0 / 34**
 
 ## Update Convention
 
