@@ -38,6 +38,7 @@ REPOFLEET_AUTH_CLIENT_ID
 REPOFLEET_AUTH_CLIENT_SECRET
 REPOFLEET_AUTH_SESSION_SECRET
 REPOFLEET_AUTH_ALLOWED_USERS
+REPOFLEET_DB_PASSWORD
 ```
 
 `REPOFLEET_GITHUB_PRIVATE_KEY` may contain PEM text with literal newlines or escaped `\n`, matching the backend's existing configuration support.
@@ -58,9 +59,15 @@ JAVA_OPTS=-XX:MaxRAMPercentage=75.0
 
 Use a released or release-candidate value for `REPOFLEET_VERSION` when you want an immutable deployment instead of `latest`.
 
+## PostgreSQL persistence
+
+Phase 2 adds the project-local `repo-fleet-postgres` service and persistent volume `repo-fleet-postgres-data`. Set `REPOFLEET_DB_PASSWORD` as a Coolify secret. `REPOFLEET_DB_NAME` and `REPOFLEET_DB_USER` are optional and default to `repofleet`.
+
+The backend waits for PostgreSQL readiness and Flyway migrations run automatically before the application becomes ready.
+
 ## Shared Coolify network
 
-RepoFleet itself currently has no database or other external container dependency, so it does not need Coolify's predefined shared network for normal operation. If that option is enabled for operational consistency or future shared dependencies, the project-specific service names prevent the DNS alias collision that can occur when several applications all expose a service named `backend`.
+RepoFleet uses project-specific service names for PostgreSQL, frontend and backend, so it does not publish generic DNS aliases such as `postgres` or `backend` when Coolify connects applications to a shared network. If that option is enabled for operational consistency or future shared dependencies, the project-specific service names prevent the DNS alias collision that can occur when several applications all expose a service named `backend`.
 
 ## GitHub OAuth callback
 
