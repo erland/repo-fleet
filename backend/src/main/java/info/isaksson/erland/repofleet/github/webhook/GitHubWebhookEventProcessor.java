@@ -10,9 +10,19 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.time.Instant;
+import java.util.Set;
 
 @ApplicationScoped
 public class GitHubWebhookEventProcessor {
+
+    private static final Set<String> LIFECYCLE_ACTIONS = Set.of(
+            "created",
+            "edited",
+            "renamed",
+            "transferred",
+            "archived",
+            "unarchived",
+            "deleted");
 
     private final ObjectMapper objectMapper;
     private final RepositoryIdentityRepository identities;
@@ -36,9 +46,13 @@ public class GitHubWebhookEventProcessor {
 
         JsonNode root = read(payload);
         String action = text(root, "action");
+        if (!LIFECYCLE_ACTIONS.contains(action)) {
+            return;
+        }
+
         JsonNode repository = root.path("repository");
         if (repository.isMissingNode() || repository.isNull()) {
-            return;
+            throw new IllegalArgumentException("Repository webhook payload is missing repository");
         }
 
         long repositoryId = repository.path("id").asLong(0L);
@@ -59,6 +73,9 @@ public class GitHubWebhookEventProcessor {
         String fullName = text(repository, "full_name");
         String name = text(repository, "name");
         String owner = text(repository.path("owner"), "login");
+        if (fullName.isBlank() || name.isBlank() || owner.isBlank()) {
+            throw new IllegalArgumentException("Repository webhook payload is missing identity fields");
+        }
         RepositoryVisibility visibility = visibility(repository);
         boolean archived = repository.path("archived").asBoolean(false);
         boolean fork = repository.path("fork").asBoolean(false);
