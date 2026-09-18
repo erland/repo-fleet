@@ -71,6 +71,7 @@ class GitHubAppJwtServiceTest {
             public Optional<Long> installationId() { return Optional.ofNullable(installationId); }
             public Optional<String> privateKey() { return Optional.ofNullable(privateKey); }
             public Optional<String> privateKeyPath() { return Optional.ofNullable(privateKeyPath); }
+            public Optional<String> webhookSecret() { return Optional.empty(); }
             public long tokenRefreshMarginSeconds() { return margin; }
         };
     }
