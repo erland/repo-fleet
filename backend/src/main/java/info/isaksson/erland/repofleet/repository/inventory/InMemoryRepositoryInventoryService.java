@@ -7,6 +7,10 @@ import info.isaksson.erland.repofleet.repository.persistence.CachedRepositoryInv
 import info.isaksson.erland.repofleet.repository.persistence.RepositoryInventoryPersistenceService;
 import info.isaksson.erland.repofleet.repository.persistence.RepositoryEnrichmentSnapshotService;
 import info.isaksson.erland.repofleet.repository.persistence.RepositoryRefreshHistoryService;
+import info.isaksson.erland.repofleet.repository.refresh.RepositoryRefreshAction;
+import info.isaksson.erland.repofleet.repository.refresh.RepositoryRefreshPlan;
+import info.isaksson.erland.repofleet.repository.refresh.RepositoryRefreshPlanItem;
+import info.isaksson.erland.repofleet.repository.refresh.RepositoryRefreshPlanner;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -30,10 +34,15 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
     private final CachedRepositoryInventoryService cachedInventoryService;
     private final RepositoryEnrichmentSnapshotService snapshotService;
     private final RepositoryRefreshHistoryService refreshHistoryService;
+    private final RepositoryRefreshPlanner refreshPlanner;
     private final ReentrantLock refreshLock = new ReentrantLock();
 
     private volatile List<RepositorySummary> repositories = List.of();
     private volatile InventoryStatus status = InventoryStatus.notStarted();
+    private volatile int reusedCount;
+    private volatile int newCount;
+    private volatile int changedCount;
+    private volatile int scheduledCount;
 
     @Inject
     public InMemoryRepositoryInventoryService(
@@ -42,7 +51,8 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
             RepositoryInventoryPersistenceService persistenceService,
             CachedRepositoryInventoryService cachedInventoryService,
             RepositoryEnrichmentSnapshotService snapshotService,
-            RepositoryRefreshHistoryService refreshHistoryService) {
+            RepositoryRefreshHistoryService refreshHistoryService,
+            RepositoryRefreshPlanner refreshPlanner) {
         this(
                 discoveryService,
                 enrichmentService,
@@ -55,14 +65,15 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
                 persistenceService,
                 cachedInventoryService,
                 snapshotService,
-                refreshHistoryService);
+                refreshHistoryService,
+                refreshPlanner);
     }
 
     InMemoryRepositoryInventoryService(
             GitHubRepositoryDiscoveryService discoveryService,
             RepositoryEnrichmentService enrichmentService,
             Clock clock) {
-        this(discoveryService, enrichmentService, clock, null, null, null, null, null);
+        this(discoveryService, enrichmentService, clock, null, null, null, null, null, null);
     }
 
     InMemoryRepositoryInventoryService(
@@ -70,7 +81,7 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
             RepositoryEnrichmentService enrichmentService,
             Clock clock,
             ExecutorService refreshExecutor) {
-        this(discoveryService, enrichmentService, clock, refreshExecutor, null, null, null, null);
+        this(discoveryService, enrichmentService, clock, refreshExecutor, null, null, null, null, null);
     }
 
     InMemoryRepositoryInventoryService(
@@ -82,6 +93,28 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
             CachedRepositoryInventoryService cachedInventoryService,
             RepositoryEnrichmentSnapshotService snapshotService,
             RepositoryRefreshHistoryService refreshHistoryService) {
+        this(
+                discoveryService,
+                enrichmentService,
+                clock,
+                refreshExecutor,
+                persistenceService,
+                cachedInventoryService,
+                snapshotService,
+                refreshHistoryService,
+                null);
+    }
+
+    InMemoryRepositoryInventoryService(
+            GitHubRepositoryDiscoveryService discoveryService,
+            RepositoryEnrichmentService enrichmentService,
+            Clock clock,
+            ExecutorService refreshExecutor,
+            RepositoryInventoryPersistenceService persistenceService,
+            CachedRepositoryInventoryService cachedInventoryService,
+            RepositoryEnrichmentSnapshotService snapshotService,
+            RepositoryRefreshHistoryService refreshHistoryService,
+            RepositoryRefreshPlanner refreshPlanner) {
         this.discoveryService = discoveryService;
         this.enrichmentService = enrichmentService;
         this.clock = clock;
@@ -90,6 +123,7 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
         this.cachedInventoryService = cachedInventoryService;
         this.snapshotService = snapshotService;
         this.refreshHistoryService = refreshHistoryService;
+        this.refreshPlanner = refreshPlanner;
     }
 
     @PostConstruct
@@ -151,6 +185,10 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
                 : refreshHistoryService.startRun(triggerType, startedAt);
 
         try {
+            reusedCount = 0;
+            newCount = 0;
+            changedCount = 0;
+            scheduledCount = 0;
             status = runningStatus(startedAt, 0, 0, 0, 0, null);
 
             final List<RepositorySummary> discovered;
@@ -190,10 +228,24 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
                             0,
                             0,
                             0,
+                            reusedCount,
+                            newCount,
+                            changedCount,
+                            scheduledCount,
                             null);
                     completeHistory(refreshRunId, status);
                     return status;
                 }
+            }
+
+            RepositoryRefreshPlan refreshPlan = refreshPlanner == null
+                    ? null
+                    : refreshPlanner.plan(discovered);
+            if (refreshPlan != null) {
+                reusedCount = refreshPlan.reusedCount();
+                newCount = refreshPlan.newCount();
+                changedCount = refreshPlan.changedCount();
+                scheduledCount = refreshPlan.scheduledCount();
             }
 
             int total = discovered.size();
@@ -201,12 +253,19 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
             int errors = 0;
             int hardFailures = 0;
 
-            List<RepositorySummary> working = progressiveSnapshot(discovered);
+            List<RepositorySummary> working = refreshPlan == null
+                    ? progressiveSnapshot(discovered)
+                    : refreshPlan.items().stream()
+                            .map(item -> item.action() == RepositoryRefreshAction.REUSE_CACHED
+                                    ? item.cached()
+                                    : item.discovered())
+                            .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
             repositories = List.copyOf(working);
             status = runningStatus(startedAt, total, 0, 0, 0, null);
 
             for (int index = 0; index < discovered.size(); index++) {
-                RepositorySummary repository = discovered.get(index);
+                RepositoryRefreshPlanItem planItem = refreshPlan == null ? null : refreshPlan.items().get(index);
+                RepositorySummary repository = planItem == null ? discovered.get(index) : planItem.discovered();
                 status = runningStatus(
                         startedAt,
                         total,
@@ -215,9 +274,14 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
                         errors,
                         repository.fullName());
 
-                RepositorySummary enriched = enrichSafely(repository);
-                if (snapshotService != null) {
-                    snapshotService.persistProgressiveResult(enriched, clock.instant());
+                RepositorySummary enriched;
+                if (planItem != null && planItem.action() == RepositoryRefreshAction.REUSE_CACHED) {
+                    enriched = planItem.cached();
+                } else {
+                    enriched = enrichSafely(repository);
+                    if (snapshotService != null) {
+                        snapshotService.persistProgressiveResult(enriched, clock.instant());
+                    }
                 }
                 working.set(index, enriched);
                 repositories = List.copyOf(working);
@@ -267,6 +331,10 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
                     total,
                     successful,
                     errors,
+                    reusedCount,
+                    newCount,
+                    changedCount,
+                    scheduledCount,
                     null);
             completeHistory(refreshRunId, status);
             return status;
@@ -293,6 +361,10 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
                 processed,
                 successful,
                 errors,
+                reusedCount,
+                newCount,
+                changedCount,
+                scheduledCount,
                 currentRepository);
     }
 
