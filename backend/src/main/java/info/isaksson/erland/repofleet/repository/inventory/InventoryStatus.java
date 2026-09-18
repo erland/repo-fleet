@@ -13,6 +13,10 @@ public record InventoryStatus(
         int processedCount,
         int successfulCount,
         int errorCount,
+        int reusedCount,
+        int newCount,
+        int changedCount,
+        int scheduledCount,
         String currentRepository) {
 
     public static InventoryStatus notStarted() {
@@ -22,6 +26,10 @@ public record InventoryStatus(
                 null,
                 null,
                 null,
+                0,
+                0,
+                0,
+                0,
                 0,
                 0,
                 0,

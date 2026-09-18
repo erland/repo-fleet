@@ -2,14 +2,16 @@ import { renderToString } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import App from './App'
 import { InventoryRefreshPanel } from './InventoryRefreshPanel'
+import { ComplianceOverviewPanel } from './ComplianceOverviewPanel'
 import { PortfolioSummaryPanel } from './PortfolioSummaryPanel'
 import { RepositoryDetailPanel } from './RepositoryDetailPanel'
 import { RepositoryFiltersPanel } from './RepositoryFiltersPanel'
 import { RepositoryInventory } from './RepositoryInventory'
 import { RepositorySelectionBar } from './RepositorySelectionBar'
+import { RefreshDiagnosticsPanel } from './RefreshDiagnosticsPanel'
 import { RepositorySortControls } from './RepositorySortControls'
 import { SavedViewsPanel } from './SavedViewsPanel'
-import type { InventoryStatus, RepositorySummary } from './api'
+import type { CompliancePortfolioSummary, InventoryStatus, RepositorySummary } from './api'
 import { emptyRepositoryFilters } from './repositoryFilters'
 import { defaultRepositorySort } from './repositorySorting'
 import { summarizePortfolio } from './portfolioSummary'
@@ -336,7 +338,22 @@ describe('PortfolioSummaryPanel', () => {
 describe('RepositoryDetailPanel', () => {
   it('renders the full read-only repository metadata view', () => {
     const html = renderToString(
-      <RepositoryDetailPanel repository={repository} onClose={() => undefined} />,
+      <RepositoryDetailPanel
+        repository={repository}
+        compliance={[{
+          ruleKey: 'license-required',
+          ruleName: 'License required',
+          ruleType: 'LICENSE_REQUIRED',
+          severity: 'REQUIRED',
+          result: 'FAIL',
+          reason: 'Repository does not contain a license.',
+          observedValue: 'MISSING',
+          evaluatedAt: '2026-09-18T12:00:00Z',
+        }]}
+        complianceLoading={false}
+        complianceError={null}
+        onClose={() => undefined}
+      />,
     )
 
     expect(html).toContain('Repository details')
@@ -349,6 +366,40 @@ describe('RepositoryDetailPanel', () => {
     expect(html).toContain('Repository analysis')
     expect(html).toContain('Open on GitHub')
     expect(html).toContain('Close details')
+    expect(html).toContain('Compliance detail')
+    expect(html).toContain('License required')
+    expect(html).toContain('Repository does not contain a license.')
+    expect(html).toContain('MISSING')
+    expect(html).toContain('Last evaluated')
+    expect(html).toContain('Accept deviation')
+  })
+
+  it('renders edit, expire and remove controls for an accepted deviation', () => {
+    const html = renderToString(
+      <RepositoryDetailPanel
+        repository={repository}
+        compliance={[{
+          ruleKey: 'license-required',
+          ruleName: 'License required',
+          ruleType: 'LICENSE_REQUIRED',
+          severity: 'REQUIRED',
+          result: 'FAIL',
+          reason: 'Repository does not contain a license.',
+          observedValue: 'MISSING',
+          evaluatedAt: '2026-09-18T12:00:00Z',
+          acceptedDeviation: true,
+          exceptionReason: 'Legacy repository accepted temporarily.',
+          exceptionExpiresAt: '2026-12-31T23:59:59Z',
+        }]}
+        onClose={() => undefined}
+      />,
+    )
+
+    expect(html).toContain('ACCEPTED DEVIATION')
+    expect(html).toContain('Legacy repository accepted temporarily.')
+    expect(html).toContain('Edit exception')
+    expect(html).toContain('Expire exception')
+    expect(html).toContain('Remove exception')
   })
 
   it('renders nothing when no repository is selected for details', () => {
@@ -513,3 +564,107 @@ describe('Accessibility and responsive markup', () => {
   })
 })
 
+
+describe('ComplianceOverviewPanel', () => {
+  it('renders severity counts, filters, freshness and priority deviations', () => {
+    const summary: CompliancePortfolioSummary = {
+      repositoryCount: 2,
+      evaluatedRuleCount: 4,
+      resultCounts: { PASS: 2, FAIL: 1, UNKNOWN: 1, NOT_APPLICABLE: 0 },
+      severityResultCounts: {
+        REQUIRED: { PASS: 1, FAIL: 1, UNKNOWN: 0, NOT_APPLICABLE: 0 },
+        RECOMMENDED: { PASS: 1, FAIL: 0, UNKNOWN: 1, NOT_APPLICABLE: 0 },
+        INFORMATIONAL: { PASS: 0, FAIL: 0, UNKNOWN: 0, NOT_APPLICABLE: 0 },
+      },
+      groups: [{
+        groupKey: 'services',
+        groupName: 'Services',
+        repositoryCount: 1,
+        resultCounts: { PASS: 1, FAIL: 1, UNKNOWN: 0, NOT_APPLICABLE: 0 },
+      }],
+      repositoriesWithMostRequiredFailures: [{
+        githubRepositoryId: 1001,
+        fullName: 'erland/roman-nollpunkten',
+        requiredFailureCount: 1,
+      }],
+      rules: [{
+        ruleKey: 'license-required',
+        ruleName: 'License required',
+        severity: 'REQUIRED',
+        resultCounts: { PASS: 1, FAIL: 1, UNKNOWN: 0, NOT_APPLICABLE: 0 },
+      }],
+    }
+
+    const html = renderToString(
+      <ComplianceOverviewPanel
+        summary={summary}
+        repositories={[{ ...repository, refreshStatus: { state: 'COMPLETE', message: null, freshness: 'STALE' } }]}
+        loading={false}
+        error={null}
+      />,
+    )
+
+    expect(html).toContain('Compliance overview')
+    expect(html).toContain('Required')
+    expect(html).toContain('Recommended')
+    expect(html).toContain('Informational')
+    expect(html).toContain('All groups')
+    expect(html).toContain('All rules')
+    expect(html).toMatch(/1(?:<!-- -->)? stale/)
+    expect(html).toContain('Highest-priority deviations')
+    expect(html).toMatch(/1(?:<!-- -->)? required failure/)
+  })
+})
+
+
+describe('RefreshDiagnosticsPanel', () => {
+  it('renders API pressure, reuse and recent failures', () => {
+    const html = renderToString(
+      <RefreshDiagnosticsPanel
+        loading={false}
+        error={null}
+        diagnostics={{
+          rateLimitRemaining: 4321,
+          rateLimitResetAt: '2026-09-18T18:00:00Z',
+          conditionalModifiedCount: 5,
+          conditionalNotModifiedCount: 12,
+          conditionalCachedFreshCount: 30,
+          webhookTriggeredRefreshCount: 7,
+          targetedFailedCount: 1,
+          recentRuns: [{
+            id: 1,
+            triggerType: 'SCHEDULED_CONSISTENCY',
+            startedAt: '2026-09-18T16:00:00Z',
+            completedAt: '2026-09-18T16:02:00Z',
+            durationMillis: 120000,
+            finalState: 'COMPLETED',
+            discoveredCount: 200,
+            processedCount: 200,
+            successfulCount: 200,
+            errorCount: 0,
+            reusedCount: 180,
+            scheduledCount: 20,
+            failureSummary: null,
+          }],
+          recentTargetedFailures: [{
+            jobId: 9,
+            githubRepositoryId: 1001,
+            triggerType: 'WEBHOOK_RELEASES',
+            attempts: 3,
+            lastError: 'GitHub unavailable',
+            completedAt: '2026-09-18T16:05:00Z',
+          }],
+        }}
+      />,
+    )
+
+    expect(html).toContain('Refresh diagnostics')
+    expect(html).toContain('4321')
+    expect(html).toContain('12')
+    expect(html).toContain('30')
+    expect(html).toContain('fresh-cache skips')
+    expect(html).toContain('SCHEDULED_CONSISTENCY')
+    expect(html).toContain('180')
+    expect(html).toContain('GitHub unavailable')
+  })
+})

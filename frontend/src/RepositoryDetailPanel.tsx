@@ -1,8 +1,19 @@
-import { useEffect, useRef } from 'react'
-import type { AnalysisState, RepositorySummary } from './api'
+import { useEffect, useRef, useState } from 'react'
+import type { AnalysisState, RepositoryComplianceDetail, RepositorySummary } from './api'
 
 type RepositoryDetailPanelProps = {
   repository: RepositorySummary | null
+  compliance?: RepositoryComplianceDetail[]
+  complianceLoading?: boolean
+  complianceError?: string | null
+  onSaveException?: (
+    repositoryId: number,
+    ruleKey: string,
+    reason: string,
+    expiresAt: string | null,
+  ) => Promise<void>
+  onExpireException?: (repositoryId: number, ruleKey: string) => Promise<void>
+  onRemoveException?: (repositoryId: number, ruleKey: string) => Promise<void>
   onClose: () => void
 }
 
@@ -47,6 +58,143 @@ function releaseValue(repository: RepositorySummary): string {
   return release.latestReleaseTag ?? release.latestReleaseName ?? 'Published release'
 }
 
+
+function expiryDateValue(value: string | null | undefined): string {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  return date.toISOString().slice(0, 10)
+}
+
+function ExceptionEditor({
+  repositoryId,
+  item,
+  onSave,
+  onExpire,
+  onRemove,
+}: {
+  repositoryId: number
+  item: RepositoryComplianceDetail
+  onSave?: (
+    repositoryId: number,
+    ruleKey: string,
+    reason: string,
+    expiresAt: string | null,
+  ) => Promise<void>
+  onExpire?: (repositoryId: number, ruleKey: string) => Promise<void>
+  onRemove?: (repositoryId: number, ruleKey: string) => Promise<void>
+}) {
+  const [editing, setEditing] = useState(false)
+  const [reason, setReason] = useState(item.exceptionReason ?? '')
+  const [expiry, setExpiry] = useState(expiryDateValue(item.exceptionExpiresAt))
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setReason(item.exceptionReason ?? '')
+    setExpiry(expiryDateValue(item.exceptionExpiresAt))
+    setEditing(false)
+    setError(null)
+  }, [item.exceptionExpiresAt, item.exceptionReason, item.acceptedDeviation])
+
+  if (item.result !== 'FAIL' && !item.acceptedDeviation) return null
+
+  const submit = async () => {
+    if (!onSave || !reason.trim()) return
+    setSaving(true)
+    setError(null)
+    try {
+      await onSave(
+        repositoryId,
+        item.ruleKey,
+        reason.trim(),
+        expiry ? new Date(expiry + 'T23:59:59Z').toISOString() : null,
+      )
+      setEditing(false)
+    } catch {
+      setError('The accepted deviation could not be saved.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const expire = async () => {
+    if (!onExpire) return
+    setSaving(true)
+    setError(null)
+    try {
+      await onExpire(repositoryId, item.ruleKey)
+      setEditing(false)
+    } catch {
+      setError('The accepted deviation could not be expired.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const remove = async () => {
+    if (!onRemove) return
+    setSaving(true)
+    setError(null)
+    try {
+      await onRemove(repositoryId, item.ruleKey)
+      setEditing(false)
+    } catch {
+      setError('The accepted deviation could not be removed.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (!editing) {
+    return (
+      <div className="exception-actions">
+        <button className="secondary-button" type="button" onClick={() => setEditing(true)}>
+          {item.acceptedDeviation ? 'Edit exception' : 'Accept deviation'}
+        </button>
+        {item.acceptedDeviation && (
+          <>
+            <button className="secondary-button" type="button" disabled={saving} onClick={() => void expire()}>
+              Expire exception
+            </button>
+            <button className="secondary-button" type="button" disabled={saving} onClick={() => void remove()}>
+              Remove exception
+            </button>
+          </>
+        )}
+        {error && <p className="compliance-error" role="alert">{error}</p>}
+      </div>
+    )
+  }
+
+  return (
+    <div className="exception-editor">
+      <label>
+        Reason
+        <textarea value={reason} onChange={(event) => setReason(event.target.value)} rows={3} />
+      </label>
+      <label>
+        Optional expiry
+        <input type="date" value={expiry} onChange={(event) => setExpiry(event.target.value)} />
+      </label>
+      <div className="exception-editor-actions">
+        <button
+          className="refresh-button"
+          type="button"
+          disabled={saving || !reason.trim()}
+          onClick={() => void submit()}
+        >
+          {saving ? 'Saving…' : 'Save exception'}
+        </button>
+        <button className="secondary-button" type="button" disabled={saving} onClick={() => setEditing(false)}>
+          Cancel
+        </button>
+      </div>
+      {error && <p className="compliance-error" role="alert">{error}</p>}
+    </div>
+  )
+}
+
 function DetailItem({ label, value }: { label: string; value: string }) {
   return (
     <div className="detail-item">
@@ -56,7 +204,16 @@ function DetailItem({ label, value }: { label: string; value: string }) {
   )
 }
 
-export function RepositoryDetailPanel({ repository, onClose }: RepositoryDetailPanelProps) {
+export function RepositoryDetailPanel({
+  repository,
+  compliance = [],
+  complianceLoading = false,
+  complianceError = null,
+  onSaveException,
+  onExpireException,
+  onRemoveException,
+  onClose,
+}: RepositoryDetailPanelProps) {
   const panelRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
@@ -120,6 +277,69 @@ export function RepositoryDetailPanel({ repository, onClose }: RepositoryDetailP
         <DetailItem label="Repository analysis" value={analysisLabel(repository.refreshStatus.state)} />
         <DetailItem label="Analysis message" value={repository.refreshStatus.message ?? '—'} />
       </dl>
+
+      <section className="compliance-detail" aria-labelledby="repository-compliance-heading">
+        <div className="compliance-detail-heading">
+          <div>
+            <p className="eyebrow">Standards</p>
+            <h3 id="repository-compliance-heading">Compliance detail</h3>
+          </div>
+          <span>{compliance.length} applicable rule{compliance.length === 1 ? '' : 's'}</span>
+        </div>
+
+        {complianceLoading && <p role="status">Loading compliance detail…</p>}
+        {complianceError && <p className="compliance-error" role="alert">{complianceError}</p>}
+
+        {!complianceLoading && !complianceError && compliance.length === 0 && (
+          <p className="compliance-detail-empty">No persisted compliance evaluations are available for this repository yet.</p>
+        )}
+
+        {compliance.length > 0 && (
+          <div className="compliance-detail-list">
+            {compliance.map((item) => (
+              <article className="compliance-detail-item" key={item.ruleKey}>
+                <div className="compliance-detail-title">
+                  <div>
+                    <h4>{item.ruleName}</h4>
+                    <span>{item.severity}</span>
+                  </div>
+                  <strong>{item.acceptedDeviation ? 'ACCEPTED DEVIATION' : item.result}</strong>
+                </div>
+                <dl>
+                  <div>
+                    <dt>Reason</dt>
+                    <dd>{item.reason}</dd>
+                  </div>
+                  <div>
+                    <dt>Observed value</dt>
+                    <dd>{item.observedValue ?? '—'}</dd>
+                  </div>
+                  <div>
+                    <dt>Last evaluated</dt>
+                    <dd>{formatDate(item.evaluatedAt)}</dd>
+                  </div>
+                  {item.acceptedDeviation && (
+                    <div>
+                      <dt>Exception</dt>
+                      <dd>
+                        {item.exceptionReason ?? 'Accepted deviation'}
+                        {item.exceptionExpiresAt ? ' · expires ' + formatDate(item.exceptionExpiresAt) : ''}
+                      </dd>
+                    </div>
+                  )}
+                </dl>
+                <ExceptionEditor
+                  repositoryId={repository.id}
+                  item={item}
+                  onSave={onSaveException}
+                  onExpire={onExpireException}
+                  onRemove={onRemoveException}
+                />
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
     </aside>
   )
 }

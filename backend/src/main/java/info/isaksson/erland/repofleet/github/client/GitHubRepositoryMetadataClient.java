@@ -7,6 +7,7 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import java.util.List;
 import java.util.Map;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
@@ -26,6 +27,17 @@ public interface GitHubRepositoryMetadataClient {
     );
 
     @GET
+    @Path("/repos/{owner}/{repository}/topics")
+    Response getTopicsConditional(
+        @PathParam("owner") String owner,
+        @PathParam("repository") String repository,
+        @HeaderParam("Authorization") String authorization,
+        @HeaderParam("Accept") String accept,
+        @HeaderParam("X-GitHub-Api-Version") String apiVersion,
+        @HeaderParam("If-None-Match") String ifNoneMatch
+    );
+
+    @GET
     @Path("/repos/{owner}/{repository}/languages")
     Map<String, Long> getLanguages(
         @PathParam("owner") String owner,
@@ -33,6 +45,17 @@ public interface GitHubRepositoryMetadataClient {
         @HeaderParam("Authorization") String authorization,
         @HeaderParam("Accept") String accept,
         @HeaderParam("X-GitHub-Api-Version") String apiVersion
+    );
+
+    @GET
+    @Path("/repos/{owner}/{repository}/languages")
+    Response getLanguagesConditional(
+        @PathParam("owner") String owner,
+        @PathParam("repository") String repository,
+        @HeaderParam("Authorization") String authorization,
+        @HeaderParam("Accept") String accept,
+        @HeaderParam("X-GitHub-Api-Version") String apiVersion,
+        @HeaderParam("If-None-Match") String ifNoneMatch
     );
 
     @GET
@@ -46,6 +69,17 @@ public interface GitHubRepositoryMetadataClient {
     );
 
     @GET
+    @Path("/repos/{owner}/{repository}/contents")
+    Response getRootContentsConditional(
+        @PathParam("owner") String owner,
+        @PathParam("repository") String repository,
+        @HeaderParam("Authorization") String authorization,
+        @HeaderParam("Accept") String accept,
+        @HeaderParam("X-GitHub-Api-Version") String apiVersion,
+        @HeaderParam("If-None-Match") String ifNoneMatch
+    );
+
+    @GET
     @Path("/repos/{owner}/{repository}/license")
     GitHubLicenseResponse getLicense(
         @PathParam("owner") String owner,
@@ -53,6 +87,17 @@ public interface GitHubRepositoryMetadataClient {
         @HeaderParam("Authorization") String authorization,
         @HeaderParam("Accept") String accept,
         @HeaderParam("X-GitHub-Api-Version") String apiVersion
+    );
+
+    @GET
+    @Path("/repos/{owner}/{repository}/license")
+    Response getLicenseConditional(
+        @PathParam("owner") String owner,
+        @PathParam("repository") String repository,
+        @HeaderParam("Authorization") String authorization,
+        @HeaderParam("Accept") String accept,
+        @HeaderParam("X-GitHub-Api-Version") String apiVersion,
+        @HeaderParam("If-None-Match") String ifNoneMatch
     );
 
 
@@ -68,6 +113,19 @@ public interface GitHubRepositoryMetadataClient {
         @QueryParam("page") int page
     );
 
+    @GET
+    @Path("/repos/{owner}/{repository}/actions/workflows")
+    Response getWorkflowsConditional(
+        @PathParam("owner") String owner,
+        @PathParam("repository") String repository,
+        @HeaderParam("Authorization") String authorization,
+        @HeaderParam("Accept") String accept,
+        @HeaderParam("X-GitHub-Api-Version") String apiVersion,
+        @HeaderParam("If-None-Match") String ifNoneMatch,
+        @QueryParam("per_page") int perPage,
+        @QueryParam("page") int page
+    );
+
 
     @GET
     @Path("/repos/{owner}/{repository}/releases")
@@ -77,6 +135,19 @@ public interface GitHubRepositoryMetadataClient {
         @HeaderParam("Authorization") String authorization,
         @HeaderParam("Accept") String accept,
         @HeaderParam("X-GitHub-Api-Version") String apiVersion,
+        @QueryParam("per_page") int perPage,
+        @QueryParam("page") int page
+    );
+
+    @GET
+    @Path("/repos/{owner}/{repository}/releases")
+    Response getReleasesConditional(
+        @PathParam("owner") String owner,
+        @PathParam("repository") String repository,
+        @HeaderParam("Authorization") String authorization,
+        @HeaderParam("Accept") String accept,
+        @HeaderParam("X-GitHub-Api-Version") String apiVersion,
+        @HeaderParam("If-None-Match") String ifNoneMatch,
         @QueryParam("per_page") int perPage,
         @QueryParam("page") int page
     );

@@ -24,7 +24,7 @@ RUN rm /etc/nginx/conf.d/default.conf \
 COPY --from=build --chown=nginx:nginx /workspace/dist/ /usr/share/nginx/html/
 COPY nginx/default.conf.template /etc/nginx/templates/default.conf.template
 
-ENV BACKEND_URL=http://backend:8080 \
+ENV REPOFLEET_BACKEND_HOST=repo-fleet-backend \
     NGINX_ENVSUBST_OUTPUT_DIR=/etc/nginx/conf.d
 
 EXPOSE 8080

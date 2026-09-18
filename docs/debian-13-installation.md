@@ -281,7 +281,22 @@ Homepage URL:    https://repo-fleet.isaksson.info
 Callback URL:    https://repo-fleet.isaksson.info/api/auth/github/callback
 ```
 
-4. RepoFleet använder inga webhooks i den här fasen. Stäng av webhook-funktionen/`Active` om GitHub-formuläret tillåter det.
+4. Aktivera webhooks för Phase 2 och ange:
+
+```text
+Webhook URL: https://repo-fleet.isaksson.info/api/github/webhook
+Webhook secret: <strong-random-secret>
+Active: enabled
+```
+
+Skapa exempelvis webhook-hemligheten med:
+
+```bash
+openssl rand -hex 32
+```
+
+Samma värde ska senare anges som `REPOFLEET_GITHUB_WEBHOOK_SECRET` i RepoFleets produktionskonfiguration.
+
 5. Under **Repository permissions**, använd read-only:
 
 ```text
@@ -383,7 +398,14 @@ REPOFLEET_FRONTEND_PORT=8082
 REPOFLEET_GITHUB_APP_ID=<GITHUB_APP_ID>
 REPOFLEET_GITHUB_INSTALLATION_ID=<GITHUB_INSTALLATION_ID>
 REPOFLEET_GITHUB_TOKEN_REFRESH_MARGIN_SECONDS=300
+REPOFLEET_GITHUB_WEBHOOK_SECRET=<GITHUB_APP_WEBHOOK_SECRET>
 GITHUB_API_URL=https://api.github.com
+
+REPOFLEET_REFRESH_ENRICHMENT_WORKERS=2
+REPOFLEET_REFRESH_TARGETED_QUEUE_ENABLED=true
+REPOFLEET_REFRESH_TARGETED_WORKERS=2
+REPOFLEET_REFRESH_CONSISTENCY_SCHEDULER_ENABLED=true
+REPOFLEET_REFRESH_CONSISTENCY_INTERVAL_HOURS=24
 
 REPOFLEET_AUTH_ENABLED=true
 REPOFLEET_AUTH_CLIENT_ID=<GITHUB_APP_CLIENT_ID>
@@ -1057,3 +1079,236 @@ och kör vid behov en RepoFleet deployment av aktuell release igen.
 - [ ] HTTPS visar RepoFleets GitHub-login och en allowlistad GitHub-användare kan logga in.
 - [ ] Efter GitHub-login visar repositoryinventeringen förväntad anslutning/data och refresh fungerar.
 - [ ] Inventory refresh visar förväntade repositories.
+
+---
+
+# Phase 2 PostgreSQL production operations
+
+Phase 2 makes PostgreSQL part of RepoFleet's production state. Repository identity, enrichment snapshots,
+refresh history, standards/rules, compliance results, accepted deviations, webhook deliveries, targeted
+refresh jobs and diagnostics survive application restarts.
+
+Before deploying a Phase 2 image, add strong database credentials to `/opt/repo-fleet/.env`:
+
+```text
+REPOFLEET_DB_NAME=repofleet
+REPOFLEET_DB_USER=repofleet
+REPOFLEET_DB_PASSWORD=<strong-random-password>
+```
+
+The database is stored in the Docker named volume `repo-fleet_repofleet-postgres-data` when the Compose
+project name is `repo-fleet`. PostgreSQL is not published on a host port. The backend waits for database
+readiness and runs Flyway migrations automatically before becoming ready.
+
+## Initial Phase 2 deployment
+
+Before the first Phase 2 deployment:
+
+1. verify `REPOFLEET_DB_PASSWORD` is present in `/opt/repo-fleet/.env`;
+2. make sure the server has enough free disk space for the PostgreSQL volume plus at least one backup;
+3. deploy the selected immutable version;
+4. verify the containers and migration state:
+
+```bash
+cd /opt/repo-fleet
+docker compose --env-file .env -f docker-compose.server.yml -f .images.env ps
+docker compose --env-file .env -f docker-compose.server.yml -f .images.env logs --tail=200 backend
+```
+
+The backend log must show successful Flyway startup without validation/migration errors and the backend
+health check must become healthy.
+
+## Backup
+
+Take an application-consistent logical backup with `pg_dump` from the PostgreSQL container:
+
+```bash
+cd /opt/repo-fleet
+mkdir -p backups
+chmod 0700 backups
+
+timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
+docker compose --env-file .env -f docker-compose.server.yml -f .images.env exec -T postgres \
+  pg_dump \
+    --format=custom \
+    --no-owner \
+    --no-privileges \
+    --username="$REPOFLEET_DB_USER" \
+    "$REPOFLEET_DB_NAME" \
+  > "backups/repofleet-${timestamp}.dump"
+
+chmod 0600 "backups/repofleet-${timestamp}.dump"
+```
+
+If your server Compose service is named differently, use the PostgreSQL service name from
+`deploy/docker-compose.server.yml`.
+
+Validate that the backup is readable:
+
+```bash
+pg_restore --list "backups/repofleet-${timestamp}.dump" >/dev/null
+ls -lh "backups/repofleet-${timestamp}.dump"
+```
+
+Backups contain RepoFleet application state and may include repository metadata, usernames, exception
+reasons and operational history. Protect them like other production data and do not commit them to Git.
+
+A sensible minimum policy is:
+
+- backup before every production upgrade that contains Flyway migrations;
+- keep several recent backups;
+- copy at least one recent backup off the application host;
+- periodically test restore to a disposable database.
+
+## Restore
+
+Restore into a clean database. Stop the backend first so no application writes occur during restore:
+
+```bash
+cd /opt/repo-fleet
+docker compose --env-file .env -f docker-compose.server.yml -f .images.env stop backend
+```
+
+Recreate the application database inside PostgreSQL:
+
+```bash
+docker compose --env-file .env -f docker-compose.server.yml -f .images.env exec -T postgres \
+  psql --username="$REPOFLEET_DB_USER" --dbname=postgres <<SQL
+SELECT pg_terminate_backend(pid)
+FROM pg_stat_activity
+WHERE datname = '$REPOFLEET_DB_NAME'
+  AND pid <> pg_backend_pid();
+
+DROP DATABASE IF EXISTS "$REPOFLEET_DB_NAME";
+CREATE DATABASE "$REPOFLEET_DB_NAME" OWNER "$REPOFLEET_DB_USER";
+SQL
+```
+
+Restore the dump:
+
+```bash
+cat backups/<BACKUP_FILE>.dump | \
+docker compose --env-file .env -f docker-compose.server.yml -f .images.env exec -T postgres \
+  pg_restore \
+    --no-owner \
+    --no-privileges \
+    --username="$REPOFLEET_DB_USER" \
+    --dbname="$REPOFLEET_DB_NAME"
+```
+
+Start the backend again and verify health:
+
+```bash
+docker compose --env-file .env -f docker-compose.server.yml -f .images.env start backend
+docker compose --env-file .env -f docker-compose.server.yml -f .images.env ps
+```
+
+Flyway will validate the restored schema against the deployed application version during startup.
+
+## Upgrade procedure
+
+For every production upgrade:
+
+1. read the release notes/change summary and identify whether new Flyway migrations exist;
+2. take and verify a database backup;
+3. note the currently deployed application version;
+4. deploy the new immutable version through **Deploy production**;
+5. wait for PostgreSQL and backend health checks;
+6. inspect backend logs for Flyway errors;
+7. verify HTTPS/login;
+8. verify repository inventory, compliance overview and refresh diagnostics;
+9. retain the pre-upgrade backup until the new version has been operated successfully.
+
+Flyway migrations are forward migrations. Do not assume that deploying an older container image will
+automatically reverse database schema changes.
+
+## Rollback considerations
+
+There are two rollback cases:
+
+### Application-only rollback
+
+If the failed release introduced no incompatible database migration, redeploy the previously known-good
+application version.
+
+### Database-affecting rollback
+
+If the release ran a migration that is not backward-compatible with the previous application version:
+
+1. stop the backend;
+2. restore the pre-upgrade database backup;
+3. deploy the previous known-good application version;
+4. start the backend and verify Flyway validation and application health.
+
+Never manually edit Flyway's schema history table as a shortcut for rollback.
+
+## Secrets
+
+Production secrets belong in `/opt/repo-fleet/.env`, GitHub Environment secrets or the deployment
+platform's secret store. At minimum protect:
+
+- `REPOFLEET_DB_PASSWORD`
+- GitHub App private key
+- GitHub App Client Secret
+- RepoFleet session secret
+- webhook secret
+- deployment SSH private key
+
+Use file mode `0600` for `/opt/repo-fleet/.env` and backup files.
+
+## Disk usage and maintenance
+
+Monitor both Docker volume usage and filesystem free space:
+
+```bash
+df -h
+docker system df
+docker volume inspect repo-fleet_repofleet-postgres-data
+du -sh /opt/repo-fleet/backups 2>/dev/null || true
+```
+
+Do not run broad `docker system prune --volumes` on the production server unless you have positively
+identified every volume that can be removed. RepoFleet's PostgreSQL volume is production data.
+
+PostgreSQL itself performs routine autovacuum. For a portfolio of a few hundred repositories, ordinary
+database growth should be modest, but refresh history, webhook deliveries and targeted jobs grow over time
+and should be observed through normal server disk monitoring.
+
+## Troubleshooting
+
+### Backend will not become healthy
+
+Check PostgreSQL and backend logs:
+
+```bash
+cd /opt/repo-fleet
+docker compose --env-file .env -f docker-compose.server.yml -f .images.env ps
+docker compose --env-file .env -f docker-compose.server.yml -f .images.env logs --tail=200 postgres
+docker compose --env-file .env -f docker-compose.server.yml -f .images.env logs --tail=200 backend
+```
+
+Typical causes are wrong database credentials, database volume permissions, an unavailable PostgreSQL
+container or a Flyway migration/validation error.
+
+### Flyway validation or migration fails
+
+Do not repeatedly restart blindly. Keep the failed version stopped, preserve the database volume, inspect
+the exact migration error and compare the deployed image version with the database schema state. If the
+failure happened during an upgrade, use the verified pre-upgrade backup when a restore is required.
+
+### Database backup is unexpectedly small or empty
+
+Verify that `pg_dump` exited successfully and inspect the archive with `pg_restore --list`. Do not delete
+older known-good backups until the new dump has been validated.
+
+### Lost PostgreSQL container
+
+The container itself is disposable. If the named volume still exists, recreating the Compose application
+reattaches it. Verify with:
+
+```bash
+docker volume ls | grep repo-fleet
+```
+
+If the volume is lost or corrupt, restore the latest verified backup.
+

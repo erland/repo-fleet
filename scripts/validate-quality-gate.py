@@ -35,6 +35,7 @@ for secret_name in (
     "REPOFLEET_AUTH_CLIENT_SECRET",
     "REPOFLEET_AUTH_SESSION_SECRET",
     "REPOFLEET_AUTH_ALLOWED_USERS",
+    "REPOFLEET_DB_PASSWORD",
 ):
     match = re.search(rf"(?m)^{re.escape(secret_name)}=(.*)$", server_env_example)
     if not match:
@@ -48,10 +49,12 @@ for required in ("frontend/node_modules/", "frontend/dist/", "backend/target/", 
     if required not in gitignore:
         errors.append(f".gitignore is missing required entry: {required}")
 
-# Phase 1 must remain DB-free.
+# Phase 2 requires PostgreSQL while repository data migration remains deferred to later steps.
 compose = (root / "docker-compose.yml").read_text(encoding="utf-8")
-if re.search(r"(?im)^  (postgres|postgresql|database|db):\s*$", compose):
-    errors.append("Phase 1 docker-compose.yml unexpectedly defines a database service")
+if not re.search(r"(?m)^  postgres:\s*$", compose):
+    errors.append("Phase 2 docker-compose.yml is missing the PostgreSQL service")
+if "repofleet-postgres-data" not in compose:
+    errors.append("Phase 2 docker-compose.yml is missing the persistent PostgreSQL volume")
 
 # Acceptance mapping must continue to cover all 13 Phase 1 criteria.
 acceptance = (root / "docs" / "phase-1-acceptance-validation.md").read_text(encoding="utf-8")

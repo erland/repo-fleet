@@ -3,18 +3,29 @@ import {
   fetchAuthSession,
   fetchInventoryStatus,
   fetchRepositories,
+  fetchComplianceSummary,
+  fetchRepositoryCompliance,
+  fetchRefreshDiagnostics,
+  saveRepositoryComplianceException,
+  expireRepositoryComplianceException,
+  removeRepositoryComplianceException,
   logout,
   startInventoryRefresh,
   type AuthSession,
   type InventoryStatus,
   type RepositorySummary,
+  type CompliancePortfolioSummary,
+  type RepositoryComplianceDetail,
+  type RefreshDiagnosticsSnapshot,
 } from './api'
 import { InventoryRefreshPanel } from './InventoryRefreshPanel'
+import { ComplianceOverviewPanel } from './ComplianceOverviewPanel'
 import { PortfolioSummaryPanel } from './PortfolioSummaryPanel'
 import { RepositoryDetailPanel } from './RepositoryDetailPanel'
 import { RepositoryFiltersPanel } from './RepositoryFiltersPanel'
 import { RepositoryInventory } from './RepositoryInventory'
 import { RepositorySelectionBar } from './RepositorySelectionBar'
+import { RefreshDiagnosticsPanel } from './RefreshDiagnosticsPanel'
 import { RepositorySortControls } from './RepositorySortControls'
 import { SavedViewsPanel } from './SavedViewsPanel'
 import { emptyRepositoryFilters, filterRepositories } from './repositoryFilters'
@@ -34,10 +45,19 @@ export default function App() {
   const [inventoryStatus, setInventoryStatus] = useState<InventoryStatus | null>(null)
   const [statusError, setStatusError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
+  const [complianceSummary, setComplianceSummary] = useState<CompliancePortfolioSummary | null>(null)
+  const [complianceLoading, setComplianceLoading] = useState(false)
+  const [complianceError, setComplianceError] = useState<string | null>(null)
+  const [refreshDiagnostics, setRefreshDiagnostics] = useState<RefreshDiagnosticsSnapshot | null>(null)
+  const [refreshDiagnosticsLoading, setRefreshDiagnosticsLoading] = useState(false)
+  const [refreshDiagnosticsError, setRefreshDiagnosticsError] = useState<string | null>(null)
   const [filters, setFilters] = useState(emptyRepositoryFilters)
   const [sort, setSort] = useState(defaultRepositorySort)
   const [selectedRepositoryIds, setSelectedRepositoryIds] = useState<Set<number>>(new Set())
   const [detailRepositoryId, setDetailRepositoryId] = useState<number | null>(null)
+  const [detailCompliance, setDetailCompliance] = useState<RepositoryComplianceDetail[]>([])
+  const [detailComplianceLoading, setDetailComplianceLoading] = useState(false)
+  const [detailComplianceError, setDetailComplianceError] = useState<string | null>(null)
   const [savedViews, setSavedViews] = useState<SavedRepositoryView[]>([])
   const [savedViewsInitialized, setSavedViewsInitialized] = useState(false)
   const [savedViewsStorageAvailable, setSavedViewsStorageAvailable] = useState(true)
@@ -56,6 +76,36 @@ export default function App() {
       setError('Repository inventory could not be loaded from the backend.')
     } finally {
       if (mountedRef.current && showInitialLoading) setLoading(false)
+    }
+  }, [])
+
+  const loadCompliance = useCallback(async () => {
+    setComplianceLoading(true)
+    try {
+      const result = await fetchComplianceSummary()
+      if (!mountedRef.current) return
+      setComplianceSummary(result)
+      setComplianceError(null)
+    } catch {
+      if (!mountedRef.current) return
+      setComplianceError('Compliance summary could not be loaded from the backend.')
+    } finally {
+      if (mountedRef.current) setComplianceLoading(false)
+    }
+  }, [])
+
+  const loadRefreshDiagnostics = useCallback(async () => {
+    setRefreshDiagnosticsLoading(true)
+    try {
+      const result = await fetchRefreshDiagnostics()
+      if (!mountedRef.current) return
+      setRefreshDiagnostics(result)
+      setRefreshDiagnosticsError(null)
+    } catch {
+      if (!mountedRef.current) return
+      setRefreshDiagnosticsError('Refresh diagnostics could not be loaded from the backend.')
+    } finally {
+      if (mountedRef.current) setRefreshDiagnosticsLoading(false)
     }
   }, [])
 
@@ -116,11 +166,13 @@ export default function App() {
     mountedRef.current = true
     void loadRepositories(true)
     void loadStatus()
+    void loadCompliance()
+    void loadRefreshDiagnostics()
 
     return () => {
       mountedRef.current = false
     }
-  }, [authSession, loadRepositories, loadStatus])
+  }, [authSession, loadCompliance, loadRefreshDiagnostics, loadRepositories, loadStatus])
 
   useEffect(() => {
     if (inventoryStatus?.state !== 'RUNNING') return
@@ -132,13 +184,17 @@ export default function App() {
 
       await loadRepositories(false)
       if (nextStatus.state === 'RUNNING') return
+      await Promise.all([
+        loadCompliance(),
+        loadRefreshDiagnostics(),
+      ])
 
       window.clearInterval(timer)
       if (mountedRef.current) setRefreshing(false)
     }, REFRESH_POLL_INTERVAL_MS)
 
     return () => window.clearInterval(timer)
-  }, [inventoryStatus?.state, loadRepositories, loadStatus])
+  }, [inventoryStatus?.state, loadCompliance, loadRefreshDiagnostics, loadRepositories, loadStatus])
 
 
   const filteredRepositories = useMemo(
@@ -188,12 +244,68 @@ export default function App() {
     setSavedViews((current) => removeSavedView(current, viewId))
   }, [])
 
+  const reloadRepositoryCompliance = useCallback(async (repositoryId: number) => {
+    setDetailComplianceLoading(true)
+    try {
+      const result = await fetchRepositoryCompliance(repositoryId)
+      if (!mountedRef.current) return
+      setDetailCompliance(result)
+      setDetailComplianceError(null)
+    } catch {
+      if (!mountedRef.current) return
+      setDetailComplianceError('Repository compliance detail could not be loaded.')
+    } finally {
+      if (mountedRef.current) setDetailComplianceLoading(false)
+    }
+  }, [])
+
   const openRepositoryDetails = useCallback((repositoryId: number) => {
     setDetailRepositoryId(repositoryId)
-  }, [])
+    setDetailCompliance([])
+    setDetailComplianceError(null)
+    void reloadRepositoryCompliance(repositoryId)
+  }, [reloadRepositoryCompliance])
+
+  const saveComplianceException = useCallback(async (
+    repositoryId: number,
+    ruleKey: string,
+    reason: string,
+    expiresAt: string | null,
+  ) => {
+    await saveRepositoryComplianceException(repositoryId, ruleKey, reason, expiresAt)
+    await Promise.all([
+      reloadRepositoryCompliance(repositoryId),
+      loadCompliance(),
+    ])
+  }, [loadCompliance, reloadRepositoryCompliance])
+
+  const expireComplianceException = useCallback(async (
+    repositoryId: number,
+    ruleKey: string,
+  ) => {
+    await expireRepositoryComplianceException(repositoryId, ruleKey)
+    await Promise.all([
+      reloadRepositoryCompliance(repositoryId),
+      loadCompliance(),
+    ])
+  }, [loadCompliance, reloadRepositoryCompliance])
+
+  const removeComplianceException = useCallback(async (
+    repositoryId: number,
+    ruleKey: string,
+  ) => {
+    await removeRepositoryComplianceException(repositoryId, ruleKey)
+    await Promise.all([
+      reloadRepositoryCompliance(repositoryId),
+      loadCompliance(),
+    ])
+  }, [loadCompliance, reloadRepositoryCompliance])
 
   const closeRepositoryDetails = useCallback(() => {
     setDetailRepositoryId(null)
+    setDetailCompliance([])
+    setDetailComplianceError(null)
+    setDetailComplianceLoading(false)
   }, [])
 
   const toggleRepository = useCallback((repositoryId: number) => {
@@ -332,6 +444,19 @@ export default function App() {
         totalPortfolioCount={repositories.length}
       />
 
+      <ComplianceOverviewPanel
+        summary={complianceSummary}
+        repositories={repositories}
+        loading={complianceLoading}
+        error={complianceError}
+      />
+
+      <RefreshDiagnosticsPanel
+        diagnostics={refreshDiagnostics}
+        loading={refreshDiagnosticsLoading}
+        error={refreshDiagnosticsError}
+      />
+
       <RepositorySortControls
         sort={sort}
         onChange={setSort}
@@ -341,6 +466,12 @@ export default function App() {
 
       <RepositoryDetailPanel
         repository={detailRepository}
+        compliance={detailCompliance}
+        complianceLoading={detailComplianceLoading}
+        complianceError={detailComplianceError}
+        onSaveException={saveComplianceException}
+        onExpireException={expireComplianceException}
+        onRemoveException={removeComplianceException}
         onClose={closeRepositoryDetails}
       />
 

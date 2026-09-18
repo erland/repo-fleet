@@ -98,8 +98,8 @@ if "v*.*.*" not in release or "ghcr.io" not in release:
 compose = (root / "docker-compose.yml").read_text(encoding="utf-8")
 if "frontend:" not in compose or "backend:" not in compose:
     errors.append("Docker Compose runtime does not contain frontend and backend")
-if re.search(r"(?im)^  (postgres|postgresql|database|db):\s*$", compose):
-    errors.append("Phase 1 unexpectedly contains a database service")
+# Phase 1 remains functionally complete even though Phase 2 adds PostgreSQL to the shared runtime.
+# Do not require the current Compose topology to remain database-free after Phase 1 completion.
 
 # Validate that markdown references to docs/scripts that look like project paths exist.
 for doc in [root / "README.md", *sorted((root / "docs").glob("*.md"))]:
