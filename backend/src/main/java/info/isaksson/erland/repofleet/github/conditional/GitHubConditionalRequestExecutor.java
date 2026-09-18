@@ -5,6 +5,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
+import info.isaksson.erland.repofleet.repository.refresh.RepositoryRefreshPolicy;
 import java.time.Instant;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -15,13 +16,22 @@ public class GitHubConditionalRequestExecutor {
 
     private final GitHubApiCallExecutor apiCalls;
     private final GitHubConditionalRequestStateService stateService;
+    private final RepositoryRefreshPolicy refreshPolicy;
 
     @Inject
     public GitHubConditionalRequestExecutor(
             GitHubApiCallExecutor apiCalls,
-            GitHubConditionalRequestStateService stateService) {
+            GitHubConditionalRequestStateService stateService,
+            RepositoryRefreshPolicy refreshPolicy) {
         this.apiCalls = apiCalls;
         this.stateService = stateService;
+        this.refreshPolicy = refreshPolicy;
+    }
+
+    GitHubConditionalRequestExecutor(
+            GitHubApiCallExecutor apiCalls,
+            GitHubConditionalRequestStateService stateService) {
+        this(apiCalls, stateService, null);
     }
 
     public <T> GitHubConditionalResult<T> execute(
@@ -33,9 +43,17 @@ public class GitHubConditionalRequestExecutor {
             Function<Response, T> bodyReader,
             Supplier<T> cachedValue) {
 
-        String previousEtag = stateService.find(githubRepositoryId, resourceCategory)
-                .map(state -> state.etag)
-                .orElse(null);
+        var previousState = stateService.find(githubRepositoryId, resourceCategory);
+        String previousEtag = previousState.map(state -> state.etag).orElse(null);
+
+        if (refreshPolicy != null
+                && previousState.isPresent()
+                && refreshPolicy.categoryFresh(
+                        resourceCategory,
+                        previousState.get().lastSuccessfulFetchAt,
+                        fetchedAt)) {
+            return GitHubConditionalResult.cachedFresh(cachedValue.get(), previousEtag);
+        }
 
         Response response = apiCalls.execute(
                 operation,
