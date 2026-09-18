@@ -1,5 +1,6 @@
 package info.isaksson.erland.repofleet.standards;
 
 public enum RepositoryRuleScope {
-    ALL_REPOSITORIES
+    ALL_REPOSITORIES,
+    SELECTED_GROUPS
 }
