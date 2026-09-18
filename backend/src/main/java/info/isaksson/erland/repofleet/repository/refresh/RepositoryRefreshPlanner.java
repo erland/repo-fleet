@@ -1,5 +1,6 @@
 package info.isaksson.erland.repofleet.repository.refresh;
 
+import info.isaksson.erland.repofleet.repository.api.AnalysisState;
 import info.isaksson.erland.repofleet.repository.api.RepositorySummary;
 import info.isaksson.erland.repofleet.repository.persistence.RepositoryChangeClassification;
 import info.isaksson.erland.repofleet.repository.persistence.RepositoryEnrichmentSnapshotRepository;
@@ -54,11 +55,18 @@ public class RepositoryRefreshPlanner {
                 action = RepositoryRefreshAction.FULL_ENRICHMENT;
                 changed++;
                 scheduled++;
-            } else if (snapshotRepository.findByGitHubRepositoryId(summary.id()).isPresent()) {
-                action = RepositoryRefreshAction.REUSE_CACHED;
-                cached = snapshotService.reconstruct(identity);
-                reused++;
             } else {
+                var snapshot = snapshotRepository.findByGitHubRepositoryId(summary.id());
+                if (snapshot.isPresent()
+                        && AnalysisState.COMPLETE.name().equals(snapshot.get().enrichmentState)) {
+                    action = RepositoryRefreshAction.REUSE_CACHED;
+                    cached = snapshotService.reconstruct(identity);
+                    reused++;
+                } else {
+                    action = RepositoryRefreshAction.FULL_ENRICHMENT;
+                    scheduled++;
+                }
+            }
                 action = RepositoryRefreshAction.FULL_ENRICHMENT;
                 scheduled++;
             }
