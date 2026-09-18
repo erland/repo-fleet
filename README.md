@@ -169,7 +169,7 @@ docker build -t repo-fleet-backend ./backend
 docker build -t repo-fleet-frontend ./frontend
 ```
 
-The frontend container proxies `/api/*` to a runtime-configurable `BACKEND_URL`. Both images run non-root and include health checks.
+The frontend container proxies `/api/*` to the runtime-configurable `REPOFLEET_BACKEND_HOST`. Both images run non-root and include health checks.
 
 See `docs/docker-images.md`.
 
@@ -216,7 +216,7 @@ RepoFleet can also be deployed as a Docker Compose application in Coolify using:
 deploy/coolify/compose.yaml
 ```
 
-The Coolify deployment consumes the GHCR images published by the existing release/release-candidate workflows and uses project-specific service names to avoid Docker DNS collisions on shared Coolify networks. Setup details and required environment variables are documented in `deploy/coolify/README.md`.
+The Coolify deployment consumes the GHCR images published by the existing release/release-candidate workflows, uses project-specific service names to avoid Docker DNS collisions, and connects to a separate shared PostgreSQL resource through Coolify's predefined network. Setup details and required environment variables are documented in `deploy/coolify/README.md`.
 
 ## Debian 13 production deployment
 

@@ -1,23 +1,6 @@
 name: repo-fleet
 
 services:
-  repo-fleet-postgres:
-    image: postgres:17-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${REPOFLEET_DB_NAME:-repofleet}
-      POSTGRES_USER: ${REPOFLEET_DB_USER:-repofleet}
-      POSTGRES_PASSWORD: ${REPOFLEET_DB_PASSWORD:?Set REPOFLEET_DB_PASSWORD in Coolify}
-    volumes:
-      - repo-fleet-postgres-data:/var/lib/postgresql/data
-    networks:
-      - app
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${REPOFLEET_DB_USER:-repofleet} -d ${REPOFLEET_DB_NAME:-repofleet}"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-
   repo-fleet-backend:
     image: ${REPOFLEET_BACKEND_IMAGE:-ghcr.io/erland/repo-fleet-backend}:${REPOFLEET_VERSION:-latest}
     restart: unless-stopped
@@ -25,7 +8,7 @@ services:
       QUARKUS_HTTP_HOST: 0.0.0.0
       QUARKUS_HTTP_PORT: 8080
       JAVA_OPTS: ${JAVA_OPTS:--XX:MaxRAMPercentage=75.0}
-      REPOFLEET_DB_URL: jdbc:postgresql://repo-fleet-postgres:5432/${REPOFLEET_DB_NAME:-repofleet}
+      REPOFLEET_DB_URL: jdbc:postgresql://${REPOFLEET_DB_HOST:?Set REPOFLEET_DB_HOST to the shared Coolify PostgreSQL hostname}:5432/${REPOFLEET_DB_NAME:-repofleet}
       REPOFLEET_DB_USER: ${REPOFLEET_DB_USER:-repofleet}
       REPOFLEET_DB_PASSWORD: ${REPOFLEET_DB_PASSWORD:?Set REPOFLEET_DB_PASSWORD in Coolify}
       GITHUB_API_URL: ${GITHUB_API_URL:-https://api.github.com}
@@ -55,9 +38,6 @@ services:
       REPOFLEET_AUTH_ALLOWED_USERS: ${REPOFLEET_AUTH_ALLOWED_USERS:?Set REPOFLEET_AUTH_ALLOWED_USERS in Coolify}
       REPOFLEET_AUTH_SESSION_HOURS: ${REPOFLEET_AUTH_SESSION_HOURS:-12}
       REPOFLEET_AUTH_COOKIE_SECURE: ${REPOFLEET_AUTH_COOKIE_SECURE:-true}
-    depends_on:
-      repo-fleet-postgres:
-        condition: service_healthy
     networks:
       - app
     healthcheck:
@@ -84,8 +64,6 @@ services:
       start_period: 10s
       retries: 5
 
-volumes:
-  repo-fleet-postgres-data:
 
 networks:
   app:

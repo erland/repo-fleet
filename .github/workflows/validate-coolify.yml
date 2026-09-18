@@ -43,6 +43,7 @@ jobs:
           REPOFLEET_AUTH_CLIENT_SECRET: 'test-client-secret'
           REPOFLEET_AUTH_SESSION_SECRET: 'test-session-secret'
           REPOFLEET_AUTH_ALLOWED_USERS: 'test-user'
+          REPOFLEET_DB_HOST: 'shared-postgres.internal'
           REPOFLEET_DB_PASSWORD: 'ci-only'
         run: |
           set -euo pipefail
@@ -54,10 +55,44 @@ jobs:
           set -euo pipefail
           rendered=/tmp/repo-fleet-coolify-compose.yaml
 
-          grep -Eq '^  repo-fleet-postgres:$' "$rendered" || {
-            echo 'Missing repo-fleet-postgres service.' >&2
+          if grep -Eq '^  repo-fleet-postgres:          grep -Eq '^  repo-fleet-backend:$' "$rendered" || {
+            echo 'Missing repo-fleet-backend service.' >&2
             exit 1
           }
+          grep -Eq '^  repo-fleet-frontend:$' "$rendered" || {
+            echo 'Missing repo-fleet-frontend service.' >&2
+            exit 1
+          }
+          if grep -Eq '^  (backend|frontend|postgres):$' "$rendered"; then
+            echo 'Generic service name detected; this can reintroduce shared-network DNS collisions.' >&2
+            exit 1
+          fi
+          grep -Fq 'REPOFLEET_DB_URL: jdbc:postgresql://shared-postgres.internal:5432/repofleet' "$rendered" || {
+            echo 'Backend database URL does not target REPOFLEET_DB_HOST on the shared PostgreSQL resource.' >&2
+            exit 1
+          }
+          if grep -Fq 'repo-fleet-postgres-data' "$rendered"; then
+            echo 'RepoFleet Coolify profile must not own a PostgreSQL data volume.' >&2
+            exit 1
+          fi
+          grep -Fq 'REPOFLEET_BACKEND_HOST: repo-fleet-backend' "$rendered" || {
+            echo 'Frontend REPOFLEET_BACKEND_HOST does not target repo-fleet-backend.' >&2
+            exit 1
+          }
+          grep -Fq 'proxy_pass http://${REPOFLEET_BACKEND_HOST}:8080;' frontend/nginx/default.conf.template || {
+            echo 'Frontend nginx template does not use the explicit RepoFleet backend host.' >&2
+            exit 1
+          }
+          if grep -Fq 'http://backend:8080' frontend/Dockerfile frontend/nginx/default.conf.template; then
+            echo 'Generic backend DNS fallback detected in the frontend image.' >&2
+            exit 1
+          fi
+
+          echo 'RepoFleet Coolify deployment validation passed.'
+ "$rendered"; then
+            echo 'RepoFleet must use the shared Coolify PostgreSQL resource, not a local postgres service.' >&2
+            exit 1
+          fi
           grep -Eq '^  repo-fleet-backend:$' "$rendered" || {
             echo 'Missing repo-fleet-backend service.' >&2
             exit 1

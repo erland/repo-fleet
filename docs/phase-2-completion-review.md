@@ -25,7 +25,7 @@ Final gate status: **BLOCKED – production deployment verification remains afte
 | Exceptions work | PASS | Accepted deviations persist, are expiry-aware and are separated from actionable failures; UI management is implemented. |
 | Webhooks and targeted refresh work | PASS | Signed idempotent webhook handling, targeted invalidation, persistent refresh jobs, retries and restart recovery are covered by tests. |
 | No GitHub repository write operations exist | PASS | Repository metadata client operations are GET-only. `GitHubAppClient` has one POST solely for creating an installation access token; it does not mutate repository content/settings. |
-| Deployment and operations documentation is complete | PASS | Debian 13 and Coolify docs cover PostgreSQL initialization, migration, backup/restore, upgrade, rollback, secrets, disk and troubleshooting. Latest Coolify validation #290 is green. |
+| Deployment and operations documentation is complete | PASS | Debian 13 documentation covers the standalone server profile; Coolify documentation uses a separate shared PostgreSQL resource with a dedicated RepoFleet database/role, plus migration, backup/restore, upgrade, rollback, secrets and troubleshooting guidance. |
 | Production deployment of Phase 2 verified | BLOCKED | Latest successful production deploy is workflow run #4 (`1.0.0-rc.3`) from 2026-08-15, before Phase 2. Production deploy workflow requires dispatch from the default branch, so the Phase 2 PR cannot satisfy this gate before merge/publication. |
 
 ## CI evidence
@@ -68,7 +68,7 @@ After PR #38 is merged and a Phase 2-capable version/RC is published from `main`
 
 1. deploy that exact immutable version using the production workflow,
 2. verify the workflow's public HTTPS and authentication health checks,
-3. verify PostgreSQL migrations complete successfully and persisted inventory is available,
+3. verify connectivity to the shared Coolify PostgreSQL resource, Flyway migrations and persisted inventory,
 4. perform a normal refresh and verify incremental/diagnostic behavior in production,
 5. verify webhook delivery and targeted refresh in production,
 6. record the successful deployment run/version in `docs/implementation-status.md`,
