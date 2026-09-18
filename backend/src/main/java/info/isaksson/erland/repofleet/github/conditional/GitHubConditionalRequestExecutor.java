@@ -38,6 +38,13 @@ public class GitHubConditionalRequestExecutor {
         this(apiCalls, stateService, null, null);
     }
 
+    GitHubConditionalRequestExecutor(
+            GitHubApiCallExecutor apiCalls,
+            GitHubConditionalRequestStateService stateService,
+            RepositoryRefreshPolicy refreshPolicy) {
+        this(apiCalls, stateService, refreshPolicy, null);
+    }
+
     public <T> GitHubConditionalResult<T> execute(
             long githubRepositoryId,
             String resourceCategory,
