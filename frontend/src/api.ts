@@ -188,3 +188,26 @@ export async function fetchComplianceSummary(): Promise<CompliancePortfolioSumma
 
   return response.json() as Promise<CompliancePortfolioSummary>
 }
+
+export type RepositoryComplianceDetail = {
+  ruleKey: string
+  ruleName: string
+  ruleType: string
+  severity: ComplianceSeverity
+  result: ComplianceResult
+  reason: string
+  observedValue: string | null
+  evaluatedAt: string
+}
+
+export async function fetchRepositoryCompliance(
+  repositoryId: number,
+): Promise<RepositoryComplianceDetail[]> {
+  const response = await fetch('/api/compliance/repositories/' + repositoryId)
+
+  if (!response.ok) {
+    throw new Error(`Repository compliance request failed with HTTP ${response.status}`)
+  }
+
+  return response.json() as Promise<RepositoryComplianceDetail[]>
+}
