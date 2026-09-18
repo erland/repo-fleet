@@ -35,6 +35,7 @@ public class RepositoryComplianceEvaluationService {
                         repository,
                         applicable.rule(),
                         clock.instant()))
+                .sorted(java.util.Comparator.comparing(RepositoryRuleEvaluation::ruleKey))
                 .toList();
     }
 }
