@@ -83,15 +83,15 @@ The early CI bootstrap has been superseded by the completed Step 24 Quality Gate
 | 30 | Scheduled consistency refresh | DONE | Verified by green CI #334 and Coolify validation #254 on PR #38. Low-frequency consistency refresh reuses discovery, incremental planning, cache reuse and conditional requests. |
 | 31 | Rate-limit and refresh diagnostics UI | DONE | Verified by green CI #355 and Coolify validation #275 on PR #38. API pressure, conditional cache reuse, refresh history and failures are visible without server logs. |
 | 32 | Phase 2 end-to-end acceptance suite | DONE | Verified by green CI #360 and Coolify validation #280 on PR #38. Deterministic acceptance covers persistence, incremental reuse, compliance semantics, webhook idempotency and targeted refresh without real GitHub secrets. |
-| 33 | Production migration and backup documentation | IN PROGRESS | Debian 13 and Coolify guides now cover PostgreSQL initialization, backup, restore, upgrade, rollback, secrets, disk and troubleshooting; deployment assets carry Phase 2 webhook/refresh settings. |
-| 34 | Phase 2 completion review | NOT STARTED | |
+| 33 | Production migration and backup documentation | DONE | Verified by green CI #370 and Coolify validation #290 on PR #38. Debian 13 and Coolify guides cover PostgreSQL initialization, backup, restore, upgrade, rollback, secrets, disk and troubleshooting; deployment assets carry Phase 2 webhook/refresh settings. |
+| 34 | Phase 2 completion review | BLOCKED | Repository-level completion review is documented in `phase-2-completion-review.md`; all current PR verification is green. Final completion is blocked until a Phase 2-capable immutable version is merged/published from `main` and successfully deployed/verified in production. |
 
 ## Current Position
 
-Current step: **Phase 2 Step 33 – Production migration and backup documentation (IN PROGRESS).**
+Current step: **Phase 2 Step 34 – Phase 2 completion review (BLOCKED on production deployment verification).**
 
 Phase 1 completed steps: **26 / 26**  
-Phase 2 completed steps: **32 / 34**
+Phase 2 completed steps: **33 / 34**
 
 ## Update Convention
 

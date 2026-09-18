@@ -266,6 +266,7 @@ Phase 2 development and acceptance are tracked in:
 - [`docs/development-plan-phase-2.md`](docs/development-plan-phase-2.md)
 - [`docs/phase2-acceptance.md`](docs/phase2-acceptance.md)
 - [`docs/implementation-status.md`](docs/implementation-status.md)
+- [`docs/phase-2-completion-review.md`](docs/phase-2-completion-review.md)
 
 Production database backup/restore and migration procedures are documented in `docs/debian-13-installation.md` and `deploy/coolify/README.md`.
 
