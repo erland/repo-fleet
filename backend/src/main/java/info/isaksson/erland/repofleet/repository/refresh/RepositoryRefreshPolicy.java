@@ -1,5 +1,6 @@
 package info.isaksson.erland.repofleet.repository.refresh;
 
+import info.isaksson.erland.repofleet.repository.api.CacheFreshness;
 import info.isaksson.erland.repofleet.repository.persistence.RepositoryEnrichmentSnapshot;
 import info.isaksson.erland.repofleet.repository.persistence.RepositoryIdentity;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -53,17 +54,17 @@ public class RepositoryRefreshPolicy {
                 || snapshot.lastSuccessfulRefreshAt.isBefore(now.minus(fullConsistencyInterval));
     }
 
-    public RepositoryFreshness freshness(
+    public CacheFreshness freshness(
             RepositoryIdentity identity,
             RepositoryEnrichmentSnapshot snapshot,
             boolean refreshing,
             Instant now) {
         if (refreshing) {
-            return RepositoryFreshness.REFRESHING;
+            return CacheFreshness.REFRESHING;
         }
         return identityFresh(identity, now) && enrichmentFresh(snapshot, now)
-                ? RepositoryFreshness.FRESH
-                : RepositoryFreshness.STALE;
+                ? CacheFreshness.FRESH
+                : CacheFreshness.STALE;
     }
 
     Duration identityFreshness() {
