@@ -8,6 +8,7 @@ import java.util.Optional;
 @ApplicationScoped
 public class GitHubConditionalRequestStateService {
 
+    @Transactional
     public Optional<GitHubConditionalRequestState> find(long githubRepositoryId, String resourceCategory) {
         return GitHubConditionalRequestState.find(
                 "githubRepositoryId = ?1 and resourceCategory = ?2",

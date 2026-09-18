@@ -9,6 +9,8 @@ import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.time.Instant;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -38,6 +40,24 @@ class GitHubConditionalRequestStateServiceTest {
                 null,
                 null,
                 Instant.parse("2026-09-18T08:00:00Z"));
+    }
+
+    @Test
+    void findWorksFromWorkerThreadWithoutRequestContext() throws Exception {
+        Instant fetchedAt = Instant.parse("2026-09-18T08:05:00Z");
+        stateService.recordModified(1234L, "topics", "\"etag-worker\"", fetchedAt);
+
+        var executor = Executors.newSingleThreadExecutor();
+        try {
+            var state = executor.submit(() -> stateService.find(1234L, "topics"))
+                    .get(5, TimeUnit.SECONDS)
+                    .orElseThrow();
+
+            assertEquals("\"etag-worker\"", state.etag);
+            assertEquals(fetchedAt, state.lastSuccessfulFetchAt);
+        } finally {
+            executor.shutdownNow();
+        }
     }
 
     @Test
