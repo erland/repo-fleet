@@ -79,8 +79,8 @@ The early CI bootstrap has been superseded by the completed Step 24 Quality Gate
 | 26 | GitHub webhook endpoint foundation | DONE | Verified by green CI #301 and Coolify validation #221 on PR #38. Signed deliveries are verified, deduplicated and classified without GitHub writes. |
 | 27 | Repository lifecycle webhook handling | DONE | Verified by green CI #308 and Coolify validation #228 on PR #38. Repository lifecycle events update identity and mark enrichment stale. |
 | 28 | Push/release/workflow webhook invalidation | DONE | Verified by green CI #313 and Coolify validation #233 on PR #38. Webhooks invalidate only affected cache categories and installation membership state. |
-| 29 | Targeted background refresh queue | IN PROGRESS | Adding a persistent PostgreSQL queue with deduplication, bounded workers, retry/backoff, restart recovery and single-repository refresh. |
-| 30 | Scheduled consistency refresh | NOT STARTED | |
+| 29 | Targeted background refresh queue | DONE | Verified by green CI #329 and Coolify validation #249 on PR #38. Persistent targeted jobs support deduplication, bounded workers, retries, restart recovery and single-repository refresh. |
+| 30 | Scheduled consistency refresh | IN PROGRESS | Adding a low-frequency full discovery pass that reuses the incremental planner and conditional requests for cheap eventual consistency. |
 | 31 | Rate-limit and refresh diagnostics UI | NOT STARTED | |
 | 32 | Phase 2 end-to-end acceptance suite | NOT STARTED | |
 | 33 | Production migration and backup documentation | NOT STARTED | |
@@ -88,10 +88,10 @@ The early CI bootstrap has been superseded by the completed Step 24 Quality Gate
 
 ## Current Position
 
-Current step: **Phase 2 Step 29 – Targeted background refresh queue (IN PROGRESS).**
+Current step: **Phase 2 Step 30 – Scheduled consistency refresh (IN PROGRESS).**
 
 Phase 1 completed steps: **26 / 26**  
-Phase 2 completed steps: **28 / 34**
+Phase 2 completed steps: **29 / 34**
 
 ## Update Convention
 
