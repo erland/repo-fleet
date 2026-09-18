@@ -4,12 +4,16 @@ on:
   pull_request:
     paths:
       - 'deploy/coolify/**'
+      - 'frontend/Dockerfile'
+      - 'frontend/nginx/**'
       - '.github/workflows/validate-coolify.yml'
   push:
     branches:
       - main
     paths:
       - 'deploy/coolify/**'
+      - 'frontend/Dockerfile'
+      - 'frontend/nginx/**'
       - '.github/workflows/validate-coolify.yml'
   workflow_dispatch:
 
@@ -70,9 +74,17 @@ jobs:
             echo 'Backend database URL does not target repo-fleet-postgres.' >&2
             exit 1
           }
-          grep -Fq 'BACKEND_URL: http://repo-fleet-backend:8080' "$rendered" || {
-            echo 'Frontend BACKEND_URL does not target repo-fleet-backend:8080.' >&2
+          grep -Fq 'REPOFLEET_BACKEND_HOST: repo-fleet-backend' "$rendered" || {
+            echo 'Frontend REPOFLEET_BACKEND_HOST does not target repo-fleet-backend.' >&2
             exit 1
           }
+          grep -Fq 'proxy_pass http://${REPOFLEET_BACKEND_HOST}:8080;' frontend/nginx/default.conf.template || {
+            echo 'Frontend nginx template does not use the explicit RepoFleet backend host.' >&2
+            exit 1
+          }
+          if grep -Fq 'http://backend:8080' frontend/Dockerfile frontend/nginx/default.conf.template; then
+            echo 'Generic backend DNS fallback detected in the frontend image.' >&2
+            exit 1
+          fi
 
           echo 'RepoFleet Coolify deployment validation passed.'

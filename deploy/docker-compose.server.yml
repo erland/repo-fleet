@@ -72,7 +72,7 @@ services:
   frontend:
     image: ${REPOFLEET_FRONTEND_IMAGE:?REPOFLEET_FRONTEND_IMAGE must be set}
     environment:
-      BACKEND_URL: http://backend:8080
+      REPOFLEET_BACKEND_HOST: backend
     ports:
       - "127.0.0.1:${REPOFLEET_FRONTEND_PORT:-8082}:8080"
     depends_on:

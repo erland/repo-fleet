@@ -24,7 +24,7 @@ For the standard apps.isaksson.info deployment, use:
 https://repo-fleet.apps.isaksson.info
 ```
 
-The frontend proxies `/api/*` to `repo-fleet-backend:8080` on the application-private Compose network.
+The frontend proxies `/api/*` to `repo-fleet-backend:8080` on the application-private Compose network. The nginx template receives this host explicitly through `REPOFLEET_BACKEND_HOST=repo-fleet-backend`; it does not fall back to the generic DNS name `backend`.
 
 ## Required environment variables
 

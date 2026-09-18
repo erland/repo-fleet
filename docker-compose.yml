@@ -55,7 +55,7 @@ services:
     build:
       context: ./frontend
     environment:
-      BACKEND_URL: http://backend:8080
+      REPOFLEET_BACKEND_HOST: backend
     ports:
       - "127.0.0.1:${REPOFLEET_FRONTEND_PORT:-8080}:8080"
     depends_on:

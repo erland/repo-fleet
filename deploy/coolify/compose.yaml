@@ -71,7 +71,7 @@ services:
     image: ${REPOFLEET_FRONTEND_IMAGE:-ghcr.io/erland/repo-fleet-frontend}:${REPOFLEET_VERSION:-latest}
     restart: unless-stopped
     environment:
-      BACKEND_URL: http://repo-fleet-backend:8080
+      REPOFLEET_BACKEND_HOST: repo-fleet-backend
     depends_on:
       repo-fleet-backend:
         condition: service_healthy
