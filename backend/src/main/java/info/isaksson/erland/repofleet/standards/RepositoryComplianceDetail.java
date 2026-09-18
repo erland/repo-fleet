@@ -10,5 +10,8 @@ public record RepositoryComplianceDetail(
         RepositoryRuleEvaluationResult result,
         String reason,
         String observedValue,
-        Instant evaluatedAt) {
+        Instant evaluatedAt,
+        boolean acceptedDeviation,
+        String exceptionReason,
+        Instant exceptionExpiresAt) {
 }
