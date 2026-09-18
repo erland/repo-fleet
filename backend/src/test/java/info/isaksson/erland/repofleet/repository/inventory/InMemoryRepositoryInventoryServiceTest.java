@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import info.isaksson.erland.repofleet.repository.api.RepositorySummary;
 import info.isaksson.erland.repofleet.repository.persistence.CachedRepositoryInventoryService;
+import info.isaksson.erland.repofleet.repository.persistence.RepositoryEnrichmentSnapshotService;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -209,7 +210,8 @@ class InMemoryRepositoryInventoryServiceTest {
                 CLOCK,
                 executor,
                 null,
-                cachedInventory);
+                cachedInventory,
+                null);
         try {
             service.initialize();
 
@@ -250,6 +252,57 @@ class InMemoryRepositoryInventoryServiceTest {
             assertTrue(service.listRepositories().isEmpty());
         } finally {
             allowDiscoveryToFinish.countDown();
+            service.shutdown();
+        }
+    }
+
+    @Test
+    void persistsEachRepositoryBeforeNextEnrichmentCompletes() throws Exception {
+        CountDownLatch secondEnrichmentStarted = new CountDownLatch(1);
+        CountDownLatch allowSecondEnrichmentToFinish = new CountDownLatch(1);
+        GitHubRepositoryDiscoveryService discovery =
+                () -> List.of(repository(1L, "one"), repository(2L, "two"));
+
+        RepositoryEnrichmentService enrichment = repository -> {
+            if (repository.id() == 2L) {
+                secondEnrichmentStarted.countDown();
+                try {
+                    if (!allowSecondEnrichmentToFinish.await(5, TimeUnit.SECONDS)) {
+                        throw new IllegalStateException("timed out waiting for test release");
+                    }
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException(exception);
+                }
+            }
+            return complete(repository);
+        };
+
+        RepositoryEnrichmentSnapshotService snapshots =
+                org.mockito.Mockito.mock(RepositoryEnrichmentSnapshotService.class);
+        var executor = Executors.newSingleThreadExecutor();
+        var service = new InMemoryRepositoryInventoryService(
+                discovery,
+                enrichment,
+                CLOCK,
+                executor,
+                null,
+                null,
+                snapshots);
+        try {
+            service.startRefresh();
+            assertTrue(secondEnrichmentStarted.await(1, TimeUnit.SECONDS));
+
+            org.mockito.Mockito.verify(snapshots, org.mockito.Mockito.times(1))
+                    .persistProgressiveResult(
+                            org.mockito.ArgumentMatchers.argThat(summary -> summary.id() == 1L),
+                            org.mockito.ArgumentMatchers.eq(CLOCK.instant()));
+            org.mockito.Mockito.verify(snapshots, org.mockito.Mockito.never())
+                    .persistProgressiveResult(
+                            org.mockito.ArgumentMatchers.argThat(summary -> summary.id() == 2L),
+                            org.mockito.ArgumentMatchers.any());
+        } finally {
+            allowSecondEnrichmentToFinish.countDown();
             service.shutdown();
         }
     }
