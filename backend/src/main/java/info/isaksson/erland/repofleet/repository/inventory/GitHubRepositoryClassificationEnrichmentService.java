@@ -61,6 +61,8 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
         LicenseStatus license = repository.license();
         GitHubActionsStatus githubActions = repository.githubActions();
         ReleaseStatus release = repository.release();
+        boolean cachedEnrichmentComplete = repository.refreshStatus() != null
+                && repository.refreshStatus().state() == AnalysisState.COMPLETE;
 
         boolean topicsComplete = false;
         boolean languagesComplete = false;
@@ -110,13 +112,13 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
             if (exception.kind() == GitHubApiFailureKind.NOT_FOUND) {
                 return unavailableRepository(repository, exception);
             }
-            if (!topics.isEmpty()) {
+            if (cachedEnrichmentComplete) {
                 topicsComplete = true;
             } else {
                 errors.add("topics: " + safeMessage(exception));
             }
         } catch (RuntimeException exception) {
-            if (!topics.isEmpty()) {
+            if (cachedEnrichmentComplete) {
                 topicsComplete = true;
             } else {
                 errors.add("topics: " + safeMessage(exception));
@@ -157,7 +159,7 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
             }
             languagesComplete = true;
         } catch (RuntimeException exception) {
-            if (!languages.isEmpty() || primaryLanguage != null) {
+            if (cachedEnrichmentComplete) {
                 languagesComplete = true;
             } else {
                 errors.add("languages: " + safeMessage(exception));
