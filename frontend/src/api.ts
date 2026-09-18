@@ -35,9 +35,12 @@ export type ActivityStatus = {
   updatedAt: string | null
 }
 
+export type CacheFreshness = 'FRESH' | 'STALE' | 'REFRESHING'
+
 export type RepositoryRefreshStatus = {
   state: AnalysisState
   message: string | null
+  freshness?: CacheFreshness | null
 }
 
 export type RepositorySummary = {
@@ -139,4 +142,49 @@ export async function fetchAuthSession(): Promise<AuthSession> {
 export async function logout(): Promise<void> {
   const response = await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' })
   if (!response.ok) throw new Error(`Logout request failed with HTTP ${response.status}`)
+}
+
+export type ComplianceResult = 'PASS' | 'FAIL' | 'UNKNOWN' | 'NOT_APPLICABLE'
+export type ComplianceSeverity = 'REQUIRED' | 'RECOMMENDED' | 'INFORMATIONAL'
+
+export type ComplianceResultCounts = Record<ComplianceResult, number>
+
+export type ComplianceGroupSummary = {
+  groupKey: string
+  groupName: string
+  repositoryCount: number
+  resultCounts: ComplianceResultCounts
+}
+
+export type ComplianceRepositoryFailureSummary = {
+  githubRepositoryId: number
+  fullName: string
+  requiredFailureCount: number
+}
+
+export type ComplianceRuleSummary = {
+  ruleKey: string
+  ruleName: string
+  severity: ComplianceSeverity
+  resultCounts: ComplianceResultCounts
+}
+
+export type CompliancePortfolioSummary = {
+  repositoryCount: number
+  evaluatedRuleCount: number
+  resultCounts: ComplianceResultCounts
+  severityResultCounts: Record<ComplianceSeverity, ComplianceResultCounts>
+  groups: ComplianceGroupSummary[]
+  repositoriesWithMostRequiredFailures: ComplianceRepositoryFailureSummary[]
+  rules: ComplianceRuleSummary[]
+}
+
+export async function fetchComplianceSummary(): Promise<CompliancePortfolioSummary> {
+  const response = await fetch('/api/compliance/summary')
+
+  if (!response.ok) {
+    throw new Error(`Compliance summary request failed with HTTP ${response.status}`)
+  }
+
+  return response.json() as Promise<CompliancePortfolioSummary>
 }
