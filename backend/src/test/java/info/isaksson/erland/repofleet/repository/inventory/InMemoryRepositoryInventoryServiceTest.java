@@ -70,6 +70,137 @@ class InMemoryRepositoryInventoryServiceTest {
     }
 
     @Test
+    void concurrentEnrichmentNeverExceedsConfiguredWorkerCount() throws Exception {
+        List<RepositorySummary> discovered = List.of(
+                repository(1L, "one"),
+                repository(2L, "two"),
+                repository(3L, "three"),
+                repository(4L, "four"));
+
+        RepositoryRefreshPlanner planner = org.mockito.Mockito.mock(RepositoryRefreshPlanner.class);
+        org.mockito.Mockito.when(planner.plan(discovered))
+                .thenReturn(new RepositoryRefreshPlan(
+                        discovered.stream()
+                                .map(item -> new RepositoryRefreshPlanItem(
+                                        item,
+                                        RepositoryRefreshAction.FULL_ENRICHMENT,
+                                        null))
+                                .toList(),
+                        0,
+                        0,
+                        4,
+                        4));
+
+        AtomicInteger active = new AtomicInteger();
+        AtomicInteger maxActive = new AtomicInteger();
+        CountDownLatch firstTwoStarted = new CountDownLatch(2);
+        CountDownLatch release = new CountDownLatch(1);
+
+        RepositoryEnrichmentService enrichment = item -> {
+            int current = active.incrementAndGet();
+            maxActive.accumulateAndGet(current, Math::max);
+            firstTwoStarted.countDown();
+            try {
+                if (!release.await(5, TimeUnit.SECONDS)) {
+                    throw new IllegalStateException("timed out waiting for test release");
+                }
+                return complete(item);
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException(exception);
+            } finally {
+                active.decrementAndGet();
+            }
+        };
+
+        var service = new InMemoryRepositoryInventoryService(
+                () -> discovered,
+                enrichment,
+                CLOCK,
+                null,
+                null,
+                null,
+                null,
+                null,
+                planner,
+                2);
+
+        var executor = Executors.newSingleThreadExecutor();
+        try {
+            var future = executor.submit(service::refresh);
+
+            assertTrue(firstTwoStarted.await(1, TimeUnit.SECONDS));
+            assertEquals(2, maxActive.get());
+
+            release.countDown();
+            InventoryStatus completed = future.get(5, TimeUnit.SECONDS);
+
+            assertEquals(InventoryRefreshState.COMPLETED, completed.state());
+            assertEquals(4, completed.processedCount());
+            assertEquals(4, completed.successfulCount());
+            assertEquals(0, completed.errorCount());
+            assertTrue(maxActive.get() <= 2);
+        } finally {
+            release.countDown();
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    void concurrentEnrichmentIsolatesIndividualRepositoryFailure() {
+        List<RepositorySummary> discovered = List.of(
+                repository(1L, "one"),
+                repository(2L, "two"),
+                repository(3L, "three"));
+
+        RepositoryRefreshPlanner planner = org.mockito.Mockito.mock(RepositoryRefreshPlanner.class);
+        org.mockito.Mockito.when(planner.plan(discovered))
+                .thenReturn(new RepositoryRefreshPlan(
+                        discovered.stream()
+                                .map(item -> new RepositoryRefreshPlanItem(
+                                        item,
+                                        RepositoryRefreshAction.FULL_ENRICHMENT,
+                                        null))
+                                .toList(),
+                        0,
+                        0,
+                        3,
+                        3));
+
+        var service = new InMemoryRepositoryInventoryService(
+                () -> discovered,
+                item -> {
+                    if (item.id() == 2L) {
+                        throw new IllegalStateException("metadata unavailable");
+                    }
+                    return complete(item);
+                },
+                CLOCK,
+                null,
+                null,
+                null,
+                null,
+                null,
+                planner,
+                2);
+
+        InventoryStatus completed = service.refresh();
+
+        assertEquals(InventoryRefreshState.PARTIAL, completed.state());
+        assertEquals(3, completed.processedCount());
+        assertEquals(2, completed.successfulCount());
+        assertEquals(1, completed.errorCount());
+        assertEquals(
+                AnalysisState.FAILED,
+                service.listRepositories().stream()
+                        .filter(item -> item.id() == 2L)
+                        .findFirst()
+                        .orElseThrow()
+                        .refreshStatus()
+                        .state());
+    }
+
+    @Test
     void repeatedReadsUseCurrentInventoryWithoutRediscovery() {
         AtomicInteger calls = new AtomicInteger();
         List<RepositorySummary> expected = List.of();
