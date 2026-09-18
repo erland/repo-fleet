@@ -5,6 +5,7 @@ import {
   fetchRepositories,
   fetchComplianceSummary,
   fetchRepositoryCompliance,
+  fetchRefreshDiagnostics,
   saveRepositoryComplianceException,
   expireRepositoryComplianceException,
   removeRepositoryComplianceException,
@@ -15,6 +16,7 @@ import {
   type RepositorySummary,
   type CompliancePortfolioSummary,
   type RepositoryComplianceDetail,
+  type RefreshDiagnosticsSnapshot,
 } from './api'
 import { InventoryRefreshPanel } from './InventoryRefreshPanel'
 import { ComplianceOverviewPanel } from './ComplianceOverviewPanel'
@@ -23,6 +25,7 @@ import { RepositoryDetailPanel } from './RepositoryDetailPanel'
 import { RepositoryFiltersPanel } from './RepositoryFiltersPanel'
 import { RepositoryInventory } from './RepositoryInventory'
 import { RepositorySelectionBar } from './RepositorySelectionBar'
+import { RefreshDiagnosticsPanel } from './RefreshDiagnosticsPanel'
 import { RepositorySortControls } from './RepositorySortControls'
 import { SavedViewsPanel } from './SavedViewsPanel'
 import { emptyRepositoryFilters, filterRepositories } from './repositoryFilters'
@@ -45,6 +48,9 @@ export default function App() {
   const [complianceSummary, setComplianceSummary] = useState<CompliancePortfolioSummary | null>(null)
   const [complianceLoading, setComplianceLoading] = useState(false)
   const [complianceError, setComplianceError] = useState<string | null>(null)
+  const [refreshDiagnostics, setRefreshDiagnostics] = useState<RefreshDiagnosticsSnapshot | null>(null)
+  const [refreshDiagnosticsLoading, setRefreshDiagnosticsLoading] = useState(false)
+  const [refreshDiagnosticsError, setRefreshDiagnosticsError] = useState<string | null>(null)
   const [filters, setFilters] = useState(emptyRepositoryFilters)
   const [sort, setSort] = useState(defaultRepositorySort)
   const [selectedRepositoryIds, setSelectedRepositoryIds] = useState<Set<number>>(new Set())
@@ -85,6 +91,21 @@ export default function App() {
       setComplianceError('Compliance summary could not be loaded from the backend.')
     } finally {
       if (mountedRef.current) setComplianceLoading(false)
+    }
+  }, [])
+
+  const loadRefreshDiagnostics = useCallback(async () => {
+    setRefreshDiagnosticsLoading(true)
+    try {
+      const result = await fetchRefreshDiagnostics()
+      if (!mountedRef.current) return
+      setRefreshDiagnostics(result)
+      setRefreshDiagnosticsError(null)
+    } catch {
+      if (!mountedRef.current) return
+      setRefreshDiagnosticsError('Refresh diagnostics could not be loaded from the backend.')
+    } finally {
+      if (mountedRef.current) setRefreshDiagnosticsLoading(false)
     }
   }, [])
 
@@ -146,11 +167,12 @@ export default function App() {
     void loadRepositories(true)
     void loadStatus()
     void loadCompliance()
+    void loadRefreshDiagnostics()
 
     return () => {
       mountedRef.current = false
     }
-  }, [authSession, loadCompliance, loadRepositories, loadStatus])
+  }, [authSession, loadCompliance, loadRefreshDiagnostics, loadRepositories, loadStatus])
 
   useEffect(() => {
     if (inventoryStatus?.state !== 'RUNNING') return
@@ -162,14 +184,17 @@ export default function App() {
 
       await loadRepositories(false)
       if (nextStatus.state === 'RUNNING') return
-      await loadCompliance()
+      await Promise.all([
+        loadCompliance(),
+        loadRefreshDiagnostics(),
+      ])
 
       window.clearInterval(timer)
       if (mountedRef.current) setRefreshing(false)
     }, REFRESH_POLL_INTERVAL_MS)
 
     return () => window.clearInterval(timer)
-  }, [inventoryStatus?.state, loadCompliance, loadRepositories, loadStatus])
+  }, [inventoryStatus?.state, loadCompliance, loadRefreshDiagnostics, loadRepositories, loadStatus])
 
 
   const filteredRepositories = useMemo(
@@ -424,6 +449,12 @@ export default function App() {
         repositories={repositories}
         loading={complianceLoading}
         error={complianceError}
+      />
+
+      <RefreshDiagnosticsPanel
+        diagnostics={refreshDiagnostics}
+        loading={refreshDiagnosticsLoading}
+        error={refreshDiagnosticsError}
       />
 
       <RepositorySortControls
