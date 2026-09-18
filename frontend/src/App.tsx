@@ -4,12 +4,14 @@ import {
   fetchInventoryStatus,
   fetchRepositories,
   fetchComplianceSummary,
+  fetchRepositoryCompliance,
   logout,
   startInventoryRefresh,
   type AuthSession,
   type InventoryStatus,
   type RepositorySummary,
   type CompliancePortfolioSummary,
+  type RepositoryComplianceDetail,
 } from './api'
 import { InventoryRefreshPanel } from './InventoryRefreshPanel'
 import { ComplianceOverviewPanel } from './ComplianceOverviewPanel'
@@ -44,6 +46,9 @@ export default function App() {
   const [sort, setSort] = useState(defaultRepositorySort)
   const [selectedRepositoryIds, setSelectedRepositoryIds] = useState<Set<number>>(new Set())
   const [detailRepositoryId, setDetailRepositoryId] = useState<number | null>(null)
+  const [detailCompliance, setDetailCompliance] = useState<RepositoryComplianceDetail[]>([])
+  const [detailComplianceLoading, setDetailComplianceLoading] = useState(false)
+  const [detailComplianceError, setDetailComplianceError] = useState<string | null>(null)
   const [savedViews, setSavedViews] = useState<SavedRepositoryView[]>([])
   const [savedViewsInitialized, setSavedViewsInitialized] = useState(false)
   const [savedViewsStorageAvailable, setSavedViewsStorageAvailable] = useState(true)
@@ -213,10 +218,29 @@ export default function App() {
 
   const openRepositoryDetails = useCallback((repositoryId: number) => {
     setDetailRepositoryId(repositoryId)
+    setDetailCompliance([])
+    setDetailComplianceError(null)
+    setDetailComplianceLoading(true)
+    void fetchRepositoryCompliance(repositoryId)
+      .then((result) => {
+        if (!mountedRef.current) return
+        setDetailCompliance(result)
+        setDetailComplianceError(null)
+      })
+      .catch(() => {
+        if (!mountedRef.current) return
+        setDetailComplianceError('Repository compliance detail could not be loaded.')
+      })
+      .finally(() => {
+        if (mountedRef.current) setDetailComplianceLoading(false)
+      })
   }, [])
 
   const closeRepositoryDetails = useCallback(() => {
     setDetailRepositoryId(null)
+    setDetailCompliance([])
+    setDetailComplianceError(null)
+    setDetailComplianceLoading(false)
   }, [])
 
   const toggleRepository = useCallback((repositoryId: number) => {
@@ -371,6 +395,9 @@ export default function App() {
 
       <RepositoryDetailPanel
         repository={detailRepository}
+        compliance={detailCompliance}
+        complianceLoading={detailComplianceLoading}
+        complianceError={detailComplianceError}
         onClose={closeRepositoryDetails}
       />
 
