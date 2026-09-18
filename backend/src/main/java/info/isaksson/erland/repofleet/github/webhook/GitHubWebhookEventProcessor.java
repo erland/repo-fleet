@@ -2,6 +2,7 @@ package info.isaksson.erland.repofleet.github.webhook;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import info.isaksson.erland.repofleet.github.conditional.GitHubConditionalRequestStateService;
 import info.isaksson.erland.repofleet.repository.api.RepositoryVisibility;
 import info.isaksson.erland.repofleet.repository.persistence.RepositoryEnrichmentSnapshotRepository;
 import info.isaksson.erland.repofleet.repository.persistence.RepositoryIdentity;
@@ -27,24 +28,44 @@ public class GitHubWebhookEventProcessor {
     private final ObjectMapper objectMapper;
     private final RepositoryIdentityRepository identities;
     private final RepositoryEnrichmentSnapshotRepository snapshots;
+    private final GitHubConditionalRequestStateService conditionalStates;
 
     @Inject
     public GitHubWebhookEventProcessor(
             ObjectMapper objectMapper,
             RepositoryIdentityRepository identities,
-            RepositoryEnrichmentSnapshotRepository snapshots) {
+            RepositoryEnrichmentSnapshotRepository snapshots,
+            GitHubConditionalRequestStateService conditionalStates) {
         this.objectMapper = objectMapper;
         this.identities = identities;
         this.snapshots = snapshots;
+        this.conditionalStates = conditionalStates;
     }
 
     @Transactional
     public void process(String eventType, String payload, Instant receivedAt) {
+        JsonNode root = read(payload);
+
+        if ("push".equals(eventType)) {
+            processPush(root, receivedAt);
+            return;
+        }
+        if ("release".equals(eventType)) {
+            invalidateRepositoryCategory(root, "releases", receivedAt);
+            return;
+        }
+        if ("workflow_run".equals(eventType)) {
+            invalidateRepositoryCategory(root, "workflows", receivedAt);
+            return;
+        }
+        if ("installation_repositories".equals(eventType)) {
+            processInstallationRepositories(root, receivedAt);
+            return;
+        }
         if (!"repository".equals(eventType)) {
             return;
         }
 
-        JsonNode root = read(payload);
         String action = text(root, "action");
         if (!LIFECYCLE_ACTIONS.contains(action)) {
             return;
@@ -122,6 +143,79 @@ public class GitHubWebhookEventProcessor {
                     "Repository metadata changed via GitHub webhook; enrichment refresh pending.";
             snapshot.updatedAt = receivedAt;
         });
+    }
+
+    private void processPush(JsonNode root, Instant receivedAt) {
+        JsonNode repository = root.path("repository");
+        long repositoryId = repository.path("id").asLong(0L);
+        if (repositoryId <= 0) {
+            throw new IllegalArgumentException("Push webhook payload is missing repository id");
+        }
+
+        identities.findByGitHubRepositoryId(repositoryId).ifPresent(identity -> {
+            Instant pushedAt = instant(repository, "pushed_at");
+            Instant updatedAt = instant(repository, "updated_at");
+            if (pushedAt != null) identity.githubPushedAt = pushedAt;
+            if (updatedAt != null) identity.githubUpdatedAt = updatedAt;
+            String defaultBranch = nullableText(repository, "default_branch");
+            if (defaultBranch != null) identity.defaultBranch = defaultBranch;
+            identity.lastSeenAt = receivedAt;
+            identity.changeClassification = "LIKELY_CHANGED";
+            identity.changeDetectedAt = receivedAt;
+        });
+
+        for (String category : Set.of("topics", "languages", "root-contents", "license")) {
+            conditionalStates.invalidate(repositoryId, category, receivedAt);
+        }
+
+        snapshots.findByGitHubRepositoryId(repositoryId).ifPresent(snapshot -> {
+            Instant pushedAt = instant(repository, "pushed_at");
+            Instant updatedAt = instant(repository, "updated_at");
+            if (pushedAt != null) snapshot.activityPushedAt = pushedAt;
+            if (updatedAt != null) snapshot.activityUpdatedAt = updatedAt;
+            snapshot.updatedAt = receivedAt;
+        });
+    }
+
+    private void invalidateRepositoryCategory(
+            JsonNode root,
+            String resourceCategory,
+            Instant receivedAt) {
+        long repositoryId = root.path("repository").path("id").asLong(0L);
+        if (repositoryId <= 0) {
+            throw new IllegalArgumentException(
+                    "Webhook payload is missing repository id for " + resourceCategory);
+        }
+        conditionalStates.invalidate(repositoryId, resourceCategory, receivedAt);
+        identities.findByGitHubRepositoryId(repositoryId).ifPresent(identity -> {
+            identity.lastSeenAt = receivedAt;
+            identity.changeClassification = "LIKELY_CHANGED";
+            identity.changeDetectedAt = receivedAt;
+        });
+    }
+
+    private void processInstallationRepositories(JsonNode root, Instant receivedAt) {
+        for (JsonNode repository : root.path("repositories_added")) {
+            long repositoryId = repository.path("id").asLong(0L);
+            if (repositoryId <= 0) continue;
+            identities.findByGitHubRepositoryId(repositoryId).ifPresent(identity -> {
+                identity.active = true;
+                identity.lastSeenAt = receivedAt;
+                identity.changeClassification = "LIKELY_CHANGED";
+                identity.changeDetectedAt = receivedAt;
+            });
+        }
+
+        for (JsonNode repository : root.path("repositories_removed")) {
+            long repositoryId = repository.path("id").asLong(0L);
+            if (repositoryId <= 0) continue;
+            identities.findByGitHubRepositoryId(repositoryId).ifPresent(identity -> {
+                identity.active = false;
+                identity.lastSeenAt = receivedAt;
+                identity.changeClassification = "LIKELY_CHANGED";
+                identity.changeDetectedAt = receivedAt;
+            });
+        }
     }
 
     private JsonNode read(String payload) {
