@@ -352,3 +352,24 @@ h2 { margin: 0; font-size: 1.5rem; }
   .compliance-count-card dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .compliance-priority-list li { flex-direction: column; gap: .15rem; }
 }
+
+.compliance-detail { margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid #e6e9ed; }
+.compliance-detail-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; }
+.compliance-detail-heading h3 { margin: 0; }
+.compliance-detail-heading > span { color: #596273; font-size: .9rem; }
+.compliance-detail-list { display: grid; gap: .8rem; margin-top: 1rem; }
+.compliance-detail-item { padding: .9rem; border: 1px solid #e2e6eb; border-radius: .75rem; background: #fafbfc; }
+.compliance-detail-title { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
+.compliance-detail-title h4 { margin: 0; font-size: 1rem; }
+.compliance-detail-title span { display: inline-block; margin-top: .25rem; color: #596273; font-size: .75rem; font-weight: 700; }
+.compliance-detail-title strong { font-size: .82rem; }
+.compliance-detail-item dl { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: .8rem; margin: .8rem 0 0; }
+.compliance-detail-item dl div { min-width: 0; }
+.compliance-detail-item dt { color: #596273; font-size: .72rem; font-weight: 700; text-transform: uppercase; }
+.compliance-detail-item dd { margin: .2rem 0 0; overflow-wrap: anywhere; }
+.compliance-detail-empty { margin: 1rem 0 0; color: #596273; }
+
+@media (max-width: 720px) {
+  .compliance-detail-heading, .compliance-detail-title { flex-direction: column; align-items: stretch; }
+  .compliance-detail-item dl { grid-template-columns: 1fr; }
+}
