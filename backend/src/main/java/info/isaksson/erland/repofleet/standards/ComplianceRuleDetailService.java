@@ -18,13 +18,16 @@ public class ComplianceRuleDetailService {
 
     private final RepositoryIdentityRepository identities;
     private final ObjectMapper objectMapper;
+    private final RepositoryComplianceExceptionService exceptions;
 
     @Inject
     public ComplianceRuleDetailService(
             RepositoryIdentityRepository identities,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            RepositoryComplianceExceptionService exceptions) {
         this.identities = identities;
         this.objectMapper = objectMapper;
+        this.exceptions = exceptions;
     }
 
     @Transactional
@@ -69,18 +72,30 @@ public class ComplianceRuleDetailService {
             counts.compute(result.result, (key, value) -> value == null ? 1L : value + 1L);
         }
 
+        Map<Long, RepositoryComplianceExceptionDefinition> activeExceptions =
+                exceptions.listForRule(ruleKey).stream()
+                        .filter(exception -> exception.state() == RepositoryComplianceExceptionState.ACTIVE)
+                        .collect(Collectors.toMap(
+                                RepositoryComplianceExceptionDefinition::githubRepositoryId,
+                                exception -> exception));
+
         List<ComplianceRuleAffectedRepository> affectedRepositories = results.stream()
                 .filter(result -> repositories.containsKey(result.githubRepositoryId))
                 .filter(result -> result.result == RepositoryRuleEvaluationResult.FAIL
                         || result.result == RepositoryRuleEvaluationResult.UNKNOWN)
                 .map(result -> {
                     RepositoryIdentity repository = repositories.get(result.githubRepositoryId);
+                    RepositoryComplianceExceptionDefinition exception =
+                            activeExceptions.get(result.githubRepositoryId);
                     return new ComplianceRuleAffectedRepository(
                             result.githubRepositoryId,
                             repository.fullName,
                             result.result,
                             result.reason,
-                            result.observedValue);
+                            result.observedValue,
+                            exception != null,
+                            exception == null ? null : exception.reason(),
+                            exception == null ? null : exception.expiresAt());
                 })
                 .sorted(java.util.Comparator
                         .comparing(ComplianceRuleAffectedRepository::result)
