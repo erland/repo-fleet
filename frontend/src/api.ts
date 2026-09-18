@@ -211,3 +211,36 @@ export async function fetchRepositoryCompliance(
 
   return response.json() as Promise<RepositoryComplianceDetail[]>
 }
+
+export type ComplianceRuleAffectedRepository = {
+  githubRepositoryId: number
+  fullName: string
+  result: ComplianceResult
+  reason: string
+  observedValue: string | null
+}
+
+export type ComplianceRuleDetail = {
+  ruleKey: string
+  ruleName: string
+  description: string | null
+  ruleType: string
+  severity: ComplianceSeverity
+  scope: 'ALL_REPOSITORIES' | 'SELECTED_GROUPS'
+  parameters: Record<string, unknown>
+  groups: string[]
+  resultCounts: ComplianceResultCounts
+  affectedRepositories: ComplianceRuleAffectedRepository[]
+}
+
+export async function fetchComplianceRuleDetail(
+  ruleKey: string,
+): Promise<ComplianceRuleDetail> {
+  const response = await fetch('/api/compliance/rules/' + encodeURIComponent(ruleKey))
+
+  if (!response.ok) {
+    throw new Error(`Compliance rule detail request failed with HTTP ${response.status}`)
+  }
+
+  return response.json() as Promise<ComplianceRuleDetail>
+}
