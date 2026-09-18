@@ -1,6 +1,7 @@
 package info.isaksson.erland.repofleet.github.webhook;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.time.Clock;
 import java.time.Instant;
@@ -16,17 +17,25 @@ public class GitHubWebhookDeliveryService {
             "installation_repositories");
 
     private final Clock clock;
+    private final GitHubWebhookEventProcessor processor;
 
-    public GitHubWebhookDeliveryService() {
-        this(Clock.systemUTC());
+    @Inject
+    public GitHubWebhookDeliveryService(GitHubWebhookEventProcessor processor) {
+        this(processor, Clock.systemUTC());
     }
 
-    GitHubWebhookDeliveryService(Clock clock) {
+    GitHubWebhookDeliveryService(
+            GitHubWebhookEventProcessor processor,
+            Clock clock) {
+        this.processor = processor;
         this.clock = clock;
     }
 
     @Transactional
-    public GitHubWebhookReceipt record(String deliveryId, String eventType) {
+    public GitHubWebhookReceipt record(
+            String deliveryId,
+            String eventType,
+            String payload) {
         GitHubWebhookDelivery existing = GitHubWebhookDelivery.find(
                         "deliveryId",
                         deliveryId)
@@ -42,13 +51,16 @@ public class GitHubWebhookDeliveryService {
                     true);
         }
 
+        Instant receivedAt = clock.instant();
+        processor.process(eventType, payload, receivedAt);
+
         GitHubWebhookDelivery entity = new GitHubWebhookDelivery();
         entity.deliveryId = deliveryId;
         entity.eventType = eventType;
         entity.eventSupport = SUPPORTED_EVENTS.contains(eventType)
                 ? GitHubWebhookEventSupport.SUPPORTED
                 : GitHubWebhookEventSupport.UNSUPPORTED;
-        entity.receivedAt = clock.instant();
+        entity.receivedAt = receivedAt;
         entity.persist();
 
         return new GitHubWebhookReceipt(
