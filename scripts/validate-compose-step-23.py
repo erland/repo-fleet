@@ -14,7 +14,7 @@ checks = {
     "database healthcheck": "pg_isready" in compose,
     "database volume": "repofleet-postgres-data" in compose,
     "backend database URL": "REPOFLEET_DB_URL:" in compose and "jdbc:postgresql://postgres:5432/" in compose,
-    "internal backend URL": "BACKEND_URL: http://backend:8080" in compose,
+    "internal backend URL": "REPOFLEET_BACKEND_HOST: backend" in compose,
     "frontend host port configurable": "${REPOFLEET_FRONTEND_PORT:-8080}:8080" in compose,
     "backend host port configurable": "${REPOFLEET_BACKEND_PORT:-8081}:8080" in compose,
     "github app id runtime configuration": "REPOFLEET_GITHUB_APP_ID:" in compose,
