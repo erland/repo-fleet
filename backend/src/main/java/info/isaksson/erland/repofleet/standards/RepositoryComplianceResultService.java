@@ -44,8 +44,22 @@ public class RepositoryComplianceResultService {
                 .map(snapshot -> snapshot.updatedAt)
                 .orElse(null);
 
+        List<ApplicableRepositoryRule> applicableRules = assignments.applicableRules(repository);
+        java.util.Set<String> applicableRuleKeys = applicableRules.stream()
+                .map(item -> item.rule().ruleKey())
+                .collect(java.util.stream.Collectors.toSet());
+
+        if (applicableRuleKeys.isEmpty()) {
+            RepositoryComplianceResult.delete("githubRepositoryId", repository.id());
+        } else {
+            RepositoryComplianceResult.delete(
+                    "githubRepositoryId = ?1 and ruleKey not in ?2",
+                    repository.id(),
+                    applicableRuleKeys);
+        }
+
         List<StoredRepositoryComplianceResult> results = new ArrayList<>();
-        for (ApplicableRepositoryRule applicable : assignments.applicableRules(repository)) {
+        for (ApplicableRepositoryRule applicable : applicableRules) {
             RepositoryStandardRuleDefinition rule = applicable.rule();
             RepositoryComplianceResult existing = RepositoryComplianceResult.find(
                             "githubRepositoryId = ?1 and ruleKey = ?2",
