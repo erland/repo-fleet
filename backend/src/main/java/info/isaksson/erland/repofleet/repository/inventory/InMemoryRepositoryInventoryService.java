@@ -682,6 +682,8 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
                 completedStatus.processedCount(),
                 completedStatus.successfulCount(),
                 completedStatus.errorCount(),
+                completedStatus.reusedCount(),
+                completedStatus.scheduledCount(),
                 completedStatus.errorMessage());
     }
 
