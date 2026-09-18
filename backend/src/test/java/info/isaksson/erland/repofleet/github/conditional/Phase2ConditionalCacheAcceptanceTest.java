@@ -22,7 +22,7 @@ class Phase2ConditionalCacheAcceptanceTest {
         GitHubConditionalRequestState state = new GitHubConditionalRequestState();
         state.githubRepositoryId = 8201L;
         state.resourceCategory = "topics";
-        state.etag = ""acceptance-etag"";
+        state.etag = "\"acceptance-etag\"";
         state.lastSuccessfulFetchAt = now.minusSeconds(60);
         state.updatedAt = state.lastSuccessfulFetchAt;
 
@@ -48,7 +48,7 @@ class Phase2ConditionalCacheAcceptanceTest {
 
         assertEquals(GitHubConditionalResult.Status.CACHED_FRESH, result.status());
         assertEquals("persisted-cache-value", result.value());
-        assertEquals(""acceptance-etag"", result.etag());
+        assertEquals("\"acceptance-etag\"", result.etag());
         verify(apiCalls, never()).execute(anyString(), any());
     }
 }
