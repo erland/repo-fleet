@@ -1057,3 +1057,19 @@ och kör vid behov en RepoFleet deployment av aktuell release igen.
 - [ ] HTTPS visar RepoFleets GitHub-login och en allowlistad GitHub-användare kan logga in.
 - [ ] Efter GitHub-login visar repositoryinventeringen förväntad anslutning/data och refresh fungerar.
 - [ ] Inventory refresh visar förväntade repositories.
+
+---
+
+# Phase 2 PostgreSQL foundation
+
+Phase 2 adds a PostgreSQL container to `deploy/docker-compose.server.yml`. Before deploying a Phase 2 image, add these values to `/opt/repo-fleet/.env`:
+
+```text
+REPOFLEET_DB_NAME=repofleet
+REPOFLEET_DB_USER=repofleet
+REPOFLEET_DB_PASSWORD=<strong-random-password>
+```
+
+The database is stored in the Docker named volume `repo-fleet_repofleet-postgres-data` (the exact prefix follows the Compose project name). PostgreSQL is not published on a host port.
+
+The backend waits for database readiness, runs Flyway automatically, and reports datasource readiness through `/q/health/ready`. Step 1 does not persist repository inventory yet; it only establishes the persistence foundation. Full backup/restore and migration operating procedures are planned for Phase 2 Step 33.
