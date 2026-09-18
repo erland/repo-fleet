@@ -207,6 +207,10 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
                         0,
                         0,
                         0,
+                        reusedCount,
+                        newCount,
+                        changedCount,
+                        scheduledCount,
                         null);
                 completeHistory(refreshRunId, status);
                 return status;
