@@ -4,9 +4,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import info.isaksson.erland.repofleet.repository.api.AnalysisState;
 import info.isaksson.erland.repofleet.repository.api.RepositorySummary;
 import info.isaksson.erland.repofleet.repository.persistence.CachedRepositoryInventoryService;
 import info.isaksson.erland.repofleet.repository.persistence.RepositoryEnrichmentSnapshotService;
+import info.isaksson.erland.repofleet.repository.refresh.RepositoryRefreshAction;
+import info.isaksson.erland.repofleet.repository.refresh.RepositoryRefreshPlan;
+import info.isaksson.erland.repofleet.repository.refresh.RepositoryRefreshPlanItem;
+import info.isaksson.erland.repofleet.repository.refresh.RepositoryRefreshPlanner;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -22,6 +27,47 @@ class InMemoryRepositoryInventoryServiceTest {
 
     private static final Clock CLOCK =
             Clock.fixed(Instant.parse("2026-08-14T06:00:00Z"), ZoneOffset.UTC);
+
+    @Test
+    void reusesCachedRepositoryWithoutCallingEnrichment() {
+        RepositorySummary discovered = repository(1L, "one");
+        RepositorySummary cached = complete(discovered);
+        AtomicInteger enrichmentCalls = new AtomicInteger();
+
+        RepositoryRefreshPlanner planner = org.mockito.Mockito.mock(RepositoryRefreshPlanner.class);
+        org.mockito.Mockito.when(planner.plan(List.of(discovered)))
+                .thenReturn(new RepositoryRefreshPlan(
+                        List.of(new RepositoryRefreshPlanItem(
+                                discovered,
+                                RepositoryRefreshAction.REUSE_CACHED,
+                                cached)),
+                        1,
+                        0,
+                        0,
+                        0));
+
+        var service = new InMemoryRepositoryInventoryService(
+                () -> List.of(discovered),
+                repository -> {
+                    enrichmentCalls.incrementAndGet();
+                    return complete(repository);
+                },
+                CLOCK,
+                null,
+                null,
+                null,
+                null,
+                null,
+                planner);
+
+        service.refresh();
+
+        assertEquals(0, enrichmentCalls.get());
+        assertEquals(1, service.getStatus().reusedCount());
+        assertEquals(0, service.getStatus().scheduledCount());
+        assertEquals(InventoryRefreshState.COMPLETED, service.getStatus().state());
+        assertEquals(AnalysisState.COMPLETE, service.listRepositories().getFirst().refreshStatus().state());
+    }
 
     @Test
     void repeatedReadsUseCurrentInventoryWithoutRediscovery() {
