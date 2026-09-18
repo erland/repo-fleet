@@ -67,9 +67,6 @@ public class RepositoryRefreshPlanner {
                     scheduled++;
                 }
             }
-                action = RepositoryRefreshAction.FULL_ENRICHMENT;
-                scheduled++;
-            }
 
             items.add(new RepositoryRefreshPlanItem(summary, action, cached));
         }
