@@ -187,7 +187,7 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
                         response -> response.readEntity(new GenericType<List<GitHubContentItemResponse>>() {}),
                         () -> null);
 
-                if (contentsResult.notModified()) {
+                if (contentsResult.reusedCached()) {
                     if (!cachedEnrichmentComplete) {
                         throw new IllegalStateException(
                                 "Root contents were not modified but no complete cached license state is available.");
@@ -224,7 +224,7 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
                                         etag),
                                 response -> response.readEntity(GitHubLicenseResponse.class),
                                 () -> null);
-                        if (licenseResult.notModified() && cachedEnrichmentComplete) {
+                        if (licenseResult.reusedCached() && cachedEnrichmentComplete) {
                             license = cachedLicense;
                         } else {
                             license = toLicenseStatus(licenseResult.value());
@@ -288,7 +288,7 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
                                 1),
                         response -> response.readEntity(GitHubWorkflowsResponse.class),
                         () -> null);
-                githubActions = result.notModified() && cachedEnrichmentComplete
+                githubActions = result.reusedCached() && cachedEnrichmentComplete
                         ? cachedActions
                         : toActionsStatus(result.value());
             }
@@ -327,7 +327,7 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
                                 1),
                         response -> response.readEntity(new GenericType<List<GitHubReleaseResponse>>() {}),
                         () -> null);
-                if (result.notModified() && cachedEnrichmentComplete) {
+                if (result.reusedCached() && cachedEnrichmentComplete) {
                     release = cachedRelease;
                 } else {
                     release = toReleaseStatus(findLatestPublishedRelease(repository, result.value()));
