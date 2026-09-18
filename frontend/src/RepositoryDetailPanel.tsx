@@ -1,8 +1,11 @@
 import { useEffect, useRef } from 'react'
-import type { AnalysisState, RepositorySummary } from './api'
+import type { AnalysisState, RepositoryComplianceDetail, RepositorySummary } from './api'
 
 type RepositoryDetailPanelProps = {
   repository: RepositorySummary | null
+  compliance?: RepositoryComplianceDetail[]
+  complianceLoading?: boolean
+  complianceError?: string | null
   onClose: () => void
 }
 
@@ -56,7 +59,13 @@ function DetailItem({ label, value }: { label: string; value: string }) {
   )
 }
 
-export function RepositoryDetailPanel({ repository, onClose }: RepositoryDetailPanelProps) {
+export function RepositoryDetailPanel({
+  repository,
+  compliance = [],
+  complianceLoading = false,
+  complianceError = null,
+  onClose,
+}: RepositoryDetailPanelProps) {
   const panelRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
@@ -120,6 +129,53 @@ export function RepositoryDetailPanel({ repository, onClose }: RepositoryDetailP
         <DetailItem label="Repository analysis" value={analysisLabel(repository.refreshStatus.state)} />
         <DetailItem label="Analysis message" value={repository.refreshStatus.message ?? '—'} />
       </dl>
+
+      <section className="compliance-detail" aria-labelledby="repository-compliance-heading">
+        <div className="compliance-detail-heading">
+          <div>
+            <p className="eyebrow">Standards</p>
+            <h3 id="repository-compliance-heading">Compliance detail</h3>
+          </div>
+          <span>{compliance.length} applicable rule{compliance.length === 1 ? '' : 's'}</span>
+        </div>
+
+        {complianceLoading && <p role="status">Loading compliance detail…</p>}
+        {complianceError && <p className="compliance-error" role="alert">{complianceError}</p>}
+
+        {!complianceLoading && !complianceError && compliance.length === 0 && (
+          <p className="compliance-detail-empty">No persisted compliance evaluations are available for this repository yet.</p>
+        )}
+
+        {compliance.length > 0 && (
+          <div className="compliance-detail-list">
+            {compliance.map((item) => (
+              <article className="compliance-detail-item" key={item.ruleKey}>
+                <div className="compliance-detail-title">
+                  <div>
+                    <h4>{item.ruleName}</h4>
+                    <span>{item.severity}</span>
+                  </div>
+                  <strong>{item.result}</strong>
+                </div>
+                <dl>
+                  <div>
+                    <dt>Reason</dt>
+                    <dd>{item.reason}</dd>
+                  </div>
+                  <div>
+                    <dt>Observed value</dt>
+                    <dd>{item.observedValue ?? '—'}</dd>
+                  </div>
+                  <div>
+                    <dt>Last evaluated</dt>
+                    <dd>{formatDate(item.evaluatedAt)}</dd>
+                  </div>
+                </dl>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
     </aside>
   )
 }
