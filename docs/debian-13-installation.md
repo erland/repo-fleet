@@ -281,7 +281,22 @@ Homepage URL:    https://repo-fleet.isaksson.info
 Callback URL:    https://repo-fleet.isaksson.info/api/auth/github/callback
 ```
 
-4. RepoFleet använder inga webhooks i den här fasen. Stäng av webhook-funktionen/`Active` om GitHub-formuläret tillåter det.
+4. Aktivera webhooks för Phase 2 och ange:
+
+```text
+Webhook URL: https://repo-fleet.isaksson.info/api/github/webhook
+Webhook secret: <strong-random-secret>
+Active: enabled
+```
+
+Skapa exempelvis webhook-hemligheten med:
+
+```bash
+openssl rand -hex 32
+```
+
+Samma värde ska senare anges som `REPOFLEET_GITHUB_WEBHOOK_SECRET` i RepoFleets produktionskonfiguration.
+
 5. Under **Repository permissions**, använd read-only:
 
 ```text
@@ -383,7 +398,14 @@ REPOFLEET_FRONTEND_PORT=8082
 REPOFLEET_GITHUB_APP_ID=<GITHUB_APP_ID>
 REPOFLEET_GITHUB_INSTALLATION_ID=<GITHUB_INSTALLATION_ID>
 REPOFLEET_GITHUB_TOKEN_REFRESH_MARGIN_SECONDS=300
+REPOFLEET_GITHUB_WEBHOOK_SECRET=<GITHUB_APP_WEBHOOK_SECRET>
 GITHUB_API_URL=https://api.github.com
+
+REPOFLEET_REFRESH_ENRICHMENT_WORKERS=2
+REPOFLEET_REFRESH_TARGETED_QUEUE_ENABLED=true
+REPOFLEET_REFRESH_TARGETED_WORKERS=2
+REPOFLEET_REFRESH_CONSISTENCY_SCHEDULER_ENABLED=true
+REPOFLEET_REFRESH_CONSISTENCY_INTERVAL_HOURS=24
 
 REPOFLEET_AUTH_ENABLED=true
 REPOFLEET_AUTH_CLIENT_ID=<GITHUB_APP_CLIENT_ID>
