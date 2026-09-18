@@ -47,7 +47,7 @@ public class RepositoryRefreshPolicy {
         this.fullConsistencyInterval = Duration.ofHours(Math.max(1, fullConsistencyHours));
     }
 
-    RepositoryRefreshPolicy(
+    public RepositoryRefreshPolicy(
             Duration identityFreshness,
             Duration enrichmentFreshness,
             Duration fullConsistencyInterval) {
@@ -62,7 +62,7 @@ public class RepositoryRefreshPolicy {
                 fullConsistencyInterval);
     }
 
-    RepositoryRefreshPolicy(
+    public RepositoryRefreshPolicy(
             Duration identityFreshness,
             Duration enrichmentFreshness,
             Duration topicsFreshness,
