@@ -14,8 +14,8 @@ public record GitHubConditionalResult<T>(
         return new GitHubConditionalResult<>(Status.MODIFIED, value, etag);
     }
 
-    public static <T> GitHubConditionalResult<T> notModified(String etag) {
-        return new GitHubConditionalResult<>(Status.NOT_MODIFIED, null, etag);
+    public static <T> GitHubConditionalResult<T> notModified(T cachedValue, String etag) {
+        return new GitHubConditionalResult<>(Status.NOT_MODIFIED, cachedValue, etag);
     }
 
     public boolean notModified() {
