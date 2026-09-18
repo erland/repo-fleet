@@ -109,9 +109,10 @@ public class RepositoryRefreshQueueService {
 
     @Transactional
     public void recoverInterrupted(Instant now) {
-        for (RepositoryRefreshJob job : RepositoryRefreshJob.list(
+        for (Object item : RepositoryRefreshJob.list(
                 "state",
                 RepositoryRefreshJobState.RUNNING)) {
+            RepositoryRefreshJob job = (RepositoryRefreshJob) item;
             job.state = RepositoryRefreshJobState.RETRY;
             job.nextAttemptAt = now;
             job.updatedAt = now;
