@@ -2,7 +2,7 @@
 
 RepoFleet is a GitHub repository portfolio analytics and maintenance service.
 
-**Phase 1 is read-only and complete in implementation:** it inventories repositories accessible to a GitHub App installation, analyzes maintenance-relevant metadata, and lets the user refresh, filter, sort, inspect, select and save reusable portfolio views.
+**Phase 1 is read-only and complete, and Phase 2 adds persistent/incremental operations:** RepoFleet inventories repositories accessible to a GitHub App installation, persists inventory/enrichment/compliance state in PostgreSQL, uses conditional requests and webhooks to reduce API pressure, and provides standards/compliance diagnostics without adding GitHub write operations.
 
 ## What Phase 1 does
 
@@ -25,7 +25,7 @@ Analyzed repository data includes:
 - official release state,
 - recent activity.
 
-The backend inventory is in-memory; GitHub remains the source of truth. Saved views are stored locally in the browser.
+Repository identity, enrichment, compliance, webhook/refresh state and diagnostics are persisted in PostgreSQL; the frontend keeps an in-memory working view while GitHub remains the external source of repository truth. Saved views are stored locally in the browser.
 
 ## Project structure
 
@@ -69,7 +69,7 @@ Full Compose instructions: `docs/docker-compose-runtime.md`.
 
 ## Configure the GitHub App
 
-Phase 1 needs only read access:
+RepoFleet Phase 1–2 needs only read access:
 
 - Metadata: read-only
 - Contents: read-only
@@ -261,7 +261,13 @@ Production RepoFleet uses **Sign in with GitHub** through the existing GitHub Ap
 
 ## Phase 2
 
-Phase 2 development is planned step-by-step in [`docs/development-plan-phase-2.md`](docs/development-plan-phase-2.md).
+Phase 2 development and acceptance are tracked in:
+
+- [`docs/development-plan-phase-2.md`](docs/development-plan-phase-2.md)
+- [`docs/phase2-acceptance.md`](docs/phase2-acceptance.md)
+- [`docs/implementation-status.md`](docs/implementation-status.md)
+
+Production database backup/restore and migration procedures are documented in `docs/debian-13-installation.md` and `deploy/coolify/README.md`.
 
 ## License
 
