@@ -74,7 +74,7 @@ public class RepositoryRuleAssignmentService {
         if (!matchingGroupKeys.isEmpty()) {
             List<RepositoryRuleGroupAssignment> assignments =
                     RepositoryRuleGroupAssignment.list("groupKey in ?1", matchingGroupKeys);
-            Map<String, List<String>> groupsByRule = assignments.stream()
+            Map<String, java.util.Set<String>> groupsByRule = assignments.stream()
                     .collect(java.util.stream.Collectors.groupingBy(
                             assignment -> assignment.ruleKey,
                             java.util.TreeMap::new,
@@ -87,7 +87,7 @@ public class RepositoryRuleAssignmentService {
                             RepositoryStandardRuleDefinition::ruleKey,
                             rule -> rule));
 
-            for (Map.Entry<String, List<String>> entry : groupsByRule.entrySet()) {
+            for (Map.Entry<String, java.util.Set<String>> entry : groupsByRule.entrySet()) {
                 if (applicable.containsKey(entry.getKey())) {
                     continue;
                 }
@@ -98,7 +98,7 @@ public class RepositoryRuleAssignmentService {
                             new ApplicableRepositoryRule(
                                     rule,
                                     ApplicableRepositoryRule.ApplicationReason.MATCHING_GROUP,
-                                    entry.getValue()));
+                                    List.copyOf(entry.getValue())));
                 }
             }
         }
