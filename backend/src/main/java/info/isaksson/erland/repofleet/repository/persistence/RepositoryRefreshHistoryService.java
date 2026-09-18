@@ -28,6 +28,8 @@ public class RepositoryRefreshHistoryService {
             int processedCount,
             int successfulCount,
             int errorCount,
+            int reusedCount,
+            int scheduledCount,
             String failedRepositorySummary) {
         RepositoryRefreshRun run = RepositoryRefreshRun.findById(runId);
         if (run == null) {
@@ -39,6 +41,8 @@ public class RepositoryRefreshHistoryService {
         run.processedCount = processedCount;
         run.successfulCount = successfulCount;
         run.errorCount = errorCount;
+        run.reusedCount = reusedCount;
+        run.scheduledCount = scheduledCount;
         run.failedRepositorySummary = failedRepositorySummary;
     }
 
@@ -61,6 +65,8 @@ public class RepositoryRefreshHistoryService {
                             run.processedCount,
                             run.successfulCount,
                             run.errorCount,
+                            run.reusedCount,
+                            run.scheduledCount,
                             run.failedRepositorySummary,
                             run.rateLimitRemaining,
                             run.rateLimitResetAt);
