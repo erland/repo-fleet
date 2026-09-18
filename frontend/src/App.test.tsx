@@ -370,6 +370,35 @@ describe('RepositoryDetailPanel', () => {
     expect(html).toContain('Repository does not contain a license.')
     expect(html).toContain('MISSING')
     expect(html).toContain('Last evaluated')
+    expect(html).toContain('Accept deviation')
+  })
+
+  it('renders edit, expire and remove controls for an accepted deviation', () => {
+    const html = renderToString(
+      <RepositoryDetailPanel
+        repository={repository}
+        compliance={[{
+          ruleKey: 'license-required',
+          ruleName: 'License required',
+          ruleType: 'LICENSE_REQUIRED',
+          severity: 'REQUIRED',
+          result: 'FAIL',
+          reason: 'Repository does not contain a license.',
+          observedValue: 'MISSING',
+          evaluatedAt: '2026-09-18T12:00:00Z',
+          acceptedDeviation: true,
+          exceptionReason: 'Legacy repository accepted temporarily.',
+          exceptionExpiresAt: '2026-12-31T23:59:59Z',
+        }]}
+        onClose={() => undefined}
+      />,
+    )
+
+    expect(html).toContain('ACCEPTED DEVIATION')
+    expect(html).toContain('Legacy repository accepted temporarily.')
+    expect(html).toContain('Edit exception')
+    expect(html).toContain('Expire exception')
+    expect(html).toContain('Remove exception')
   })
 
   it('renders nothing when no repository is selected for details', () => {
