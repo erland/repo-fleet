@@ -3,13 +3,16 @@ import {
   fetchAuthSession,
   fetchInventoryStatus,
   fetchRepositories,
+  fetchComplianceSummary,
   logout,
   startInventoryRefresh,
   type AuthSession,
   type InventoryStatus,
   type RepositorySummary,
+  type CompliancePortfolioSummary,
 } from './api'
 import { InventoryRefreshPanel } from './InventoryRefreshPanel'
+import { ComplianceOverviewPanel } from './ComplianceOverviewPanel'
 import { PortfolioSummaryPanel } from './PortfolioSummaryPanel'
 import { RepositoryDetailPanel } from './RepositoryDetailPanel'
 import { RepositoryFiltersPanel } from './RepositoryFiltersPanel'
@@ -34,6 +37,9 @@ export default function App() {
   const [inventoryStatus, setInventoryStatus] = useState<InventoryStatus | null>(null)
   const [statusError, setStatusError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
+  const [complianceSummary, setComplianceSummary] = useState<CompliancePortfolioSummary | null>(null)
+  const [complianceLoading, setComplianceLoading] = useState(false)
+  const [complianceError, setComplianceError] = useState<string | null>(null)
   const [filters, setFilters] = useState(emptyRepositoryFilters)
   const [sort, setSort] = useState(defaultRepositorySort)
   const [selectedRepositoryIds, setSelectedRepositoryIds] = useState<Set<number>>(new Set())
@@ -56,6 +62,21 @@ export default function App() {
       setError('Repository inventory could not be loaded from the backend.')
     } finally {
       if (mountedRef.current && showInitialLoading) setLoading(false)
+    }
+  }, [])
+
+  const loadCompliance = useCallback(async () => {
+    setComplianceLoading(true)
+    try {
+      const result = await fetchComplianceSummary()
+      if (!mountedRef.current) return
+      setComplianceSummary(result)
+      setComplianceError(null)
+    } catch {
+      if (!mountedRef.current) return
+      setComplianceError('Compliance summary could not be loaded from the backend.')
+    } finally {
+      if (mountedRef.current) setComplianceLoading(false)
     }
   }, [])
 
@@ -116,11 +137,12 @@ export default function App() {
     mountedRef.current = true
     void loadRepositories(true)
     void loadStatus()
+    void loadCompliance()
 
     return () => {
       mountedRef.current = false
     }
-  }, [authSession, loadRepositories, loadStatus])
+  }, [authSession, loadCompliance, loadRepositories, loadStatus])
 
   useEffect(() => {
     if (inventoryStatus?.state !== 'RUNNING') return
@@ -132,13 +154,14 @@ export default function App() {
 
       await loadRepositories(false)
       if (nextStatus.state === 'RUNNING') return
+      await loadCompliance()
 
       window.clearInterval(timer)
       if (mountedRef.current) setRefreshing(false)
     }, REFRESH_POLL_INTERVAL_MS)
 
     return () => window.clearInterval(timer)
-  }, [inventoryStatus?.state, loadRepositories, loadStatus])
+  }, [inventoryStatus?.state, loadCompliance, loadRepositories, loadStatus])
 
 
   const filteredRepositories = useMemo(
@@ -330,6 +353,13 @@ export default function App() {
       <PortfolioSummaryPanel
         summary={portfolioSummary}
         totalPortfolioCount={repositories.length}
+      />
+
+      <ComplianceOverviewPanel
+        summary={complianceSummary}
+        repositories={repositories}
+        loading={complianceLoading}
+        error={complianceError}
       />
 
       <RepositorySortControls
