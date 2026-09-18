@@ -65,8 +65,8 @@ The early CI bootstrap has been superseded by the completed Step 24 Quality Gate
 | 12 | Conditional license, workflows and release refresh | DONE | Verified by green CI #155 and Coolify validation #75 on PR #38. License, workflows and releases now preserve cached data on 304/transient failures. |
 | 13 | Refresh policy and cache freshness | DONE | Verified by green CI #172 and Coolify validation #92 on PR #38. RepoFleet distinguishes FRESH, STALE and REFRESHING data with configurable freshness policy. |
 | 14 | Controlled enrichment concurrency | DONE | Verified by green CI #178 and Coolify validation #98 on PR #38. Enrichment uses bounded configurable concurrency with repository-level failure isolation. |
-| 15 | Repository standards domain model | IN PROGRESS | Persisting RepoFleet-owned repository standards/rules with stable IDs, severity, parameters and scope. |
-| 16 | Repository groups | NOT STARTED | |
+| 15 | Repository standards domain model | DONE | Verified by green CI #188 and Coolify validation #108 on PR #38. Standards/rules can be persisted and retrieved without evaluation. |
+| 16 | Repository groups | IN PROGRESS | Persisting declarative repository groups and deterministic membership resolution. |
 | 17 | Rule-to-group assignments | NOT STARTED | |
 | 18 | Rule evaluation engine | NOT STARTED | |
 | 19 | Persist compliance results | NOT STARTED | |
@@ -88,10 +88,10 @@ The early CI bootstrap has been superseded by the completed Step 24 Quality Gate
 
 ## Current Position
 
-Current step: **Phase 2 Step 15 – Repository standards domain model (IN PROGRESS).**
+Current step: **Phase 2 Step 16 – Repository groups (IN PROGRESS).**
 
 Phase 1 completed steps: **26 / 26**  
-Phase 2 completed steps: **14 / 34**
+Phase 2 completed steps: **15 / 34**
 
 ## Update Convention
 
