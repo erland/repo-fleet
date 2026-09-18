@@ -28,7 +28,23 @@ class GitHubWebhookResourceTest {
 
     @Test
     void acceptsSignedDeliveryExactlyOnce() throws Exception {
-        String payload = "{\"action\":\"edited\"}";
+        String payload = """
+                {
+                  "action": "edited",
+                  "repository": {
+                    "id": 4242,
+                    "name": "repo",
+                    "full_name": "erland/repo",
+                    "owner": { "login": "erland" },
+                    "private": true,
+                    "archived": false,
+                    "fork": false,
+                    "default_branch": "main",
+                    "updated_at": "2026-09-18T14:00:00Z",
+                    "pushed_at": "2026-09-18T13:59:00Z"
+                  }
+                }
+                """;
         String signature = sign(payload);
 
         given()
