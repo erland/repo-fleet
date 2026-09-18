@@ -63,8 +63,8 @@ The early CI bootstrap has been superseded by the completed Step 24 Quality Gate
 | 10 | GitHub conditional request infrastructure | DONE | Verified by green CI #145 and Coolify validation #65 on PR #38. Persistent ETag state and generic 200/304 handling are available. |
 | 11 | Conditional topics and languages refresh | DONE | Verified by green CI #150 and Coolify validation #70 on PR #38. Topics/languages use ETag requests and preserve cached values. |
 | 12 | Conditional license, workflows and release refresh | DONE | Verified by green CI #155 and Coolify validation #75 on PR #38. License, workflows and releases now preserve cached data on 304/transient failures. |
-| 13 | Refresh policy and cache freshness | IN PROGRESS | Adding configurable identity/enrichment/full-consistency TTLs and explicit freshness status. |
-| 14 | Controlled enrichment concurrency | NOT STARTED | |
+| 13 | Refresh policy and cache freshness | DONE | Verified by green CI #172 and Coolify validation #92 on PR #38. RepoFleet distinguishes FRESH, STALE and REFRESHING data with configurable freshness policy. |
+| 14 | Controlled enrichment concurrency | IN PROGRESS | Adding conservative bounded parallel enrichment while preserving per-repository failure isolation and progressive publication. |
 | 15 | Repository standards domain model | NOT STARTED | |
 | 16 | Repository groups | NOT STARTED | |
 | 17 | Rule-to-group assignments | NOT STARTED | |
@@ -88,10 +88,10 @@ The early CI bootstrap has been superseded by the completed Step 24 Quality Gate
 
 ## Current Position
 
-Current step: **Phase 2 Step 13 – Refresh policy and cache freshness (IN PROGRESS).**
+Current step: **Phase 2 Step 14 – Controlled enrichment concurrency (IN PROGRESS).**
 
 Phase 1 completed steps: **26 / 26**  
-Phase 2 completed steps: **12 / 34**
+Phase 2 completed steps: **13 / 34**
 
 ## Update Convention
 
