@@ -12,6 +12,8 @@ public record RepositoryRefreshRunSummary(
         int processedCount,
         int successfulCount,
         int errorCount,
+        int reusedCount,
+        int scheduledCount,
         String failedRepositorySummary,
         Integer rateLimitRemaining,
         Instant rateLimitResetAt) {
