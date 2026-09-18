@@ -78,11 +78,14 @@ public class RepositoryIdentityRepository implements PanacheRepository<Repositor
     }
     @Transactional
     public long markMissingRepositoriesInactive(Set<Long> seenRepositoryIds) {
-        if (seenRepositoryIds == null || seenRepositoryIds.isEmpty()) {
-            return update("active = false where active = true");
+        Set<Long> seen = seenRepositoryIds == null ? Set.of() : seenRepositoryIds;
+        long updated = 0;
+        for (RepositoryIdentity entity : list("active", true)) {
+            if (!seen.contains(entity.githubRepositoryId)) {
+                entity.active = false;
+                updated++;
+            }
         }
-        return update(
-                "active = false where active = true and githubRepositoryId not in ?1",
-                seenRepositoryIds);
+        return updated;
     }
 }
