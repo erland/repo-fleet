@@ -81,17 +81,17 @@ The early CI bootstrap has been superseded by the completed Step 24 Quality Gate
 | 28 | Push/release/workflow webhook invalidation | DONE | Verified by green CI #313 and Coolify validation #233 on PR #38. Webhooks invalidate only affected cache categories and installation membership state. |
 | 29 | Targeted background refresh queue | DONE | Verified by green CI #329 and Coolify validation #249 on PR #38. Persistent targeted jobs support deduplication, bounded workers, retries, restart recovery and single-repository refresh. |
 | 30 | Scheduled consistency refresh | DONE | Verified by green CI #334 and Coolify validation #254 on PR #38. Low-frequency consistency refresh reuses discovery, incremental planning, cache reuse and conditional requests. |
-| 31 | Rate-limit and refresh diagnostics UI | IN PROGRESS | Exposing persistent API-pressure, conditional-cache, refresh, webhook-job and failure diagnostics with a frontend panel. |
-| 32 | Phase 2 end-to-end acceptance suite | NOT STARTED | |
+| 31 | Rate-limit and refresh diagnostics UI | DONE | Verified by green CI #355 and Coolify validation #275 on PR #38. API pressure, conditional cache reuse, refresh history and failures are visible without server logs. |
+| 32 | Phase 2 end-to-end acceptance suite | IN PROGRESS | Adding deterministic CI acceptance coverage for persistence, incremental reuse, compliance semantics, webhook idempotency and targeted refresh without real GitHub secrets. |
 | 33 | Production migration and backup documentation | NOT STARTED | |
 | 34 | Phase 2 completion review | NOT STARTED | |
 
 ## Current Position
 
-Current step: **Phase 2 Step 31 – Rate-limit and refresh diagnostics UI (IN PROGRESS).**
+Current step: **Phase 2 Step 32 – Phase 2 end-to-end acceptance suite (IN PROGRESS).**
 
 Phase 1 completed steps: **26 / 26**  
-Phase 2 completed steps: **30 / 34**
+Phase 2 completed steps: **31 / 34**
 
 ## Update Convention
 
