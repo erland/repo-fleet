@@ -17,9 +17,9 @@ checks = {
     "frontend writable nginx runtime config": "/etc/nginx/conf.d" in frontend and "chown -R nginx:nginx" in frontend,
     "frontend writable nginx pid path": "/run" in frontend and "chown -R nginx:nginx" in frontend,
     "frontend health": "HEALTHCHECK" in frontend and "/healthz" in frontend,
-    "frontend runtime backend config": "BACKEND_URL" in frontend and "${BACKEND_URL}" in nginx,
+    "frontend runtime backend config": "REPOFLEET_BACKEND_HOST" in frontend and "${REPOFLEET_BACKEND_HOST}" in nginx,
     "spa fallback": "try_files $uri $uri/ /index.html;" in nginx,
-    "api proxy": "location /api/" in nginx and "proxy_pass ${BACKEND_URL};" in nginx,
+    "api proxy": "location /api/" in nginx and "proxy_pass http://${REPOFLEET_BACKEND_HOST}:8080;" in nginx,
     "CI validates production containers": "run: bash scripts/verify-step-23.sh" in workflow,
 }
 
