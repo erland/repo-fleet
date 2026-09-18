@@ -3,6 +3,7 @@ package info.isaksson.erland.repofleet.repository.inventory;
 import info.isaksson.erland.repofleet.repository.api.AnalysisState;
 import info.isaksson.erland.repofleet.repository.api.RepositoryRefreshStatus;
 import info.isaksson.erland.repofleet.repository.api.RepositorySummary;
+import info.isaksson.erland.repofleet.repository.persistence.CachedRepositoryInventoryService;
 import info.isaksson.erland.repofleet.repository.persistence.RepositoryInventoryPersistenceService;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -24,6 +25,7 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
     private final Clock clock;
     private final ExecutorService refreshExecutor;
     private final RepositoryInventoryPersistenceService persistenceService;
+    private final CachedRepositoryInventoryService cachedInventoryService;
     private final ReentrantLock refreshLock = new ReentrantLock();
 
     private volatile List<RepositorySummary> repositories = List.of();
@@ -33,7 +35,8 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
     public InMemoryRepositoryInventoryService(
             GitHubRepositoryDiscoveryService discoveryService,
             RepositoryEnrichmentService enrichmentService,
-            RepositoryInventoryPersistenceService persistenceService) {
+            RepositoryInventoryPersistenceService persistenceService,
+            CachedRepositoryInventoryService cachedInventoryService) {
         this(
                 discoveryService,
                 enrichmentService,
@@ -43,14 +46,15 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
                     thread.setDaemon(true);
                     return thread;
                 }),
-                persistenceService);
+                persistenceService,
+                cachedInventoryService);
     }
 
     InMemoryRepositoryInventoryService(
             GitHubRepositoryDiscoveryService discoveryService,
             RepositoryEnrichmentService enrichmentService,
             Clock clock) {
-        this(discoveryService, enrichmentService, clock, null, null);
+        this(discoveryService, enrichmentService, clock, null, null, null);
     }
 
     InMemoryRepositoryInventoryService(
@@ -58,7 +62,7 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
             RepositoryEnrichmentService enrichmentService,
             Clock clock,
             ExecutorService refreshExecutor) {
-        this(discoveryService, enrichmentService, clock, refreshExecutor, null);
+        this(discoveryService, enrichmentService, clock, refreshExecutor, null, null);
     }
 
     InMemoryRepositoryInventoryService(
@@ -66,16 +70,21 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
             RepositoryEnrichmentService enrichmentService,
             Clock clock,
             ExecutorService refreshExecutor,
-            RepositoryInventoryPersistenceService persistenceService) {
+            RepositoryInventoryPersistenceService persistenceService,
+            CachedRepositoryInventoryService cachedInventoryService) {
         this.discoveryService = discoveryService;
         this.enrichmentService = enrichmentService;
         this.clock = clock;
         this.refreshExecutor = refreshExecutor;
         this.persistenceService = persistenceService;
+        this.cachedInventoryService = cachedInventoryService;
     }
 
     @PostConstruct
     void initialize() {
+        if (cachedInventoryService != null) {
+            repositories = List.copyOf(cachedInventoryService.loadActiveRepositories());
+        }
         startRefresh();
     }
 
