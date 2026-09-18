@@ -45,6 +45,102 @@ class RepositoryEnrichmentSnapshotServiceTest {
 
     @Test
     @Transactional
+    void failedProgressiveRefreshPreservesPreviouslySuccessfulMetadata() {
+        Instant seenAt = Instant.parse("2026-09-18T08:00:00Z");
+        identityRepository.insert(
+                1234L,
+                "erland",
+                "repo-fleet",
+                "erland/repo-fleet",
+                RepositoryVisibility.PUBLIC,
+                false,
+                false,
+                "main",
+                null,
+                null,
+                seenAt);
+
+        RepositorySummary successful = new RepositorySummary(
+                1234L,
+                "erland",
+                "repo-fleet",
+                "erland/repo-fleet",
+                "https://github.com/erland/repo-fleet",
+                RepositoryVisibility.PUBLIC,
+                false,
+                false,
+                "main",
+                List.of("architecture"),
+                List.of("Java"),
+                "Java",
+                new LicenseStatus(
+                        AnalysisState.COMPLETE,
+                        LicensePresence.PRESENT,
+                        true,
+                        "mit",
+                        "MIT License"),
+                new GitHubActionsStatus(AnalysisState.COMPLETE, true, 2),
+                new ReleaseStatus(
+                        AnalysisState.COMPLETE,
+                        true,
+                        "v1.0.0",
+                        "v1.0.0",
+                        Instant.parse("2026-09-17T12:00:00Z"),
+                        false),
+                new ActivityStatus(null, null),
+                new RepositoryRefreshStatus(AnalysisState.COMPLETE, "complete"));
+
+        Instant successfulAt = Instant.parse("2026-09-18T08:05:00Z");
+        snapshotService.persistProgressiveResult(successful, successfulAt);
+
+        RepositorySummary failed = new RepositorySummary(
+                1234L,
+                "erland",
+                "repo-fleet",
+                "erland/repo-fleet",
+                "https://github.com/erland/repo-fleet",
+                RepositoryVisibility.PUBLIC,
+                false,
+                false,
+                "main",
+                List.of(),
+                List.of(),
+                null,
+                new LicenseStatus(
+                        AnalysisState.NOT_ANALYZED,
+                        LicensePresence.UNKNOWN,
+                        null,
+                        null,
+                        null),
+                new GitHubActionsStatus(AnalysisState.NOT_ANALYZED, null, null),
+                new ReleaseStatus(AnalysisState.NOT_ANALYZED, null, null, null, null, null),
+                new ActivityStatus(null, null),
+                new RepositoryRefreshStatus(
+                        AnalysisState.FAILED,
+                        "Repository enrichment failed: GitHub unavailable"));
+
+        snapshotService.persistProgressiveResult(
+                failed,
+                Instant.parse("2026-09-18T09:00:00Z"));
+
+        RepositorySummary reconstructed = cachedInventory.loadActiveRepositories().getFirst();
+        RepositoryEnrichmentSnapshot stored =
+                snapshotRepository.findByGitHubRepositoryId(1234L).orElseThrow();
+
+        assertEquals(List.of("architecture"), reconstructed.topics());
+        assertEquals(List.of("Java"), reconstructed.languages());
+        assertEquals("Java", reconstructed.primaryLanguage());
+        assertEquals("mit", reconstructed.license().key());
+        assertEquals("v1.0.0", reconstructed.release().latestReleaseTag());
+        assertEquals(AnalysisState.FAILED, reconstructed.refreshStatus().state());
+        assertEquals(successfulAt, stored.lastSuccessfulRefreshAt);
+        assertEquals(
+                "Repository enrichment failed: GitHub unavailable",
+                stored.lastRelevantError);
+    }
+
+    @Test
+    @Transactional
     void persistsAndReconstructsCompleteRepositorySummary() {
         Instant seenAt = Instant.parse("2026-09-18T08:00:00Z");
         identityRepository.insert(
