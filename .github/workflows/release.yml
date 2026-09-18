@@ -1,15 +1,15 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - 'v*.*.*'
+  release:
+    types:
+      - published
 
 permissions:
   contents: read
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ github.event.release.tag_name }}
   cancel-in-progress: false
 
 env:
@@ -19,7 +19,7 @@ env:
 
 jobs:
   validate:
-    name: Validate tagged source
+    name: Validate released source
     runs-on: ubuntu-latest
     timeout-minutes: 20
     outputs:
@@ -27,19 +27,23 @@ jobs:
       sha_tag: ${{ steps.version.outputs.sha_tag }}
 
     steps:
-      - name: Check out tagged source
+      - name: Check out released source
         uses: actions/checkout@v7
         with:
+          ref: ${{ github.event.release.tag_name }}
           fetch-depth: 0
 
       - name: Validate release tag
         id: version
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
         shell: bash
         run: |
           set -euo pipefail
-          tag="${GITHUB_REF_NAME}"
+          tag="$RELEASE_TAG"
           if [[ ! "$tag" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
             echo "Unsupported release tag: $tag" >&2
+            echo "Official releases must use vMAJOR.MINOR.PATCH." >&2
             exit 1
           fi
           version="${tag#v}"
@@ -47,7 +51,7 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "sha_tag=$sha_tag" >> "$GITHUB_OUTPUT"
 
-      - name: Require tagged commit on default branch
+      - name: Require released commit on default branch
         env:
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         shell: bash
@@ -55,11 +59,11 @@ jobs:
           set -euo pipefail
           git fetch --no-tags origin "+refs/heads/${DEFAULT_BRANCH}:refs/remotes/origin/${DEFAULT_BRANCH}"
           if ! git merge-base --is-ancestor "$GITHUB_SHA" "origin/${DEFAULT_BRANCH}"; then
-            echo "Official release tag ${GITHUB_REF_NAME} points to ${GITHUB_SHA}, which is not on ${DEFAULT_BRANCH}." >&2
-            echo "Merge the release commit to ${DEFAULT_BRANCH} before creating the official release tag." >&2
+            echo "Release ${{ github.event.release.tag_name }} points to ${GITHUB_SHA}, which is not on ${DEFAULT_BRANCH}." >&2
+            echo "Create the GitHub Release from a tag that points to the default branch." >&2
             exit 1
           fi
-          echo "Tagged commit ${GITHUB_SHA} is present on ${DEFAULT_BRANCH}."
+          echo "Released commit ${GITHUB_SHA} is present on ${DEFAULT_BRANCH}."
 
       - name: Validate repository policy
         run: python3 scripts/validate-quality-gate.py
@@ -121,8 +125,10 @@ jobs:
             image: ghcr.io/${{ github.repository_owner }}/repo-fleet-backend
 
     steps:
-      - name: Check out tagged source
+      - name: Check out released source
         uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.release.tag_name }}
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -145,10 +151,10 @@ jobs:
             org.opencontainers.image.version=${{ needs.validate.outputs.version }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
-            org.opencontainers.image.ref.name=${{ github.ref_name }}
+            org.opencontainers.image.ref.name=${{ github.event.release.tag_name }}
 
-  release:
-    name: Package deployment release
+  package-release:
+    name: Attach deployment package
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs:
@@ -158,31 +164,25 @@ jobs:
       contents: write
 
     steps:
-      - name: Check out tagged source
+      - name: Check out released source
         uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.release.tag_name }}
 
       - name: Package deployment assets
         env:
           RELEASE_VERSION: ${{ needs.validate.outputs.version }}
-          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
           RELEASE_SHA: ${{ github.sha }}
           REPOSITORY_OWNER: ${{ github.repository_owner }}
         run: python3 scripts/package-release.py --output-dir release-dist
 
-      - name: Create or update GitHub Release
+      - name: Attach deployment package to published release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
         shell: bash
         run: |
           set -euo pipefail
-          archive="release-dist/repo-fleet-${{ github.ref_name }}-deployment.zip"
-          notes="release-dist/RELEASE-NOTES.md"
-
-          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
-            gh release upload "${GITHUB_REF_NAME}" "$archive" --clobber
-          else
-            gh release create "${GITHUB_REF_NAME}" "$archive" \
-              --title "RepoFleet ${GITHUB_REF_NAME}" \
-              --notes-file "$notes" \
-              --verify-tag
-          fi
+          archive="release-dist/repo-fleet-${RELEASE_TAG}-deployment.zip"
+          gh release upload "$RELEASE_TAG" "$archive" --clobber

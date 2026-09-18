@@ -2,8 +2,8 @@
 
 RepoFleet has two publish paths:
 
-- **Release candidates** such as `1.1.0-rc.3` are published manually from the default branch without creating a Git tag or GitHub Release.
-- **Official releases** such as `1.1.0` are driven by the Git tag `v1.1.0`, must point to a commit already present on the default branch, and create/augment a GitHub Release.
+- **Release candidates** such as `1.1.0-rc.3` are published manually from the default branch through GitHub Actions without creating a GitHub Release.
+- **Official releases** such as `1.1.0` are created manually in the GitHub Releases UI. Publishing the release triggers GitHub Actions, which validates the released source, builds/pushes the frontend and backend images, and attaches the deployment package to the release.
 
 Both paths publish immutable versioned frontend/backend images to GHCR. Production deployment always selects an exact version; the moving `rc` and `latest` aliases are convenience pointers only and are never used as deployment identifiers.
 
@@ -24,7 +24,74 @@ ghcr.io/<owner>/repo-fleet-backend:1.1.0-rc.3
 
 It also publishes the source trace tag `sha-<12-char-commit>` and updates the convenience alias `rc`. It does **not** create a GitHub Release.
 
-The RC number is supplied explicitly. This keeps the official release version source in Git tags and avoids adding another project-wide version file solely for candidates.
+## Official releases
+
+Create official RepoFleet releases from the GitHub UI:
+
+1. Open **Releases**.
+2. Choose **Draft a new release**.
+3. Choose an existing tag or create a new tag in the form:
+   ```text
+   vMAJOR.MINOR.PATCH
+   ```
+4. Make sure the tag targets the current/default branch commit that you intend to release.
+5. Enter the release title and notes.
+6. Click **Publish release**.
+
+Example tag:
+
+```text
+v2.0.0
+```
+
+The **published GitHub Release** is the trigger for `.github/workflows/release.yml`. Creating a tag by itself does not publish the official RepoFleet release.
+
+Draft releases do not trigger the workflow. The workflow runs when the release is published.
+
+## GitHub Actions release flow
+
+### 1. Validate released source
+
+The workflow:
+
+- checks out the tag associated with the published GitHub Release,
+- validates that the tag is exactly `vMAJOR.MINOR.PATCH`,
+- verifies that the released commit is reachable from the repository default branch,
+- reruns repository policy and Docker/Compose static validation,
+- runs frontend dependency install, typecheck, tests and production bundle,
+- runs backend Maven `verify`.
+
+A release tag that points to a commit outside the default branch fails before any image is published.
+
+### 2. Publish GHCR images
+
+For a release `v1.2.3`, the workflow builds and publishes:
+
+```text
+ghcr.io/<owner>/repo-fleet-frontend:1.2.3
+ghcr.io/<owner>/repo-fleet-backend:1.2.3
+```
+
+It also publishes:
+
+```text
+ghcr.io/<owner>/repo-fleet-frontend:sha-<12-char-commit>
+ghcr.io/<owner>/repo-fleet-backend:sha-<12-char-commit>
+ghcr.io/<owner>/repo-fleet-frontend:latest
+ghcr.io/<owner>/repo-fleet-backend:latest
+```
+
+The immutable version tag should be used for production deployments.
+
+### 3. Attach deployment package
+
+`scripts/package-release.py` creates:
+
+```text
+repo-fleet-v1.2.3-deployment.zip
+```
+
+The workflow uploads that archive to the **already published GitHub Release**. It does not create, rename or replace the release itself, so the release title and release notes remain under manual control.
 
 ## Deploying candidates and official versions
 
@@ -35,89 +102,7 @@ The RC number is supplied explicitly. This keeps the official release version so
 1.1.0
 ```
 
-For an RC, the deploy workflow does not require a GitHub Release; it validates the RC format and pulls the exact immutable GHCR tags. For a non-RC version such as `1.1.0`, it still verifies that the matching official GitHub Release `v1.1.0` exists before deploying. An unpublished/mistyped RC therefore fails naturally during image pull.
-
-## Official releases
-
-Official RepoFleet releases use Git tags matching:
-
-```text
-vMAJOR.MINOR.PATCH
-```
-
-The tagged commit must already be reachable from the repository's default branch. A tag created on a branch-only commit is rejected before images or a GitHub Release are published.
-
-Example:
-
-```bash
-git switch main
-git pull --ff-only
-git tag v1.0.0
-git push origin v1.0.0
-```
-
-The tag is the release version source of truth. No matching version must be manually copied into the frontend package or backend Maven artifact version.
-
-## GitHub Actions release flow
-
-`.github/workflows/release.yml` performs three stages.
-
-### 1. Validate tagged source
-
-The workflow:
-
-- validates the semver tag,
-- fetches the repository default branch and verifies that the tagged commit is already present on it,
-- reruns repository policy and Docker/Compose static validation,
-- runs frontend dependency install, typecheck, tests and production bundle,
-- runs backend Maven `verify`.
-
-A tag that points to a commit outside the default branch fails before any image is published.
-
-No live GitHub App credentials are needed.
-
-### 2. Publish GHCR images
-
-The frontend and backend Dockerfiles are rebuilt from the tagged source and pushed to GitHub Container Registry.
-
-For `v1.2.3`, the images are:
-
-```text
-ghcr.io/<owner>/repo-fleet-frontend:1.2.3
-ghcr.io/<owner>/repo-fleet-backend:1.2.3
-```
-
-Traceability aliases are also published:
-
-```text
-ghcr.io/<owner>/repo-fleet-frontend:sha-<12-char-commit>
-ghcr.io/<owner>/repo-fleet-backend:sha-<12-char-commit>
-```
-
-`latest` is updated for each official `vMAJOR.MINOR.PATCH` release as a convenience alias. Deployments that need reproducibility should use the immutable version tag.
-
-Each image receives OCI labels linking version, source commit, repository and Git ref.
-
-### 3. Package the deployment release
-
-`scripts/package-release.py` creates:
-
-```text
-repo-fleet-v1.2.3-deployment.zip
-```
-
-The archive contains:
-
-- `repo-fleet/docker-compose.yml`,
-- `repo-fleet/.env.example`,
-- `repo-fleet/DEPLOYMENT.md`,
-- `repo-fleet/RELEASE-MANIFEST.txt`.
-
-The release-specific Compose file references the published versioned GHCR images and omits `build:` sections, so a deployment host only needs Docker/Compose.
-
-The manifest links the source tag, exact commit and image tags.
-
-The workflow creates the GitHub Release if necessary, or uploads/replaces the deployment ZIP if the release already exists.
+For an RC, the deploy workflow uses the exact immutable GHCR tags. For an official version such as `1.1.0`, it verifies that the matching GitHub Release `v1.1.0` exists before deploying.
 
 ## Permissions and secrets
 
@@ -125,9 +110,9 @@ The workflow uses job-scoped least privilege:
 
 - validation: read-only repository access,
 - image publishing: `contents: read`, `packages: write`,
-- GitHub Release packaging: `contents: write`.
+- deployment-package upload: `contents: write`.
 
-The built-in `GITHUB_TOKEN` authenticates GHCR and GitHub Release operations.
+The built-in `GITHUB_TOKEN` authenticates GHCR and the release-asset upload.
 
 No GitHub App private key or runtime credential is passed to Docker builds or packaged into release artifacts.
 
