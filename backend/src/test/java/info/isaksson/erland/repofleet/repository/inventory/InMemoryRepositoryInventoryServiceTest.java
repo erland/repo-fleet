@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import info.isaksson.erland.repofleet.repository.api.RepositorySummary;
+import info.isaksson.erland.repofleet.repository.persistence.CachedRepositoryInventoryService;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -178,6 +179,49 @@ class InMemoryRepositoryInventoryServiceTest {
         assertEquals(0, holder[0].getStatus().errorCount());
     }
 
+
+    @Test
+    void initializationPublishesPersistedCacheBeforeGitHubRefreshCompletes() throws Exception {
+        CountDownLatch discoveryStarted = new CountDownLatch(1);
+        CountDownLatch allowDiscoveryToFinish = new CountDownLatch(1);
+        GitHubRepositoryDiscoveryService discovery = () -> {
+            discoveryStarted.countDown();
+            try {
+                if (!allowDiscoveryToFinish.await(5, TimeUnit.SECONDS)) {
+                    throw new IllegalStateException("timed out waiting for test release");
+                }
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException(exception);
+            }
+            return List.of(repository(2L, "fresh"));
+        };
+
+        CachedRepositoryInventoryService cachedInventory =
+                org.mockito.Mockito.mock(CachedRepositoryInventoryService.class);
+        org.mockito.Mockito.when(cachedInventory.loadActiveRepositories())
+                .thenReturn(List.of(repository(1L, "cached")));
+
+        var executor = Executors.newSingleThreadExecutor();
+        var service = new InMemoryRepositoryInventoryService(
+                discovery,
+                this::complete,
+                CLOCK,
+                executor,
+                null,
+                cachedInventory);
+        try {
+            service.initialize();
+
+            assertTrue(discoveryStarted.await(1, TimeUnit.SECONDS));
+            assertEquals(InventoryRefreshState.RUNNING, service.getStatus().state());
+            assertEquals(1, service.listRepositories().size());
+            assertEquals("erland/cached", service.listRepositories().getFirst().fullName());
+        } finally {
+            allowDiscoveryToFinish.countDown();
+            service.shutdown();
+        }
+    }
 
     @Test
     void initializationStartsRefreshAsynchronouslyInsteadOfBlockingFirstApiUse() throws Exception {
