@@ -67,8 +67,8 @@ The early CI bootstrap has been superseded by the completed Step 24 Quality Gate
 | 14 | Controlled enrichment concurrency | DONE | Verified by green CI #178 and Coolify validation #98 on PR #38. Enrichment uses bounded configurable concurrency with repository-level failure isolation. |
 | 15 | Repository standards domain model | DONE | Verified by green CI #188 and Coolify validation #108 on PR #38. Standards/rules can be persisted and retrieved without evaluation. |
 | 16 | Repository groups | DONE | Verified by green CI #196 and Coolify validation #116 on PR #38. Repository groups can be persisted and resolved deterministically. |
-| 17 | Rule-to-group assignments | IN PROGRESS | Persisting rule/group assignments and resolving applicable rules with explicit precedence, deduplication and explanations. |
-| 18 | Rule evaluation engine | NOT STARTED | |
+| 17 | Rule-to-group assignments | DONE | Verified by green CI #204 and Coolify validation #124 on PR #38. Applicable rules are resolved deterministically with explicit scope and group explanations. |
+| 18 | Rule evaluation engine | IN PROGRESS | Evaluating applicable rules as PASS/FAIL/UNKNOWN/NOT_APPLICABLE with reasons and observed values. |
 | 19 | Persist compliance results | NOT STARTED | |
 | 20 | Compliance summary API | NOT STARTED | |
 | 21 | Compliance overview UI | NOT STARTED | |
@@ -88,10 +88,10 @@ The early CI bootstrap has been superseded by the completed Step 24 Quality Gate
 
 ## Current Position
 
-Current step: **Phase 2 Step 17 – Rule-to-group assignments (IN PROGRESS).**
+Current step: **Phase 2 Step 18 – Rule evaluation engine (IN PROGRESS).**
 
 Phase 1 completed steps: **26 / 26**  
-Phase 2 completed steps: **16 / 34**
+Phase 2 completed steps: **17 / 34**
 
 ## Update Convention
 
