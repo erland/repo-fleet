@@ -75,8 +75,8 @@ The early CI bootstrap has been superseded by the completed Step 24 Quality Gate
 | 22 | Repository compliance detail | DONE | Verified by green CI #249 and Coolify validation #169 on PR #38. Repository detail now explains each persisted compliance flag. |
 | 23 | Rule detail and affected repositories | DONE | Verified by green CI #258 and Coolify validation #178 on PR #38. Rule drill-down shows scope/groups, counts and affected repositories with reasons. |
 | 24 | Repository exceptions / accepted deviations | DONE | Verified by green CI #275 and Coolify validation #195 on PR #38. Active accepted deviations are persisted, expiry-aware and separated from actionable failures. |
-| 25 | Exception management UI | IN PROGRESS | Adding create/edit/expire/remove controls and write APIs with immediate compliance-summary refresh. |
-| 26 | GitHub webhook endpoint foundation | NOT STARTED | |
+| 25 | Exception management UI | DONE | Verified by green CI #289 and Coolify validation #209 on PR #38. Exception create/edit/expire/remove updates compliance summaries immediately. |
+| 26 | GitHub webhook endpoint foundation | IN PROGRESS | Adding HMAC signature verification, delivery idempotency and supported/unsupported event recording without GitHub writes. |
 | 27 | Repository lifecycle webhook handling | NOT STARTED | |
 | 28 | Push/release/workflow webhook invalidation | NOT STARTED | |
 | 29 | Targeted background refresh queue | NOT STARTED | |
@@ -88,10 +88,10 @@ The early CI bootstrap has been superseded by the completed Step 24 Quality Gate
 
 ## Current Position
 
-Current step: **Phase 2 Step 25 – Exception management UI (IN PROGRESS).**
+Current step: **Phase 2 Step 26 – GitHub webhook endpoint foundation (IN PROGRESS).**
 
 Phase 1 completed steps: **26 / 26**  
-Phase 2 completed steps: **24 / 34**
+Phase 2 completed steps: **25 / 34**
 
 ## Update Convention
 
