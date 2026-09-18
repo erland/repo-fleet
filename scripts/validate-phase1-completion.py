@@ -92,8 +92,12 @@ if not match26 or match26.group(1) != "DONE":
     errors.append("Step 26 must be DONE after Phase 1 completion verification")
 
 release = (root / ".github/workflows/release.yml").read_text(encoding="utf-8")
-if "v*.*.*" not in release or "ghcr.io" not in release:
-    errors.append("release/versioning workflow is not documented by an implemented tag/GHCR pipeline")
+release_trigger_ok = (
+    ("release:" in release and "published" in release and "github.event.release.tag_name" in release)
+    or "v*.*.*" in release
+)
+if not release_trigger_ok or "ghcr.io" not in release:
+    errors.append("release/versioning workflow is not documented by an implemented GitHub Release/tag to GHCR pipeline")
 
 compose = (root / "docker-compose.yml").read_text(encoding="utf-8")
 if "frontend:" not in compose or "backend:" not in compose:
