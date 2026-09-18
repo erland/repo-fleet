@@ -44,9 +44,13 @@ class RepositoryComplianceSummaryServiceTest {
     @Inject
     RepositoryGroupService groups;
 
+    @Inject
+    RepositoryComplianceExceptionService exceptions;
+
     @BeforeEach
     @Transactional
     void clearDatabase() {
+        RepositoryComplianceException.deleteAll();
         RepositoryComplianceResult.deleteAll();
         RepositoryRuleGroupAssignment.deleteAll();
         RepositoryGroup.deleteAll();
@@ -107,6 +111,7 @@ class RepositoryComplianceSummaryServiceTest {
 
         assertEquals(2, summary.repositoryCount());
         assertEquals(4, summary.evaluatedRuleCount());
+        assertEquals(0, summary.acceptedDeviationCount());
         assertEquals(1L, summary.resultCounts().get(RepositoryRuleEvaluationResult.FAIL));
         assertEquals(
                 1L,
@@ -132,6 +137,48 @@ class RepositoryComplianceSummaryServiceTest {
         assertEquals(1L, services.repositoryCount());
         assertEquals(1L, services.resultCounts().get(RepositoryRuleEvaluationResult.FAIL));
         assertEquals(1L, services.resultCounts().get(RepositoryRuleEvaluationResult.PASS));
+    }
+
+    @Test
+    @Transactional
+    void separatesAcceptedDeviationFromActionableFailure() {
+        Instant now = Instant.now();
+        persistRepository(repository(10L, "svc-accepted", List.of("architecture")), now);
+
+        rules.save(
+                "license-required",
+                RepositoryRuleType.LICENSE_REQUIRED,
+                "License required",
+                null,
+                RepositoryRuleSeverity.REQUIRED,
+                true,
+                Map.of(),
+                RepositoryRuleScope.ALL_REPOSITORIES,
+                now);
+
+        persistResult(10L, "license-required", RepositoryRuleEvaluationResult.FAIL, now);
+        exceptions.save(
+                10L,
+                "license-required",
+                "Accepted temporary deviation.",
+                Instant.parse("2099-01-01T00:00:00Z"),
+                now);
+
+        CompliancePortfolioSummary summary = summaries.summarize();
+
+        assertEquals(1, summary.acceptedDeviationCount());
+        assertEquals(0L, summary.resultCounts().get(RepositoryRuleEvaluationResult.FAIL));
+        assertEquals(0L, summary.severityResultCounts()
+                .get(RepositoryRuleSeverity.REQUIRED)
+                .get(RepositoryRuleEvaluationResult.FAIL));
+        assertEquals(0, summary.repositoriesWithMostRequiredFailures().size());
+
+        ComplianceRuleSummary rule = summary.rules().stream()
+                .filter(item -> item.ruleKey().equals("license-required"))
+                .findFirst()
+                .orElseThrow();
+        assertEquals(1, rule.acceptedDeviationCount());
+        assertEquals(0L, rule.resultCounts().get(RepositoryRuleEvaluationResult.FAIL));
     }
 
     private void persistRepository(
