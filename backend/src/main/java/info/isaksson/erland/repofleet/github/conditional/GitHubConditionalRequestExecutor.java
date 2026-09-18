@@ -1,6 +1,7 @@
 package info.isaksson.erland.repofleet.github.conditional;
 
 import info.isaksson.erland.repofleet.github.api.GitHubApiCallExecutor;
+import info.isaksson.erland.repofleet.github.diagnostics.GitHubApiDiagnosticsService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.WebApplicationException;
@@ -17,21 +18,24 @@ public class GitHubConditionalRequestExecutor {
     private final GitHubApiCallExecutor apiCalls;
     private final GitHubConditionalRequestStateService stateService;
     private final RepositoryRefreshPolicy refreshPolicy;
+    private final GitHubApiDiagnosticsService diagnostics;
 
     @Inject
     public GitHubConditionalRequestExecutor(
             GitHubApiCallExecutor apiCalls,
             GitHubConditionalRequestStateService stateService,
-            RepositoryRefreshPolicy refreshPolicy) {
+            RepositoryRefreshPolicy refreshPolicy,
+            GitHubApiDiagnosticsService diagnostics) {
         this.apiCalls = apiCalls;
         this.stateService = stateService;
         this.refreshPolicy = refreshPolicy;
+        this.diagnostics = diagnostics;
     }
 
     GitHubConditionalRequestExecutor(
             GitHubApiCallExecutor apiCalls,
             GitHubConditionalRequestStateService stateService) {
-        this(apiCalls, stateService, null);
+        this(apiCalls, stateService, null, null);
     }
 
     public <T> GitHubConditionalResult<T> execute(
@@ -52,7 +56,12 @@ public class GitHubConditionalRequestExecutor {
                         resourceCategory,
                         previousState.get().lastSuccessfulFetchAt,
                         fetchedAt)) {
-            return GitHubConditionalResult.cachedFresh(cachedValue.get(), previousEtag);
+            GitHubConditionalResult<T> result =
+                    GitHubConditionalResult.cachedFresh(cachedValue.get(), previousEtag);
+            if (diagnostics != null) {
+                diagnostics.recordConditional(result.status(), null, fetchedAt);
+            }
+            return result;
         }
 
         Response response = apiCalls.execute(
@@ -72,7 +81,12 @@ public class GitHubConditionalRequestExecutor {
                         githubRepositoryId,
                         resourceCategory,
                         fetchedAt);
-                return GitHubConditionalResult.notModified(cachedValue.get(), state.etag);
+                GitHubConditionalResult<T> result =
+                        GitHubConditionalResult.notModified(cachedValue.get(), state.etag);
+                if (diagnostics != null) {
+                    diagnostics.recordConditional(result.status(), response, fetchedAt);
+                }
+                return result;
             }
 
             T value = bodyReader.apply(response);
@@ -82,7 +96,11 @@ public class GitHubConditionalRequestExecutor {
                     resourceCategory,
                     etag,
                     fetchedAt);
-            return GitHubConditionalResult.modified(value, etag);
+            GitHubConditionalResult<T> result = GitHubConditionalResult.modified(value, etag);
+            if (diagnostics != null) {
+                diagnostics.recordConditional(result.status(), response, fetchedAt);
+            }
+            return result;
         }
     }
 }
