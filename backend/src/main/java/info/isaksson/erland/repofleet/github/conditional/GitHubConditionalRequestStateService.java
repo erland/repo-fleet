@@ -16,6 +16,16 @@ public class GitHubConditionalRequestStateService {
     }
 
     @Transactional
+    public void invalidate(long githubRepositoryId, String resourceCategory, Instant invalidatedAt) {
+        GitHubConditionalRequestState state = find(githubRepositoryId, resourceCategory).orElse(null);
+        if (state == null) {
+            return;
+        }
+        state.lastSuccessfulFetchAt = null;
+        state.updatedAt = invalidatedAt;
+    }
+
+    @Transactional
     public GitHubConditionalRequestState recordModified(
             long githubRepositoryId,
             String resourceCategory,
