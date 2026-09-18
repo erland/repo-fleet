@@ -16,10 +16,13 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletionService;
+import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.locks.ReentrantLock;
@@ -36,6 +39,7 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
     private final RepositoryEnrichmentSnapshotService snapshotService;
     private final RepositoryRefreshHistoryService refreshHistoryService;
     private final RepositoryRefreshPlanner refreshPlanner;
+    private final int enrichmentWorkers;
     private final ReentrantLock refreshLock = new ReentrantLock();
 
     private volatile List<RepositorySummary> repositories = List.of();
@@ -53,7 +57,9 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
             CachedRepositoryInventoryService cachedInventoryService,
             RepositoryEnrichmentSnapshotService snapshotService,
             RepositoryRefreshHistoryService refreshHistoryService,
-            RepositoryRefreshPlanner refreshPlanner) {
+            RepositoryRefreshPlanner refreshPlanner,
+            @ConfigProperty(name = "repofleet.refresh.enrichment-workers", defaultValue = "2")
+                    int enrichmentWorkers) {
         this(
                 discoveryService,
                 enrichmentService,
@@ -67,14 +73,15 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
                 cachedInventoryService,
                 snapshotService,
                 refreshHistoryService,
-                refreshPlanner);
+                refreshPlanner,
+                enrichmentWorkers);
     }
 
     InMemoryRepositoryInventoryService(
             GitHubRepositoryDiscoveryService discoveryService,
             RepositoryEnrichmentService enrichmentService,
             Clock clock) {
-        this(discoveryService, enrichmentService, clock, null, null, null, null, null, null);
+        this(discoveryService, enrichmentService, clock, null, null, null, null, null, null, 1);
     }
 
     InMemoryRepositoryInventoryService(
@@ -82,7 +89,7 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
             RepositoryEnrichmentService enrichmentService,
             Clock clock,
             ExecutorService refreshExecutor) {
-        this(discoveryService, enrichmentService, clock, refreshExecutor, null, null, null, null, null);
+        this(discoveryService, enrichmentService, clock, refreshExecutor, null, null, null, null, null, 1);
     }
 
     InMemoryRepositoryInventoryService(
@@ -103,7 +110,8 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
                 cachedInventoryService,
                 snapshotService,
                 refreshHistoryService,
-                null);
+                null,
+                1);
     }
 
     InMemoryRepositoryInventoryService(
@@ -115,7 +123,8 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
             CachedRepositoryInventoryService cachedInventoryService,
             RepositoryEnrichmentSnapshotService snapshotService,
             RepositoryRefreshHistoryService refreshHistoryService,
-            RepositoryRefreshPlanner refreshPlanner) {
+            RepositoryRefreshPlanner refreshPlanner,
+            int enrichmentWorkers) {
         this.discoveryService = discoveryService;
         this.enrichmentService = enrichmentService;
         this.clock = clock;
@@ -125,6 +134,7 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
         this.snapshotService = snapshotService;
         this.refreshHistoryService = refreshHistoryService;
         this.refreshPlanner = refreshPlanner;
+        this.enrichmentWorkers = Math.max(1, Math.min(8, enrichmentWorkers));
     }
 
     @PostConstruct
@@ -268,57 +278,13 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
             repositories = List.copyOf(working);
             status = runningStatus(startedAt, total, 0, 0, 0, null);
 
-            for (int index = 0; index < discovered.size(); index++) {
-                RepositoryRefreshPlanItem planItem = refreshPlan == null ? null : refreshPlan.items().get(index);
-                RepositorySummary repository = planItem == null ? discovered.get(index) : planItem.discovered();
-                status = runningStatus(
-                        startedAt,
-                        total,
-                        index,
-                        successful,
-                        errors,
-                        repository.fullName());
-
-                RepositorySummary enriched;
-                if (planItem != null && planItem.action() == RepositoryRefreshAction.REUSE_CACHED) {
-                    enriched = planItem.cached();
-                } else {
-                    enriched = enrichSafely(repository);
-                    AnalysisState enrichedState = enriched.refreshStatus() == null
-                            ? AnalysisState.FAILED
-                            : enriched.refreshStatus().state();
-                    enriched = withFreshness(
-                            enriched,
-                            enrichedState == AnalysisState.COMPLETE
-                                    ? CacheFreshness.FRESH
-                                    : CacheFreshness.STALE);
-                    if (snapshotService != null) {
-                        snapshotService.persistProgressiveResult(enriched, clock.instant());
-                    }
-                }
-                working.set(index, enriched);
-                repositories = List.copyOf(working);
-
-                AnalysisState repositoryState = enriched.refreshStatus() == null
-                        ? AnalysisState.FAILED
-                        : enriched.refreshStatus().state();
-                if (repositoryState == AnalysisState.COMPLETE) {
-                    successful++;
-                } else {
-                    errors++;
-                    if (repositoryState == AnalysisState.FAILED) {
-                        hardFailures++;
-                    }
-                }
-
-                status = runningStatus(
-                        startedAt,
-                        total,
-                        index + 1,
-                        successful,
-                        errors,
-                        null);
-            }
+            ProcessingCounts counts =
+                    refreshPlan != null && enrichmentWorkers > 1
+                            ? processConcurrent(startedAt, refreshPlan, working)
+                            : processSequential(startedAt, refreshPlan, discovered, working);
+            successful = counts.successful();
+            errors = counts.errors();
+            hardFailures = counts.hardFailures();
 
             List<RepositorySummary> refreshed = List.copyOf(working);
             repositories = refreshed;
@@ -354,6 +320,182 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
         } finally {
             refreshLock.unlock();
         }
+    }
+
+    private ProcessingCounts processSequential(
+            Instant startedAt,
+            RepositoryRefreshPlan refreshPlan,
+            List<RepositorySummary> discovered,
+            List<RepositorySummary> working) {
+        int successful = 0;
+        int errors = 0;
+        int hardFailures = 0;
+
+        for (int index = 0; index < discovered.size(); index++) {
+            RepositoryRefreshPlanItem planItem =
+                    refreshPlan == null ? null : refreshPlan.items().get(index);
+            RepositorySummary repository =
+                    planItem == null ? discovered.get(index) : planItem.discovered();
+            status = runningStatus(
+                    startedAt,
+                    discovered.size(),
+                    index,
+                    successful,
+                    errors,
+                    repository.fullName());
+
+            RepositorySummary enriched = processPlanItem(planItem, repository);
+            working.set(index, enriched);
+            repositories = List.copyOf(working);
+
+            AnalysisState repositoryState = repositoryState(enriched);
+            if (repositoryState == AnalysisState.COMPLETE) {
+                successful++;
+            } else {
+                errors++;
+                if (repositoryState == AnalysisState.FAILED) {
+                    hardFailures++;
+                }
+            }
+
+            status = runningStatus(
+                    startedAt,
+                    discovered.size(),
+                    index + 1,
+                    successful,
+                    errors,
+                    null);
+        }
+        return new ProcessingCounts(successful, errors, hardFailures);
+    }
+
+    private ProcessingCounts processConcurrent(
+            Instant startedAt,
+            RepositoryRefreshPlan refreshPlan,
+            List<RepositorySummary> working) {
+        int successful = 0;
+        int errors = 0;
+        int hardFailures = 0;
+        int processed = 0;
+
+        ExecutorService workers = Executors.newFixedThreadPool(
+                enrichmentWorkers,
+                runnable -> {
+                    Thread thread = new Thread(runnable, "repo-fleet-enrichment-worker");
+                    thread.setDaemon(true);
+                    return thread;
+                });
+        CompletionService<IndexedEnrichmentResult> completion =
+                new ExecutorCompletionService<>(workers);
+        int submitted = 0;
+
+        try {
+            for (int index = 0; index < refreshPlan.items().size(); index++) {
+                RepositoryRefreshPlanItem item = refreshPlan.items().get(index);
+                if (item.action() == RepositoryRefreshAction.REUSE_CACHED) {
+                    RepositorySummary reused = item.cached();
+                    working.set(index, reused);
+                    processed++;
+                    AnalysisState state = repositoryState(reused);
+                    if (state == AnalysisState.COMPLETE) {
+                        successful++;
+                    } else {
+                        errors++;
+                        if (state == AnalysisState.FAILED) {
+                            hardFailures++;
+                        }
+                    }
+                    continue;
+                }
+
+                final int resultIndex = index;
+                completion.submit(() -> new IndexedEnrichmentResult(
+                        resultIndex,
+                        processPlanItem(item, item.discovered())));
+                submitted++;
+            }
+
+            repositories = List.copyOf(working);
+            status = runningStatus(
+                    startedAt,
+                    refreshPlan.items().size(),
+                    processed,
+                    successful,
+                    errors,
+                    null);
+
+            for (int completed = 0; completed < submitted; completed++) {
+                IndexedEnrichmentResult result;
+                try {
+                    result = completion.take().get();
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException("Repository enrichment was interrupted.", exception);
+                } catch (java.util.concurrent.ExecutionException exception) {
+                    throw new IllegalStateException(
+                            "Repository enrichment worker failed unexpectedly.",
+                            exception.getCause());
+                }
+
+                working.set(result.index(), result.repository());
+                repositories = List.copyOf(working);
+                processed++;
+
+                AnalysisState state = repositoryState(result.repository());
+                if (state == AnalysisState.COMPLETE) {
+                    successful++;
+                } else {
+                    errors++;
+                    if (state == AnalysisState.FAILED) {
+                        hardFailures++;
+                    }
+                }
+
+                status = runningStatus(
+                        startedAt,
+                        refreshPlan.items().size(),
+                        processed,
+                        successful,
+                        errors,
+                        null);
+            }
+        } finally {
+            workers.shutdownNow();
+        }
+
+        return new ProcessingCounts(successful, errors, hardFailures);
+    }
+
+    private RepositorySummary processPlanItem(
+            RepositoryRefreshPlanItem planItem,
+            RepositorySummary repository) {
+        if (planItem != null && planItem.action() == RepositoryRefreshAction.REUSE_CACHED) {
+            return planItem.cached();
+        }
+
+        RepositorySummary enriched = enrichSafely(repository);
+        AnalysisState enrichedState = repositoryState(enriched);
+        enriched = withFreshness(
+                enriched,
+                enrichedState == AnalysisState.COMPLETE
+                        ? CacheFreshness.FRESH
+                        : CacheFreshness.STALE);
+        if (snapshotService != null) {
+            snapshotService.persistProgressiveResult(enriched, clock.instant());
+        }
+        return enriched;
+    }
+
+    private AnalysisState repositoryState(RepositorySummary repository) {
+        return repository.refreshStatus() == null
+                ? AnalysisState.FAILED
+                : repository.refreshStatus().state();
+    }
+
+    private record ProcessingCounts(int successful, int errors, int hardFailures) {
+    }
+
+    private record IndexedEnrichmentResult(int index, RepositorySummary repository) {
     }
 
     private InventoryStatus runningStatus(
