@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import info.isaksson.erland.repofleet.repository.api.ActivityStatus;
+import info.isaksson.erland.repofleet.repository.api.CacheFreshness;
 import info.isaksson.erland.repofleet.repository.api.AnalysisState;
 import info.isaksson.erland.repofleet.repository.api.GitHubActionsStatus;
 import info.isaksson.erland.repofleet.repository.api.LicensePresence;
@@ -14,6 +15,7 @@ import info.isaksson.erland.repofleet.repository.api.RepositorySummary;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import info.isaksson.erland.repofleet.repository.refresh.RepositoryRefreshPolicy;
 import java.time.Instant;
 import java.util.List;
 
@@ -24,13 +26,16 @@ public class RepositoryEnrichmentSnapshotService {
 
     private final RepositoryEnrichmentSnapshotRepository snapshotRepository;
     private final ObjectMapper objectMapper;
+    private final RepositoryRefreshPolicy refreshPolicy;
 
     @Inject
     public RepositoryEnrichmentSnapshotService(
             RepositoryEnrichmentSnapshotRepository snapshotRepository,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            RepositoryRefreshPolicy refreshPolicy) {
         this.snapshotRepository = snapshotRepository;
         this.objectMapper = objectMapper;
+        this.refreshPolicy = refreshPolicy;
     }
 
     @Transactional
@@ -176,7 +181,12 @@ public class RepositoryEnrichmentSnapshotService {
                 new ActivityStatus(snapshot.activityPushedAt, snapshot.activityUpdatedAt),
                 new RepositoryRefreshStatus(
                         state(snapshot.enrichmentState),
-                        snapshot.enrichmentMessage));
+                        snapshot.enrichmentMessage,
+                        refreshPolicy.freshness(
+                                identity,
+                                snapshot,
+                                false,
+                                Instant.now())));
     }
 
     private RepositorySummary fallback(RepositoryIdentity identity) {
@@ -204,7 +214,8 @@ public class RepositoryEnrichmentSnapshotService {
                 new ActivityStatus(identity.githubPushedAt, identity.githubUpdatedAt),
                 new RepositoryRefreshStatus(
                         AnalysisState.NOT_ANALYZED,
-                        "Loaded from persisted repository cache; enrichment refresh pending."));
+                        "Loaded from persisted repository cache; enrichment refresh pending.",
+                        CacheFreshness.STALE));
     }
 
     private String writeList(List<String> values) {
