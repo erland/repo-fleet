@@ -123,6 +123,29 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
             CachedRepositoryInventoryService cachedInventoryService,
             RepositoryEnrichmentSnapshotService snapshotService,
             RepositoryRefreshHistoryService refreshHistoryService,
+            RepositoryRefreshPlanner refreshPlanner) {
+        this(
+                discoveryService,
+                enrichmentService,
+                clock,
+                refreshExecutor,
+                persistenceService,
+                cachedInventoryService,
+                snapshotService,
+                refreshHistoryService,
+                refreshPlanner,
+                1);
+    }
+
+    InMemoryRepositoryInventoryService(
+            GitHubRepositoryDiscoveryService discoveryService,
+            RepositoryEnrichmentService enrichmentService,
+            Clock clock,
+            ExecutorService refreshExecutor,
+            RepositoryInventoryPersistenceService persistenceService,
+            CachedRepositoryInventoryService cachedInventoryService,
+            RepositoryEnrichmentSnapshotService snapshotService,
+            RepositoryRefreshHistoryService refreshHistoryService,
             RepositoryRefreshPlanner refreshPlanner,
             int enrichmentWorkers) {
         this.discoveryService = discoveryService;
