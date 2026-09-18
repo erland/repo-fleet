@@ -22,6 +22,9 @@ public class RepositoryRuleEvaluator {
         if (repository == null) {
             throw new IllegalArgumentException("repository must not be null");
         }
+        if (now == null) {
+            throw new IllegalArgumentException("now must not be null");
+        }
 
         return switch (rule.ruleType()) {
             case LICENSE_REQUIRED -> evaluateLicense(repository, rule);
@@ -93,6 +96,14 @@ public class RepositoryRuleEvaluator {
         if (required == null) {
             return notApplicable(rule, "Rule is missing required parameter 'topic'.", null);
         }
+        if (repository.refreshStatus() == null
+                || repository.refreshStatus().state() != AnalysisState.COMPLETE) {
+            return unknown(
+                    rule,
+                    "Repository topics are not known to be complete.",
+                    repository.topics().isEmpty() ? null : String.join(", ", repository.topics()));
+        }
+
         boolean present = repository.topics().stream()
                 .anyMatch(topic -> topic.equalsIgnoreCase(required));
         if (present) {
