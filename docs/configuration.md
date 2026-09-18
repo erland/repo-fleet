@@ -82,3 +82,25 @@ RepoFleet now requires a PostgreSQL datasource. Configure the backend with:
 | `REPOFLEET_DB_NAME` | `repofleet` in Compose | Database created by the PostgreSQL container |
 
 Production deployments should always override the database password with a deployment secret. Flyway migrations run automatically at startup.
+
+
+## Phase 2 webhook and refresh configuration
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `REPOFLEET_GITHUB_WEBHOOK_SECRET` | none | HMAC secret used to verify GitHub App webhook deliveries. Required when webhooks are enabled. |
+| `REPOFLEET_REFRESH_ENRICHMENT_WORKERS` | `2` | Bounded worker count for full inventory enrichment. |
+| `REPOFLEET_REFRESH_TARGETED_QUEUE_ENABLED` | `true` | Enables the persistent targeted refresh worker/poller. |
+| `REPOFLEET_REFRESH_TARGETED_WORKERS` | `2` | Bounded worker count for targeted refresh jobs. |
+| `REPOFLEET_REFRESH_CONSISTENCY_SCHEDULER_ENABLED` | `true` | Enables low-frequency consistency refresh. |
+| `REPOFLEET_REFRESH_CONSISTENCY_INTERVAL_HOURS` | `24` | Interval between scheduled consistency refreshes. |
+| `REPOFLEET_REFRESH_IDENTITY_FRESHNESS_MINUTES` | `15` | Identity freshness window. |
+| `REPOFLEET_REFRESH_ENRICHMENT_FRESHNESS_MINUTES` | `60` | Overall enrichment freshness window. |
+| `REPOFLEET_REFRESH_TOPICS_FRESHNESS_MINUTES` | `60` | Topic cache freshness. |
+| `REPOFLEET_REFRESH_LANGUAGES_FRESHNESS_MINUTES` | `60` | Language cache freshness. |
+| `REPOFLEET_REFRESH_LICENSE_FRESHNESS_MINUTES` | `240` | Root/license cache freshness. |
+| `REPOFLEET_REFRESH_WORKFLOWS_FRESHNESS_MINUTES` | `60` | Workflow cache freshness. |
+| `REPOFLEET_REFRESH_RELEASES_FRESHNESS_MINUTES` | `60` | Release cache freshness. |
+| `REPOFLEET_REFRESH_FULL_CONSISTENCY_HOURS` | `24` | Maximum age before full consistency enrichment is forced. |
+
+Production must set a non-empty `REPOFLEET_GITHUB_WEBHOOK_SECRET` when GitHub App webhooks are enabled.
