@@ -209,7 +209,11 @@ class RepositoryEnrichmentSnapshotServiceTest {
         assertEquals(summary.githubActions(), reconstructed.githubActions());
         assertEquals(summary.release(), reconstructed.release());
         assertEquals(summary.activity(), reconstructed.activity());
-        assertEquals(summary.refreshStatus(), reconstructed.refreshStatus());
+        assertEquals(summary.refreshStatus().state(), reconstructed.refreshStatus().state());
+        assertEquals(summary.refreshStatus().message(), reconstructed.refreshStatus().message());
+        assertEquals(
+                info.isaksson.erland.repofleet.repository.api.CacheFreshness.STALE,
+                reconstructed.refreshStatus().freshness());
 
         assertEquals(lastSuccess, stored.lastSuccessfulRefreshAt);
         assertEquals("previous transient error", stored.lastRelevantError);
