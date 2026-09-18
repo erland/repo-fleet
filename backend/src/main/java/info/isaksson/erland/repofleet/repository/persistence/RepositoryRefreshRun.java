@@ -41,6 +41,12 @@ public class RepositoryRefreshRun extends PanacheEntityBase {
     @Column(name = "error_count", nullable = false)
     public int errorCount;
 
+    @Column(name = "reused_count", nullable = false)
+    public int reusedCount;
+
+    @Column(name = "scheduled_count", nullable = false)
+    public int scheduledCount;
+
     @Column(name = "failed_repository_summary", columnDefinition = "text")
     public String failedRepositorySummary;
 
