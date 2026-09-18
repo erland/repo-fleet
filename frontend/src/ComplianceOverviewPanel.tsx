@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
+import { fetchComplianceRuleDetail } from './api'
 import type {
   CompliancePortfolioSummary,
   ComplianceRuleDetail,
   ComplianceResultCounts,
   RepositorySummary,
-  fetchComplianceRuleDetail,
 } from './api'
 
 type ComplianceOverviewPanelProps = {
