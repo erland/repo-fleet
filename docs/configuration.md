@@ -69,3 +69,16 @@ For a minimal local Compose setup, `REPOFLEET_GITHUB_PRIVATE_KEY` is the direct 
 | `REPOFLEET_AUTH_COOKIE_SECURE` | `true` | Require HTTPS for the session cookie. |
 
 The GitHub user access token is used only to retrieve the authenticated identity and is not persisted as the RepoFleet session.
+
+## Phase 2 database configuration
+
+RepoFleet now requires a PostgreSQL datasource. Configure the backend with:
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `REPOFLEET_DB_URL` | `jdbc:postgresql://localhost:5432/repofleet` | JDBC connection URL |
+| `REPOFLEET_DB_USER` | `repofleet` | Database user |
+| `REPOFLEET_DB_PASSWORD` | `repofleet` for local development | Database password |
+| `REPOFLEET_DB_NAME` | `repofleet` in Compose | Database created by the PostgreSQL container |
+
+Production deployments should always override the database password with a deployment secret. Flyway migrations run automatically at startup.
