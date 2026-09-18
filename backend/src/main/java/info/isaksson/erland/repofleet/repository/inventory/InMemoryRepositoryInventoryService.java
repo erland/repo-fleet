@@ -5,6 +5,7 @@ import info.isaksson.erland.repofleet.repository.api.RepositoryRefreshStatus;
 import info.isaksson.erland.repofleet.repository.api.RepositorySummary;
 import info.isaksson.erland.repofleet.repository.persistence.CachedRepositoryInventoryService;
 import info.isaksson.erland.repofleet.repository.persistence.RepositoryInventoryPersistenceService;
+import info.isaksson.erland.repofleet.repository.persistence.RepositoryEnrichmentSnapshotService;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -26,6 +27,7 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
     private final ExecutorService refreshExecutor;
     private final RepositoryInventoryPersistenceService persistenceService;
     private final CachedRepositoryInventoryService cachedInventoryService;
+    private final RepositoryEnrichmentSnapshotService snapshotService;
     private final ReentrantLock refreshLock = new ReentrantLock();
 
     private volatile List<RepositorySummary> repositories = List.of();
@@ -36,7 +38,8 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
             GitHubRepositoryDiscoveryService discoveryService,
             RepositoryEnrichmentService enrichmentService,
             RepositoryInventoryPersistenceService persistenceService,
-            CachedRepositoryInventoryService cachedInventoryService) {
+            CachedRepositoryInventoryService cachedInventoryService,
+            RepositoryEnrichmentSnapshotService snapshotService) {
         this(
                 discoveryService,
                 enrichmentService,
@@ -47,14 +50,15 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
                     return thread;
                 }),
                 persistenceService,
-                cachedInventoryService);
+                cachedInventoryService,
+                snapshotService);
     }
 
     InMemoryRepositoryInventoryService(
             GitHubRepositoryDiscoveryService discoveryService,
             RepositoryEnrichmentService enrichmentService,
             Clock clock) {
-        this(discoveryService, enrichmentService, clock, null, null, null);
+        this(discoveryService, enrichmentService, clock, null, null, null, null);
     }
 
     InMemoryRepositoryInventoryService(
@@ -62,7 +66,7 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
             RepositoryEnrichmentService enrichmentService,
             Clock clock,
             ExecutorService refreshExecutor) {
-        this(discoveryService, enrichmentService, clock, refreshExecutor, null, null);
+        this(discoveryService, enrichmentService, clock, refreshExecutor, null, null, null);
     }
 
     InMemoryRepositoryInventoryService(
@@ -71,13 +75,15 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
             Clock clock,
             ExecutorService refreshExecutor,
             RepositoryInventoryPersistenceService persistenceService,
-            CachedRepositoryInventoryService cachedInventoryService) {
+            CachedRepositoryInventoryService cachedInventoryService,
+            RepositoryEnrichmentSnapshotService snapshotService) {
         this.discoveryService = discoveryService;
         this.enrichmentService = enrichmentService;
         this.clock = clock;
         this.refreshExecutor = refreshExecutor;
         this.persistenceService = persistenceService;
         this.cachedInventoryService = cachedInventoryService;
+        this.snapshotService = snapshotService;
     }
 
     @PostConstruct
@@ -192,6 +198,9 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
                         repository.fullName());
 
                 RepositorySummary enriched = enrichSafely(repository);
+                if (snapshotService != null) {
+                    snapshotService.persistProgressiveResult(enriched, clock.instant());
+                }
                 working.set(index, enriched);
                 repositories = List.copyOf(working);
 
