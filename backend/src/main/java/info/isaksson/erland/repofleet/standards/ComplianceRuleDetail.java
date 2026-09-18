@@ -28,5 +28,8 @@ record ComplianceRuleAffectedRepository(
         String fullName,
         RepositoryRuleEvaluationResult result,
         String reason,
-        String observedValue) {
+        String observedValue,
+        boolean acceptedDeviation,
+        String exceptionReason,
+        java.time.Instant exceptionExpiresAt) {
 }
