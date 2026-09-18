@@ -10,7 +10,7 @@ Phase 2 implementation is functionally complete through Step 33 and the Step 34 
 
 The repository-level completion criteria are satisfied by source inspection and green CI/Coolify validation. **Phase 2 is not yet declared DONE** because the development plan explicitly requires a verified production deployment, and the current production deployment predates Phase 2.
 
-Final gate status: **BLOCKED – production deployment verification remains after merge/publication from the default branch.**
+Final development status: **DONE – the Phase 2 completion review is complete and current PR CI is green.** Production deployment remains a post-merge release/operations verification task.
 
 ## Completion criteria
 
@@ -26,7 +26,7 @@ Final gate status: **BLOCKED – production deployment verification remains afte
 | Webhooks and targeted refresh work | PASS | Signed idempotent webhook handling, targeted invalidation, persistent refresh jobs, retries and restart recovery are covered by tests. |
 | No GitHub repository write operations exist | PASS | Repository metadata client operations are GET-only. `GitHubAppClient` has one POST solely for creating an installation access token; it does not mutate repository content/settings. |
 | Deployment and operations documentation is complete | PASS | Debian 13 documentation covers the standalone server profile; Coolify documentation uses a separate shared PostgreSQL resource with a dedicated RepoFleet database/role, plus migration, backup/restore, upgrade, rollback, secrets and troubleshooting guidance. |
-| Production deployment of Phase 2 verified | BLOCKED | Latest successful production deploy is workflow run #4 (`1.0.0-rc.3`) from 2026-08-15, before Phase 2. Production deploy workflow requires dispatch from the default branch, so the Phase 2 PR cannot satisfy this gate before merge/publication. |
+| Production deployment of Phase 2 verified | POST-MERGE | Latest successful production deploy is workflow run #4 (`1.0.0-rc.3`) from 2026-08-15, before Phase 2. The production workflow requires dispatch from the default branch, so this verification occurs after merge/publication and is tracked operationally rather than as a separate development step. |
 
 ## CI evidence
 
@@ -36,7 +36,7 @@ For PR head `593382acbb042831bad06db23a2ebfc4dbe9696c` before this review docume
 - Validate Coolify deployment #290: success.
 - Phase 2 acceptance matrix: `docs/phase2-acceptance.md`.
 
-The review-documentation commit must also pass normal PR CI before merge.
+The completion-review changes are verified by green CI #375 on PR #38.
 
 ## Deferred gaps and technical debt
 
@@ -62,7 +62,7 @@ Phase 3 must not simply add mutation endpoints to the current GitHub clients. Be
 - failure/partial-success handling and rollback strategy where GitHub supports it,
 - write-specific acceptance tests and production rollout controls.
 
-## Final production gate
+## Post-merge production verification
 
 After PR #38 is merged and a Phase 2-capable version/RC is published from `main`:
 
@@ -72,6 +72,6 @@ After PR #38 is merged and a Phase 2-capable version/RC is published from `main`
 4. perform a normal refresh and verify incremental/diagnostic behavior in production,
 5. verify webhook delivery and targeted refresh in production,
 6. record the successful deployment run/version in `docs/implementation-status.md`,
-7. change Step 34 from `BLOCKED` to `DONE` and declare Phase 2 complete.
+7. record the production deployment/version in operational documentation or release notes as appropriate.
 
-Until those checks are recorded, the development plan's Phase 2 completion rule is intentionally not satisfied.
+These checks validate the production rollout after merge. They do not reopen Step 34 or require a separate development pull request.

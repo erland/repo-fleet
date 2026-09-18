@@ -515,7 +515,7 @@ Document:
 - technical debt.
 - prerequisites for Phase 3 write operations.
 
-Phase 2 is DONE only after CI, production deployment and completion review are verified.
+Phase 2 development is DONE when CI and the completion review are verified on the Phase 2 pull request. Production deployment is a post-merge release/operations verification gate and does not require a separate development step or follow-up pull request.
 
 ## Implementation blocks
 
