@@ -9,6 +9,8 @@ import info.isaksson.erland.repofleet.repository.persistence.RepositoryIdentityR
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,15 +20,34 @@ public class RepositoryRefreshPlanner {
     private final RepositoryIdentityRepository identityRepository;
     private final RepositoryEnrichmentSnapshotRepository snapshotRepository;
     private final RepositoryEnrichmentSnapshotService snapshotService;
+    private final RepositoryRefreshPolicy refreshPolicy;
+    private final Clock clock;
 
     @Inject
     public RepositoryRefreshPlanner(
             RepositoryIdentityRepository identityRepository,
             RepositoryEnrichmentSnapshotRepository snapshotRepository,
-            RepositoryEnrichmentSnapshotService snapshotService) {
+            RepositoryEnrichmentSnapshotService snapshotService,
+            RepositoryRefreshPolicy refreshPolicy) {
+        this(
+                identityRepository,
+                snapshotRepository,
+                snapshotService,
+                refreshPolicy,
+                Clock.systemUTC());
+    }
+
+    RepositoryRefreshPlanner(
+            RepositoryIdentityRepository identityRepository,
+            RepositoryEnrichmentSnapshotRepository snapshotRepository,
+            RepositoryEnrichmentSnapshotService snapshotService,
+            RepositoryRefreshPolicy refreshPolicy,
+            Clock clock) {
         this.identityRepository = identityRepository;
         this.snapshotRepository = snapshotRepository;
         this.snapshotService = snapshotService;
+        this.refreshPolicy = refreshPolicy;
+        this.clock = clock;
     }
 
     @Transactional
@@ -36,6 +57,8 @@ public class RepositoryRefreshPlanner {
         int newRepositories = 0;
         int changed = 0;
         int scheduled = 0;
+
+        Instant now = clock.instant();
 
         for (RepositorySummary summary : discovered) {
             var identity = identityRepository.findByGitHubRepositoryId(summary.id()).orElseThrow();
@@ -58,7 +81,9 @@ public class RepositoryRefreshPlanner {
             } else {
                 var snapshot = snapshotRepository.findByGitHubRepositoryId(summary.id());
                 if (snapshot.isPresent()
-                        && AnalysisState.COMPLETE.name().equals(snapshot.get().enrichmentState)) {
+                        && AnalysisState.COMPLETE.name().equals(snapshot.get().enrichmentState)
+                        && refreshPolicy.enrichmentFresh(snapshot.get(), now)
+                        && !refreshPolicy.fullConsistencyDue(snapshot.get(), now)) {
                     action = RepositoryRefreshAction.REUSE_CACHED;
                     cached = snapshotService.reconstruct(identity);
                     reused++;
