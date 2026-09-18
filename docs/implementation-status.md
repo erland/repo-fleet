@@ -72,8 +72,8 @@ The early CI bootstrap has been superseded by the completed Step 24 Quality Gate
 | 19 | Persist compliance results | DONE | Verified by green CI #227 and Coolify validation #147 on PR #38. Compliance results persist across restarts and are reused until source/rule timestamps change. |
 | 20 | Compliance summary API | DONE | Verified by green CI #234 and Coolify validation #154 on PR #38. Frontend can consume persisted portfolio, severity, group, repository and rule compliance summaries. |
 | 21 | Compliance overview UI | DONE | Verified by green CI #241 and Coolify validation #161 on PR #38. Compliance overview exposes severity/result counts, filters, priority deviations and freshness. |
-| 22 | Repository compliance detail | IN PROGRESS | Adding repository-level applicable rule results with severity, reason, observed value and last evaluated time. |
-| 23 | Rule detail and affected repositories | NOT STARTED | |
+| 22 | Repository compliance detail | DONE | Verified by green CI #249 and Coolify validation #169 on PR #38. Repository detail now explains each persisted compliance flag. |
+| 23 | Rule detail and affected repositories | IN PROGRESS | Adding rule-centric drill-down with scope/groups, result counts and failed/unknown repositories with reasons. |
 | 24 | Repository exceptions / accepted deviations | NOT STARTED | |
 | 25 | Exception management UI | NOT STARTED | |
 | 26 | GitHub webhook endpoint foundation | NOT STARTED | |
@@ -88,10 +88,10 @@ The early CI bootstrap has been superseded by the completed Step 24 Quality Gate
 
 ## Current Position
 
-Current step: **Phase 2 Step 22 – Repository compliance detail (IN PROGRESS).**
+Current step: **Phase 2 Step 23 – Rule detail and affected repositories (IN PROGRESS).**
 
 Phase 1 completed steps: **26 / 26**  
-Phase 2 completed steps: **21 / 34**
+Phase 2 completed steps: **22 / 34**
 
 ## Update Convention
 
