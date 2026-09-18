@@ -69,6 +69,17 @@ public interface GitHubRepositoryMetadataClient {
     );
 
     @GET
+    @Path("/repos/{owner}/{repository}/contents")
+    Response getRootContentsConditional(
+        @PathParam("owner") String owner,
+        @PathParam("repository") String repository,
+        @HeaderParam("Authorization") String authorization,
+        @HeaderParam("Accept") String accept,
+        @HeaderParam("X-GitHub-Api-Version") String apiVersion,
+        @HeaderParam("If-None-Match") String ifNoneMatch
+    );
+
+    @GET
     @Path("/repos/{owner}/{repository}/license")
     GitHubLicenseResponse getLicense(
         @PathParam("owner") String owner,
@@ -76,6 +87,17 @@ public interface GitHubRepositoryMetadataClient {
         @HeaderParam("Authorization") String authorization,
         @HeaderParam("Accept") String accept,
         @HeaderParam("X-GitHub-Api-Version") String apiVersion
+    );
+
+    @GET
+    @Path("/repos/{owner}/{repository}/license")
+    Response getLicenseConditional(
+        @PathParam("owner") String owner,
+        @PathParam("repository") String repository,
+        @HeaderParam("Authorization") String authorization,
+        @HeaderParam("Accept") String accept,
+        @HeaderParam("X-GitHub-Api-Version") String apiVersion,
+        @HeaderParam("If-None-Match") String ifNoneMatch
     );
 
 
@@ -91,6 +113,19 @@ public interface GitHubRepositoryMetadataClient {
         @QueryParam("page") int page
     );
 
+    @GET
+    @Path("/repos/{owner}/{repository}/actions/workflows")
+    Response getWorkflowsConditional(
+        @PathParam("owner") String owner,
+        @PathParam("repository") String repository,
+        @HeaderParam("Authorization") String authorization,
+        @HeaderParam("Accept") String accept,
+        @HeaderParam("X-GitHub-Api-Version") String apiVersion,
+        @HeaderParam("If-None-Match") String ifNoneMatch,
+        @QueryParam("per_page") int perPage,
+        @QueryParam("page") int page
+    );
+
 
     @GET
     @Path("/repos/{owner}/{repository}/releases")
@@ -100,6 +135,19 @@ public interface GitHubRepositoryMetadataClient {
         @HeaderParam("Authorization") String authorization,
         @HeaderParam("Accept") String accept,
         @HeaderParam("X-GitHub-Api-Version") String apiVersion,
+        @QueryParam("per_page") int perPage,
+        @QueryParam("page") int page
+    );
+
+    @GET
+    @Path("/repos/{owner}/{repository}/releases")
+    Response getReleasesConditional(
+        @PathParam("owner") String owner,
+        @PathParam("repository") String repository,
+        @HeaderParam("Authorization") String authorization,
+        @HeaderParam("Accept") String accept,
+        @HeaderParam("X-GitHub-Api-Version") String apiVersion,
+        @HeaderParam("If-None-Match") String ifNoneMatch,
         @QueryParam("per_page") int perPage,
         @QueryParam("page") int page
     );
