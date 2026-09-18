@@ -1,8 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type {
   CompliancePortfolioSummary,
+  ComplianceRuleDetail,
   ComplianceResultCounts,
   RepositorySummary,
+  fetchComplianceRuleDetail,
 } from './api'
 
 type ComplianceOverviewPanelProps = {
@@ -36,6 +38,9 @@ function CountCard({ label, counts }: { label: string; counts: ComplianceResultC
 export function ComplianceOverviewPanel({ summary, repositories, loading, error }: ComplianceOverviewPanelProps) {
   const [groupKey, setGroupKey] = useState('')
   const [ruleKey, setRuleKey] = useState('')
+  const [ruleDetail, setRuleDetail] = useState<ComplianceRuleDetail | null>(null)
+  const [ruleDetailLoading, setRuleDetailLoading] = useState(false)
+  const [ruleDetailError, setRuleDetailError] = useState<string | null>(null)
 
   const selectedCounts = useMemo(() => {
     if (!summary) return emptyCounts
@@ -43,6 +48,34 @@ export function ComplianceOverviewPanel({ summary, repositories, loading, error 
     if (groupKey) return summary.groups.find((group) => group.groupKey === groupKey)?.resultCounts ?? emptyCounts
     return summary.resultCounts
   }, [groupKey, ruleKey, summary])
+
+  useEffect(() => {
+    if (!ruleKey) {
+      setRuleDetail(null)
+      setRuleDetailError(null)
+      setRuleDetailLoading(false)
+      return
+    }
+
+    let active = true
+    setRuleDetailLoading(true)
+    setRuleDetailError(null)
+    void fetchComplianceRuleDetail(ruleKey)
+      .then((detail) => {
+        if (!active) return
+        setRuleDetail(detail)
+      })
+      .catch(() => {
+        if (!active) return
+        setRuleDetailError('Rule detail could not be loaded.')
+        setRuleDetail(null)
+      })
+      .finally(() => {
+        if (active) setRuleDetailLoading(false)
+      })
+
+    return () => { active = false }
+  }, [ruleKey])
 
   const staleCount = repositories.filter((repository) => repository.refreshStatus?.freshness === 'STALE').length
   const refreshingCount = repositories.filter((repository) => repository.refreshStatus?.freshness === 'REFRESHING').length
@@ -99,6 +132,48 @@ export function ComplianceOverviewPanel({ summary, repositories, loading, error 
             <CountCard label="Recommended" counts={summary.severityResultCounts.RECOMMENDED} />
             <CountCard label="Informational" counts={summary.severityResultCounts.INFORMATIONAL} />
           </div>
+
+          {ruleKey && (
+            <div className="compliance-rule-detail">
+              {ruleDetailLoading && <p role="status">Loading rule detail…</p>}
+              {ruleDetailError && <p className="compliance-error" role="alert">{ruleDetailError}</p>}
+              {ruleDetail && (
+                <>
+                  <div className="compliance-rule-detail-heading">
+                    <div>
+                      <h3>{ruleDetail.ruleName}</h3>
+                      <p>{ruleDetail.description ?? 'No description.'}</p>
+                    </div>
+                    <span>{ruleDetail.severity}</span>
+                  </div>
+                  <dl className="compliance-rule-meta">
+                    <div><dt>Scope</dt><dd>{ruleDetail.scope}</dd></div>
+                    <div><dt>Groups</dt><dd>{ruleDetail.groups.length ? ruleDetail.groups.join(', ') : 'All repositories'}</dd></div>
+                  </dl>
+
+                  <div className="compliance-rule-affected">
+                    <h4>Affected repositories</h4>
+                    {ruleDetail.affectedRepositories.length === 0 ? (
+                      <p>No failed or unknown repositories for this rule.</p>
+                    ) : (
+                      <ul>
+                        {ruleDetail.affectedRepositories.map((repository) => (
+                          <li key={repository.githubRepositoryId}>
+                            <div>
+                              <strong>{repository.fullName}</strong>
+                              <span>{repository.result}</span>
+                            </div>
+                            <p>{repository.reason}</p>
+                            {repository.observedValue && <small>Observed: {repository.observedValue}</small>}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
 
           {summary.repositoriesWithMostRequiredFailures.length > 0 && (
             <div className="compliance-priority-list">
