@@ -8,6 +8,7 @@ import { RepositoryDetailPanel } from './RepositoryDetailPanel'
 import { RepositoryFiltersPanel } from './RepositoryFiltersPanel'
 import { RepositoryInventory } from './RepositoryInventory'
 import { RepositorySelectionBar } from './RepositorySelectionBar'
+import { RefreshDiagnosticsPanel } from './RefreshDiagnosticsPanel'
 import { RepositorySortControls } from './RepositorySortControls'
 import { SavedViewsPanel } from './SavedViewsPanel'
 import type { CompliancePortfolioSummary, InventoryStatus, RepositorySummary } from './api'
@@ -612,5 +613,57 @@ describe('ComplianceOverviewPanel', () => {
     expect(html).toMatch(/1(?:<!-- -->)? stale/)
     expect(html).toContain('Highest-priority deviations')
     expect(html).toMatch(/1(?:<!-- -->)? required failure/)
+  })
+})
+
+
+describe('RefreshDiagnosticsPanel', () => {
+  it('renders API pressure, reuse and recent failures', () => {
+    const html = renderToString(
+      <RefreshDiagnosticsPanel
+        loading={false}
+        error={null}
+        diagnostics={{
+          rateLimitRemaining: 4321,
+          rateLimitResetAt: '2026-09-18T18:00:00Z',
+          conditionalModifiedCount: 5,
+          conditionalNotModifiedCount: 12,
+          conditionalCachedFreshCount: 30,
+          webhookTriggeredRefreshCount: 7,
+          targetedFailedCount: 1,
+          recentRuns: [{
+            id: 1,
+            triggerType: 'SCHEDULED_CONSISTENCY',
+            startedAt: '2026-09-18T16:00:00Z',
+            completedAt: '2026-09-18T16:02:00Z',
+            durationMillis: 120000,
+            finalState: 'COMPLETED',
+            discoveredCount: 200,
+            processedCount: 200,
+            successfulCount: 200,
+            errorCount: 0,
+            reusedCount: 180,
+            scheduledCount: 20,
+            failureSummary: null,
+          }],
+          recentTargetedFailures: [{
+            jobId: 9,
+            githubRepositoryId: 1001,
+            triggerType: 'WEBHOOK_RELEASES',
+            attempts: 3,
+            lastError: 'GitHub unavailable',
+            completedAt: '2026-09-18T16:05:00Z',
+          }],
+        }}
+      />,
+    )
+
+    expect(html).toContain('Refresh diagnostics')
+    expect(html).toContain('4321')
+    expect(html).toContain('12')
+    expect(html).toContain('30 fresh-cache skips')
+    expect(html).toContain('SCHEDULED_CONSISTENCY')
+    expect(html).toContain('180')
+    expect(html).toContain('GitHub unavailable')
   })
 })
