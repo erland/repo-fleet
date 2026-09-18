@@ -56,7 +56,7 @@ class RepositoryRefreshPlannerTest {
 
         inventoryPersistence.synchronize(
                 List.of(discovered),
-                Instant.parse("2026-09-18T08:00:00Z"));
+                Instant.now());
 
         RepositoryRefreshPlan plan = planner.plan(List.of(discovered));
 
@@ -73,10 +73,10 @@ class RepositoryRefreshPlannerTest {
         RepositorySummary discovered = repository(1001L, RepositoryVisibility.PUBLIC, "main");
         inventoryPersistence.synchronize(
                 List.of(discovered),
-                Instant.parse("2026-09-18T07:00:00Z"));
+                Instant.now().minusSeconds(120));
         snapshotService.saveSnapshot(
                 complete(discovered),
-                Instant.parse("2026-09-18T07:05:00Z"),
+                Instant.now().minusSeconds(60),
                 null);
 
         inventoryPersistence.synchronize(
@@ -93,6 +93,29 @@ class RepositoryRefreshPlannerTest {
         assertEquals(
                 AnalysisState.COMPLETE,
                 plan.items().getFirst().cached().refreshStatus().state());
+    }
+
+    @Test
+    @Transactional
+    void schedulesApparentlyUnchangedRepositoryWhenSnapshotIsStale() {
+        RepositorySummary discovered = repository(1001L, RepositoryVisibility.PUBLIC, "main");
+        inventoryPersistence.synchronize(
+                List.of(discovered),
+                Instant.now().minusSeconds(7200));
+        snapshotService.saveSnapshot(
+                complete(discovered),
+                Instant.now().minusSeconds(7200),
+                null);
+
+        inventoryPersistence.synchronize(
+                List.of(discovered),
+                Instant.now());
+
+        RepositoryRefreshPlan plan = planner.plan(List.of(discovered));
+
+        assertEquals(RepositoryRefreshAction.FULL_ENRICHMENT, plan.items().getFirst().action());
+        assertEquals(0, plan.reusedCount());
+        assertEquals(1, plan.scheduledCount());
     }
 
     @Test
