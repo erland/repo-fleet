@@ -120,7 +120,7 @@ class RepositoryComplianceExceptionServiceTest {
                 now);
 
         assertTrue(exceptions.hasActiveException(2002L, "actions-required"));
-        assertTrue(exceptions.expire(2002L, "actions-required", now.plusSeconds(60)));
+        assertTrue(exceptions.expire(2002L, "actions-required", now));
         assertFalse(exceptions.hasActiveException(2002L, "actions-required"));
         assertTrue(exceptions.remove(2002L, "actions-required"));
         assertTrue(exceptions.listForRepository(2002L).isEmpty());
