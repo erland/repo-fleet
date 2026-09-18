@@ -5,6 +5,9 @@ import {
   fetchRepositories,
   fetchComplianceSummary,
   fetchRepositoryCompliance,
+  saveRepositoryComplianceException,
+  expireRepositoryComplianceException,
+  removeRepositoryComplianceException,
   logout,
   startInventoryRefresh,
   type AuthSession,
@@ -216,25 +219,62 @@ export default function App() {
     setSavedViews((current) => removeSavedView(current, viewId))
   }, [])
 
+  const reloadRepositoryCompliance = useCallback(async (repositoryId: number) => {
+    setDetailComplianceLoading(true)
+    try {
+      const result = await fetchRepositoryCompliance(repositoryId)
+      if (!mountedRef.current) return
+      setDetailCompliance(result)
+      setDetailComplianceError(null)
+    } catch {
+      if (!mountedRef.current) return
+      setDetailComplianceError('Repository compliance detail could not be loaded.')
+    } finally {
+      if (mountedRef.current) setDetailComplianceLoading(false)
+    }
+  }, [])
+
   const openRepositoryDetails = useCallback((repositoryId: number) => {
     setDetailRepositoryId(repositoryId)
     setDetailCompliance([])
     setDetailComplianceError(null)
-    setDetailComplianceLoading(true)
-    void fetchRepositoryCompliance(repositoryId)
-      .then((result) => {
-        if (!mountedRef.current) return
-        setDetailCompliance(result)
-        setDetailComplianceError(null)
-      })
-      .catch(() => {
-        if (!mountedRef.current) return
-        setDetailComplianceError('Repository compliance detail could not be loaded.')
-      })
-      .finally(() => {
-        if (mountedRef.current) setDetailComplianceLoading(false)
-      })
-  }, [])
+    void reloadRepositoryCompliance(repositoryId)
+  }, [reloadRepositoryCompliance])
+
+  const saveComplianceException = useCallback(async (
+    repositoryId: number,
+    ruleKey: string,
+    reason: string,
+    expiresAt: string | null,
+  ) => {
+    await saveRepositoryComplianceException(repositoryId, ruleKey, reason, expiresAt)
+    await Promise.all([
+      reloadRepositoryCompliance(repositoryId),
+      loadCompliance(),
+    ])
+  }, [loadCompliance, reloadRepositoryCompliance])
+
+  const expireComplianceException = useCallback(async (
+    repositoryId: number,
+    ruleKey: string,
+  ) => {
+    await expireRepositoryComplianceException(repositoryId, ruleKey)
+    await Promise.all([
+      reloadRepositoryCompliance(repositoryId),
+      loadCompliance(),
+    ])
+  }, [loadCompliance, reloadRepositoryCompliance])
+
+  const removeComplianceException = useCallback(async (
+    repositoryId: number,
+    ruleKey: string,
+  ) => {
+    await removeRepositoryComplianceException(repositoryId, ruleKey)
+    await Promise.all([
+      reloadRepositoryCompliance(repositoryId),
+      loadCompliance(),
+    ])
+  }, [loadCompliance, reloadRepositoryCompliance])
 
   const closeRepositoryDetails = useCallback(() => {
     setDetailRepositoryId(null)
@@ -398,6 +438,9 @@ export default function App() {
         compliance={detailCompliance}
         complianceLoading={detailComplianceLoading}
         complianceError={detailComplianceError}
+        onSaveException={saveComplianceException}
+        onExpireException={expireComplianceException}
+        onRemoveException={removeComplianceException}
         onClose={closeRepositoryDetails}
       />
 
