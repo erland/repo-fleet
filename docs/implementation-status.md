@@ -69,8 +69,8 @@ The early CI bootstrap has been superseded by the completed Step 24 Quality Gate
 | 16 | Repository groups | DONE | Verified by green CI #196 and Coolify validation #116 on PR #38. Repository groups can be persisted and resolved deterministically. |
 | 17 | Rule-to-group assignments | DONE | Verified by green CI #204 and Coolify validation #124 on PR #38. Applicable rules are resolved deterministically with explicit scope and group explanations. |
 | 18 | Rule evaluation engine | DONE | Verified by green CI #219 and Coolify validation #139 on PR #38. Applicable rules evaluate deterministically as PASS/FAIL/UNKNOWN/NOT_APPLICABLE. |
-| 19 | Persist compliance results | IN PROGRESS | Persisting repository/rule evaluations with source and rule timestamps to avoid unnecessary reevaluation. |
-| 20 | Compliance summary API | NOT STARTED | |
+| 19 | Persist compliance results | DONE | Verified by green CI #227 and Coolify validation #147 on PR #38. Compliance results persist across restarts and are reused until source/rule timestamps change. |
+| 20 | Compliance summary API | IN PROGRESS | Adding read-only portfolio, severity/result, group, repository and rule compliance summaries from persisted results. |
 | 21 | Compliance overview UI | NOT STARTED | |
 | 22 | Repository compliance detail | NOT STARTED | |
 | 23 | Rule detail and affected repositories | NOT STARTED | |
@@ -88,10 +88,10 @@ The early CI bootstrap has been superseded by the completed Step 24 Quality Gate
 
 ## Current Position
 
-Current step: **Phase 2 Step 19 – Persist compliance results (IN PROGRESS).**
+Current step: **Phase 2 Step 20 – Compliance summary API (IN PROGRESS).**
 
 Phase 1 completed steps: **26 / 26**  
-Phase 2 completed steps: **18 / 34**
+Phase 2 completed steps: **19 / 34**
 
 ## Update Convention
 
