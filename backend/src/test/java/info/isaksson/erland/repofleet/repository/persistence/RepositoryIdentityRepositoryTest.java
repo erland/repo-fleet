@@ -119,20 +119,20 @@ class RepositoryIdentityRepositoryTest {
                 null,
                 seenAt);
 
-        repository.insert(
-                1234L,
-                "erland",
-                "two",
-                "erland/two",
-                RepositoryVisibility.PUBLIC,
-                false,
-                false,
-                "main",
-                null,
-                null,
-                seenAt);
-
-        assertThrows(RuntimeException.class, repository::flush);
+        assertThrows(
+                RuntimeException.class,
+                () -> repository.insert(
+                        1234L,
+                        "erland",
+                        "two",
+                        "erland/two",
+                        RepositoryVisibility.PUBLIC,
+                        false,
+                        false,
+                        "main",
+                        null,
+                        null,
+                        seenAt));
     }
 
     @Test
