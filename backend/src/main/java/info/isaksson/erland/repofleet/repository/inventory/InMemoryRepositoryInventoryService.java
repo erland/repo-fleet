@@ -411,7 +411,7 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
                 final int resultIndex = index;
                 completion.submit(() -> new IndexedEnrichmentResult(
                         resultIndex,
-                        processPlanItem(item, item.discovered())));
+                        processPlanItemSafely(item, item.discovered())));
                 submitted++;
             }
 
@@ -464,6 +464,37 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
         }
 
         return new ProcessingCounts(successful, errors, hardFailures);
+    }
+
+    private RepositorySummary processPlanItemSafely(
+            RepositoryRefreshPlanItem planItem,
+            RepositorySummary repository) {
+        try {
+            return processPlanItem(planItem, repository);
+        } catch (RuntimeException exception) {
+            return withFreshness(
+                    new RepositorySummary(
+                            repository.id(),
+                            repository.owner(),
+                            repository.name(),
+                            repository.fullName(),
+                            repository.url(),
+                            repository.visibility(),
+                            repository.archived(),
+                            repository.fork(),
+                            repository.defaultBranch(),
+                            repository.topics(),
+                            repository.languages(),
+                            repository.primaryLanguage(),
+                            repository.license(),
+                            repository.githubActions(),
+                            repository.release(),
+                            repository.activity(),
+                            new RepositoryRefreshStatus(
+                                    AnalysisState.FAILED,
+                                    "Repository enrichment processing failed: " + safeMessage(exception))),
+                    CacheFreshness.STALE);
+        }
     }
 
     private RepositorySummary processPlanItem(
