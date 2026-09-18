@@ -22,6 +22,24 @@ jobs:
     name: Validate released source
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: repofleet
+          POSTGRES_USER: repofleet
+          POSTGRES_PASSWORD: repofleet
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U repofleet -d repofleet"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      REPOFLEET_DB_URL: jdbc:postgresql://localhost:5432/repofleet
+      REPOFLEET_DB_USER: repofleet
+      REPOFLEET_DB_PASSWORD: repofleet
     outputs:
       version: ${{ steps.version.outputs.version }}
       sha_tag: ${{ steps.version.outputs.sha_tag }}
