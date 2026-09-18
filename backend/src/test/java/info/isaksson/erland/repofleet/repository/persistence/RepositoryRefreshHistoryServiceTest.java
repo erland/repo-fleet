@@ -37,6 +37,8 @@ class RepositoryRefreshHistoryServiceTest {
                 10,
                 8,
                 2,
+                6,
+                4,
                 "2 repository enrichment(s) completed with errors.");
 
         var run = history.recentRuns(10).getFirst();
@@ -50,6 +52,8 @@ class RepositoryRefreshHistoryServiceTest {
         assertEquals(10, run.processedCount());
         assertEquals(8, run.successfulCount());
         assertEquals(2, run.errorCount());
+        assertEquals(6, run.reusedCount());
+        assertEquals(4, run.scheduledCount());
         assertNotNull(run.failedRepositorySummary());
     }
 }
