@@ -82,6 +82,7 @@ public class RepositoryRefreshPlanner {
                 var snapshot = snapshotRepository.findByGitHubRepositoryId(summary.id());
                 if (snapshot.isPresent()
                         && AnalysisState.COMPLETE.name().equals(snapshot.get().enrichmentState)
+                        && refreshPolicy.identityFresh(identity, now)
                         && refreshPolicy.enrichmentFresh(snapshot.get(), now)
                         && !refreshPolicy.fullConsistencyDue(snapshot.get(), now)) {
                     action = RepositoryRefreshAction.REUSE_CACHED;
