@@ -1,6 +1,8 @@
 package info.isaksson.erland.repofleet.standards;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import info.isaksson.erland.repofleet.repository.api.RepositoryVisibility;
 import info.isaksson.erland.repofleet.repository.persistence.RepositoryIdentityRepository;
@@ -80,5 +82,47 @@ class RepositoryComplianceExceptionServiceTest {
                 now.plusSeconds(1));
 
         assertEquals(RepositoryComplianceExceptionState.EXPIRED, expired.state());
+    }
+
+    @Test
+    @Transactional
+    void expiresAndRemovesAcceptedDeviation() {
+        Instant now = Instant.now();
+        identities.insert(
+                2002L,
+                "erland",
+                "repo-two",
+                "erland/repo-two",
+                RepositoryVisibility.PRIVATE,
+                false,
+                false,
+                "main",
+                now,
+                now,
+                now);
+
+        rules.save(
+                "actions-required",
+                RepositoryRuleType.ACTIONS_WORKFLOW_REQUIRED,
+                "Actions required",
+                null,
+                RepositoryRuleSeverity.REQUIRED,
+                true,
+                Map.of(),
+                RepositoryRuleScope.ALL_REPOSITORIES,
+                now);
+
+        exceptions.save(
+                2002L,
+                "actions-required",
+                "Temporary accepted deviation.",
+                null,
+                now);
+
+        assertTrue(exceptions.hasActiveException(2002L, "actions-required"));
+        assertTrue(exceptions.expire(2002L, "actions-required", now.plusSeconds(60)));
+        assertFalse(exceptions.hasActiveException(2002L, "actions-required"));
+        assertTrue(exceptions.remove(2002L, "actions-required"));
+        assertTrue(exceptions.listForRepository(2002L).isEmpty());
     }
 }
