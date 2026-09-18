@@ -407,7 +407,7 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
         return new LanguageMetadata(languageNames, primary);
     }
 
-    private record LanguageMetadata(List<String> languages, String primaryLanguage) {
+    record LanguageMetadata(List<String> languages, String primaryLanguage) {
     }
 
     private String safeMessage(RuntimeException exception) {
