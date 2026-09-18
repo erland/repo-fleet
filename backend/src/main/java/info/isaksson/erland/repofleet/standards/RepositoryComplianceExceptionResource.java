@@ -8,7 +8,6 @@ import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.time.Clock;
@@ -16,7 +15,6 @@ import java.util.List;
 
 @Path("/api/compliance/repositories/{repositoryId}/exceptions")
 @Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
 public class RepositoryComplianceExceptionResource {
 
     private final RepositoryComplianceExceptionService exceptions;
@@ -42,6 +40,7 @@ public class RepositoryComplianceExceptionResource {
     }
 
     @POST
+    @jakarta.ws.rs.Consumes(MediaType.APPLICATION_JSON)
     @Path("/{ruleKey}")
     public RepositoryComplianceExceptionDefinition save(
             @PathParam("repositoryId") long repositoryId,
