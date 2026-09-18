@@ -211,6 +211,7 @@ class InMemoryRepositoryInventoryServiceTest {
                 executor,
                 null,
                 cachedInventory,
+                null,
                 null);
         try {
             service.initialize();
@@ -288,7 +289,8 @@ class InMemoryRepositoryInventoryServiceTest {
                 executor,
                 null,
                 null,
-                snapshots);
+                snapshots,
+                null);
         try {
             service.startRefresh();
             assertTrue(secondEnrichmentStarted.await(1, TimeUnit.SECONDS));
