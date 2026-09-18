@@ -395,3 +395,16 @@ h2 { margin: 0; font-size: 1.5rem; }
   .compliance-rule-detail-heading, .compliance-rule-affected li > div { flex-direction: column; align-items: stretch; }
   .compliance-rule-meta { grid-template-columns: 1fr; }
 }
+
+.exception-actions { display: flex; gap: .55rem; flex-wrap: wrap; margin-top: .8rem; }
+.exception-editor { display: grid; gap: .75rem; margin-top: .8rem; padding-top: .8rem; border-top: 1px solid #e2e6eb; }
+.exception-editor label { display: grid; gap: .35rem; font-size: .84rem; font-weight: 650; }
+.exception-editor textarea,
+.exception-editor input { width: 100%; border: 1px solid #cfd5dc; border-radius: .55rem; background: #fff; padding: .55rem .65rem; font: inherit; color: inherit; }
+.exception-editor textarea { resize: vertical; min-height: 5rem; }
+.exception-editor-actions { display: flex; gap: .55rem; flex-wrap: wrap; }
+
+@media (max-width: 720px) {
+  .exception-actions, .exception-editor-actions { flex-direction: column; }
+  .exception-actions button, .exception-editor-actions button { width: 100%; }
+}
