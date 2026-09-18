@@ -4,6 +4,7 @@ import info.isaksson.erland.repofleet.repository.api.CacheFreshness;
 import info.isaksson.erland.repofleet.repository.persistence.RepositoryEnrichmentSnapshot;
 import info.isaksson.erland.repofleet.repository.persistence.RepositoryIdentity;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import java.time.Duration;
 import java.time.Instant;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -20,6 +21,7 @@ public class RepositoryRefreshPolicy {
     private final Duration releasesFreshness;
     private final Duration fullConsistencyInterval;
 
+    @Inject
     public RepositoryRefreshPolicy(
             @ConfigProperty(name = "repofleet.refresh.identity-freshness-minutes", defaultValue = "15")
                     long identityFreshnessMinutes,
