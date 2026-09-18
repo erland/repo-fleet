@@ -153,6 +153,7 @@ export type ComplianceGroupSummary = {
   groupKey: string
   groupName: string
   repositoryCount: number
+  acceptedDeviationCount?: number
   resultCounts: ComplianceResultCounts
 }
 
@@ -166,12 +167,14 @@ export type ComplianceRuleSummary = {
   ruleKey: string
   ruleName: string
   severity: ComplianceSeverity
+  acceptedDeviationCount?: number
   resultCounts: ComplianceResultCounts
 }
 
 export type CompliancePortfolioSummary = {
   repositoryCount: number
   evaluatedRuleCount: number
+  acceptedDeviationCount?: number
   resultCounts: ComplianceResultCounts
   severityResultCounts: Record<ComplianceSeverity, ComplianceResultCounts>
   groups: ComplianceGroupSummary[]
@@ -249,4 +252,62 @@ export async function fetchComplianceRuleDetail(
   }
 
   return response.json() as Promise<ComplianceRuleDetail>
+}
+
+export type RepositoryComplianceException = {
+  githubRepositoryId: number
+  ruleKey: string
+  reason: string
+  expiresAt: string | null
+  state: 'ACTIVE' | 'EXPIRED'
+  createdAt: string
+  updatedAt: string
+}
+
+export async function saveRepositoryComplianceException(
+  repositoryId: number,
+  ruleKey: string,
+  reason: string,
+  expiresAt: string | null,
+): Promise<RepositoryComplianceException> {
+  const response = await fetch(
+    '/api/compliance/repositories/' + repositoryId + '/exceptions/' + encodeURIComponent(ruleKey),
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason, expiresAt }),
+    },
+  )
+
+  if (!response.ok) {
+    throw new Error(`Compliance exception save failed with HTTP ${response.status}`)
+  }
+
+  return response.json() as Promise<RepositoryComplianceException>
+}
+
+export async function expireRepositoryComplianceException(
+  repositoryId: number,
+  ruleKey: string,
+): Promise<void> {
+  const response = await fetch(
+    '/api/compliance/repositories/' + repositoryId + '/exceptions/' + encodeURIComponent(ruleKey) + '/expire',
+    { method: 'POST' },
+  )
+  if (!response.ok) {
+    throw new Error(`Compliance exception expire failed with HTTP ${response.status}`)
+  }
+}
+
+export async function removeRepositoryComplianceException(
+  repositoryId: number,
+  ruleKey: string,
+): Promise<void> {
+  const response = await fetch(
+    '/api/compliance/repositories/' + repositoryId + '/exceptions/' + encodeURIComponent(ruleKey),
+    { method: 'DELETE' },
+  )
+  if (!response.ok) {
+    throw new Error(`Compliance exception delete failed with HTTP ${response.status}`)
+  }
 }
