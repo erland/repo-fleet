@@ -137,6 +137,109 @@ class GitHubRepositoryConditionalEnrichmentServiceTest {
         assertEquals(AnalysisState.COMPLETE, enriched.refreshStatus().state());
     }
 
+    @Test
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    void notModifiedReusesCachedLicenseActionsAndRelease() {
+        RepositorySummary cached = cachedRepository();
+
+        when(conditionalRequests.execute(
+                org.mockito.ArgumentMatchers.eq(1L),
+                org.mockito.ArgumentMatchers.eq("root-contents"),
+                anyString(),
+                any(),
+                any(),
+                any(),
+                any()))
+                .thenReturn((GitHubConditionalResult) GitHubConditionalResult.notModified(
+                        null,
+                        "\"contents-etag\""));
+
+        when(conditionalRequests.execute(
+                org.mockito.ArgumentMatchers.eq(1L),
+                org.mockito.ArgumentMatchers.eq("workflows"),
+                anyString(),
+                any(),
+                any(),
+                any(),
+                any()))
+                .thenReturn((GitHubConditionalResult) GitHubConditionalResult.notModified(
+                        null,
+                        "\"workflows-etag\""));
+
+        when(conditionalRequests.execute(
+                org.mockito.ArgumentMatchers.eq(1L),
+                org.mockito.ArgumentMatchers.eq("releases"),
+                anyString(),
+                any(),
+                any(),
+                any(),
+                any()))
+                .thenReturn((GitHubConditionalResult) GitHubConditionalResult.notModified(
+                        null,
+                        "\"releases-etag\""));
+
+        var service = new GitHubRepositoryClassificationEnrichmentService(
+                tokenService,
+                client,
+                new GitHubApiCallExecutor(tokenService),
+                conditionalRequests);
+
+        RepositorySummary enriched = service.enrich(cached);
+
+        assertEquals(cached.license(), enriched.license());
+        assertEquals(cached.githubActions(), enriched.githubActions());
+        assertEquals(cached.release(), enriched.release());
+        assertEquals(AnalysisState.COMPLETE, enriched.refreshStatus().state());
+    }
+
+    @Test
+    void transientFailuresPreserveCachedLicenseActionsAndRelease() {
+        RepositorySummary cached = cachedRepository();
+
+        when(conditionalRequests.execute(
+                org.mockito.ArgumentMatchers.eq(1L),
+                org.mockito.ArgumentMatchers.eq("root-contents"),
+                anyString(),
+                any(),
+                any(),
+                any(),
+                any()))
+                .thenThrow(new IllegalStateException("contents temporarily unavailable"));
+
+        when(conditionalRequests.execute(
+                org.mockito.ArgumentMatchers.eq(1L),
+                org.mockito.ArgumentMatchers.eq("workflows"),
+                anyString(),
+                any(),
+                any(),
+                any(),
+                any()))
+                .thenThrow(new IllegalStateException("workflows temporarily unavailable"));
+
+        when(conditionalRequests.execute(
+                org.mockito.ArgumentMatchers.eq(1L),
+                org.mockito.ArgumentMatchers.eq("releases"),
+                anyString(),
+                any(),
+                any(),
+                any(),
+                any()))
+                .thenThrow(new IllegalStateException("releases temporarily unavailable"));
+
+        var service = new GitHubRepositoryClassificationEnrichmentService(
+                tokenService,
+                client,
+                new GitHubApiCallExecutor(tokenService),
+                conditionalRequests);
+
+        RepositorySummary enriched = service.enrich(cached);
+
+        assertEquals(cached.license(), enriched.license());
+        assertEquals(cached.githubActions(), enriched.githubActions());
+        assertEquals(cached.release(), enriched.release());
+        assertEquals(AnalysisState.COMPLETE, enriched.refreshStatus().state());
+    }
+
     private RepositorySummary cachedRepository() {
         return new RepositorySummary(
                 1L,
