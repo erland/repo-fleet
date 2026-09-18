@@ -77,8 +77,8 @@ The early CI bootstrap has been superseded by the completed Step 24 Quality Gate
 | 24 | Repository exceptions / accepted deviations | DONE | Verified by green CI #275 and Coolify validation #195 on PR #38. Active accepted deviations are persisted, expiry-aware and separated from actionable failures. |
 | 25 | Exception management UI | DONE | Verified by green CI #289 and Coolify validation #209 on PR #38. Exception create/edit/expire/remove updates compliance summaries immediately. |
 | 26 | GitHub webhook endpoint foundation | DONE | Verified by green CI #301 and Coolify validation #221 on PR #38. Signed deliveries are verified, deduplicated and classified without GitHub writes. |
-| 27 | Repository lifecycle webhook handling | IN PROGRESS | Handling repository lifecycle events by updating persisted identity and marking enrichment stale. |
-| 28 | Push/release/workflow webhook invalidation | NOT STARTED | |
+| 27 | Repository lifecycle webhook handling | DONE | Verified by green CI #308 and Coolify validation #228 on PR #38. Repository lifecycle events update identity and mark enrichment stale. |
+| 28 | Push/release/workflow webhook invalidation | IN PROGRESS | Invalidating only affected cache categories for push, release, workflow and installation repository events. |
 | 29 | Targeted background refresh queue | NOT STARTED | |
 | 30 | Scheduled consistency refresh | NOT STARTED | |
 | 31 | Rate-limit and refresh diagnostics UI | NOT STARTED | |
@@ -88,10 +88,10 @@ The early CI bootstrap has been superseded by the completed Step 24 Quality Gate
 
 ## Current Position
 
-Current step: **Phase 2 Step 27 – Repository lifecycle webhook handling (IN PROGRESS).**
+Current step: **Phase 2 Step 28 – Push/release/workflow webhook invalidation (IN PROGRESS).**
 
 Phase 1 completed steps: **26 / 26**  
-Phase 2 completed steps: **26 / 34**
+Phase 2 completed steps: **27 / 34**
 
 ## Update Convention
 
