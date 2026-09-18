@@ -2,6 +2,7 @@ import { renderToString } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import App from './App'
 import { InventoryRefreshPanel } from './InventoryRefreshPanel'
+import { ComplianceOverviewPanel } from './ComplianceOverviewPanel'
 import { PortfolioSummaryPanel } from './PortfolioSummaryPanel'
 import { RepositoryDetailPanel } from './RepositoryDetailPanel'
 import { RepositoryFiltersPanel } from './RepositoryFiltersPanel'
@@ -9,7 +10,7 @@ import { RepositoryInventory } from './RepositoryInventory'
 import { RepositorySelectionBar } from './RepositorySelectionBar'
 import { RepositorySortControls } from './RepositorySortControls'
 import { SavedViewsPanel } from './SavedViewsPanel'
-import type { InventoryStatus, RepositorySummary } from './api'
+import type { CompliancePortfolioSummary, InventoryStatus, RepositorySummary } from './api'
 import { emptyRepositoryFilters } from './repositoryFilters'
 import { defaultRepositorySort } from './repositorySorting'
 import { summarizePortfolio } from './portfolioSummary'
@@ -513,3 +514,54 @@ describe('Accessibility and responsive markup', () => {
   })
 })
 
+
+describe('ComplianceOverviewPanel', () => {
+  it('renders severity counts, filters, freshness and priority deviations', () => {
+    const summary: CompliancePortfolioSummary = {
+      repositoryCount: 2,
+      evaluatedRuleCount: 4,
+      resultCounts: { PASS: 2, FAIL: 1, UNKNOWN: 1, NOT_APPLICABLE: 0 },
+      severityResultCounts: {
+        REQUIRED: { PASS: 1, FAIL: 1, UNKNOWN: 0, NOT_APPLICABLE: 0 },
+        RECOMMENDED: { PASS: 1, FAIL: 0, UNKNOWN: 1, NOT_APPLICABLE: 0 },
+        INFORMATIONAL: { PASS: 0, FAIL: 0, UNKNOWN: 0, NOT_APPLICABLE: 0 },
+      },
+      groups: [{
+        groupKey: 'services',
+        groupName: 'Services',
+        repositoryCount: 1,
+        resultCounts: { PASS: 1, FAIL: 1, UNKNOWN: 0, NOT_APPLICABLE: 0 },
+      }],
+      repositoriesWithMostRequiredFailures: [{
+        githubRepositoryId: 1001,
+        fullName: 'erland/roman-nollpunkten',
+        requiredFailureCount: 1,
+      }],
+      rules: [{
+        ruleKey: 'license-required',
+        ruleName: 'License required',
+        severity: 'REQUIRED',
+        resultCounts: { PASS: 1, FAIL: 1, UNKNOWN: 0, NOT_APPLICABLE: 0 },
+      }],
+    }
+
+    const html = renderToString(
+      <ComplianceOverviewPanel
+        summary={summary}
+        repositories={[{ ...repository, refreshStatus: { state: 'COMPLETE', message: null, freshness: 'STALE' } }]}
+        loading={false}
+        error={null}
+      />,
+    )
+
+    expect(html).toContain('Compliance overview')
+    expect(html).toContain('Required')
+    expect(html).toContain('Recommended')
+    expect(html).toContain('Informational')
+    expect(html).toContain('All groups')
+    expect(html).toContain('All rules')
+    expect(html).toContain('1 stale')
+    expect(html).toContain('Highest-priority deviations')
+    expect(html).toContain('1 required failure')
+  })
+})
