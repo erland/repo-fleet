@@ -6,6 +6,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.Set;
 
 @ApplicationScoped
 public class RepositoryIdentityRepository implements PanacheRepository<RepositoryIdentity> {
@@ -74,5 +75,14 @@ public class RepositoryIdentityRepository implements PanacheRepository<Repositor
         entity.lastSeenAt = seenAt;
         entity.active = active;
         return entity;
+    }
+    @Transactional
+    public long markMissingRepositoriesInactive(Set<Long> seenRepositoryIds) {
+        if (seenRepositoryIds == null || seenRepositoryIds.isEmpty()) {
+            return update("active = false where active = true");
+        }
+        return update(
+                "active = false where active = true and githubRepositoryId not in ?1",
+                seenRepositoryIds);
     }
 }
