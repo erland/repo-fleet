@@ -212,11 +212,11 @@ class GitHubWebhookEventProcessorTest {
         conditionalStates.recordModified(124L, "topics", "etag-topics", before);
 
         Instant receivedAt = Instant.parse("2026-09-18T14:00:00Z");
-        processor.process("release", "{"repository":{"id":124}}", receivedAt);
+        processor.process("release", "{\"repository\":{\"id\":124}}", receivedAt);
         assertNull(conditionalStates.find(124L, "releases").orElseThrow().lastSuccessfulFetchAt);
         assertEquals(before, conditionalStates.find(124L, "workflows").orElseThrow().lastSuccessfulFetchAt);
 
-        processor.process("workflow_run", "{"repository":{"id":124}}", receivedAt.plusSeconds(1));
+        processor.process("workflow_run", "{\"repository\":{\"id\":124}}", receivedAt.plusSeconds(1));
         assertNull(conditionalStates.find(124L, "workflows").orElseThrow().lastSuccessfulFetchAt);
         assertEquals(before, conditionalStates.find(124L, "topics").orElseThrow().lastSuccessfulFetchAt);
     }
