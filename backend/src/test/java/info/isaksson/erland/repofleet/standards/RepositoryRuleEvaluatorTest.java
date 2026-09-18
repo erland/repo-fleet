@@ -77,6 +77,16 @@ class RepositoryRuleEvaluatorTest {
                         rule("topic", RepositoryRuleType.REQUIRED_TOPIC, Map.of("topic", "security")),
                         NOW).result());
 
+        RepositorySummary partialTopics = withTopics(
+                List.of(),
+                new RepositoryRefreshStatus(AnalysisState.PARTIAL, "partial"));
+        assertEquals(
+                RepositoryRuleEvaluationResult.UNKNOWN,
+                evaluator.evaluate(
+                        partialTopics,
+                        rule("topic", RepositoryRuleType.REQUIRED_TOPIC, Map.of("topic", "architecture")),
+                        NOW).result());
+
         assertEquals(
                 RepositoryRuleEvaluationResult.NOT_APPLICABLE,
                 evaluator.evaluate(
@@ -183,6 +193,17 @@ class RepositoryRuleEvaluatorTest {
     private RepositorySummary withActivity(ActivityStatus activity) {
         RepositorySummary r = repository();
         return copy(r, r.license(), r.githubActions(), r.release(), activity);
+    }
+
+    private RepositorySummary withTopics(
+            List<String> topics,
+            RepositoryRefreshStatus refreshStatus) {
+        RepositorySummary r = repository();
+        return new RepositorySummary(
+                r.id(), r.owner(), r.name(), r.fullName(), r.url(), r.visibility(),
+                r.archived(), r.fork(), r.defaultBranch(), topics, r.languages(),
+                r.primaryLanguage(), r.license(), r.githubActions(), r.release(),
+                r.activity(), refreshStatus);
     }
 
     private RepositorySummary copy(
