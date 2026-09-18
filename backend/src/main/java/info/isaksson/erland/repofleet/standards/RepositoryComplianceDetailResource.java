@@ -16,13 +16,16 @@ public class RepositoryComplianceDetailResource {
 
     private final RepositoryComplianceResultService results;
     private final RepositoryIdentityRepository identities;
+    private final RepositoryComplianceExceptionService exceptions;
 
     @Inject
     public RepositoryComplianceDetailResource(
             RepositoryComplianceResultService results,
-            RepositoryIdentityRepository identities) {
+            RepositoryIdentityRepository identities,
+            RepositoryComplianceExceptionService exceptions) {
         this.results = results;
         this.identities = identities;
+        this.exceptions = exceptions;
     }
 
     @GET
@@ -31,6 +34,13 @@ public class RepositoryComplianceDetailResource {
         if (identities.findByGitHubRepositoryId(repositoryId).isEmpty()) {
             throw new NotFoundException("Repository not found");
         }
+
+        java.util.Map<String, RepositoryComplianceExceptionDefinition> activeExceptions =
+                exceptions.listForRepository(repositoryId).stream()
+                        .filter(exception -> exception.state() == RepositoryComplianceExceptionState.ACTIVE)
+                        .collect(java.util.stream.Collectors.toMap(
+                                RepositoryComplianceExceptionDefinition::ruleKey,
+                                exception -> exception));
 
         return results.listForRepository(repositoryId).stream()
                 .map(stored -> {
@@ -42,6 +52,8 @@ public class RepositoryComplianceDetailResource {
                             .orElseThrow(() -> new IllegalStateException(
                                     "Stored compliance result references missing rule: "
                                             + stored.evaluation().ruleKey()));
+                    RepositoryComplianceExceptionDefinition exception =
+                            activeExceptions.get(stored.evaluation().ruleKey());
                     return new RepositoryComplianceDetail(
                             stored.evaluation().ruleKey(),
                             rule.name,
@@ -50,7 +62,10 @@ public class RepositoryComplianceDetailResource {
                             stored.evaluation().result(),
                             stored.evaluation().reason(),
                             stored.evaluation().observedValue(),
-                            stored.evaluatedAt());
+                            stored.evaluatedAt(),
+                            exception != null,
+                            exception == null ? null : exception.reason(),
+                            exception == null ? null : exception.expiresAt());
                 })
                 .sorted(java.util.Comparator
                         .comparing(RepositoryComplianceDetail::severity)
