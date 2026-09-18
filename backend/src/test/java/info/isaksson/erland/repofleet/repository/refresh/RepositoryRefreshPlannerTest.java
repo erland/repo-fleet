@@ -81,7 +81,7 @@ class RepositoryRefreshPlannerTest {
 
         inventoryPersistence.synchronize(
                 List.of(discovered),
-                Instant.parse("2026-09-18T08:00:00Z"));
+                Instant.now());
 
         RepositoryRefreshPlan plan = planner.plan(List.of(discovered));
 
