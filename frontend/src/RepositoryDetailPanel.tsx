@@ -155,7 +155,7 @@ export function RepositoryDetailPanel({
                     <h4>{item.ruleName}</h4>
                     <span>{item.severity}</span>
                   </div>
-                  <strong>{item.result}</strong>
+                  <strong>{item.acceptedDeviation ? 'ACCEPTED DEVIATION' : item.result}</strong>
                 </div>
                 <dl>
                   <div>
@@ -170,6 +170,15 @@ export function RepositoryDetailPanel({
                     <dt>Last evaluated</dt>
                     <dd>{formatDate(item.evaluatedAt)}</dd>
                   </div>
+                  {item.acceptedDeviation && (
+                    <div>
+                      <dt>Exception</dt>
+                      <dd>
+                        {item.exceptionReason ?? 'Accepted deviation'}
+                        {item.exceptionExpiresAt ? ' · expires ' + formatDate(item.exceptionExpiresAt) : ''}
+                      </dd>
+                    </div>
+                  )}
                 </dl>
               </article>
             ))}
