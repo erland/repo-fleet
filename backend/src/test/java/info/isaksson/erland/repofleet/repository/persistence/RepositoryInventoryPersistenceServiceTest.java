@@ -53,6 +53,65 @@ class RepositoryInventoryPersistenceServiceTest {
         assertEquals(seenAt, stored.firstSeenAt);
         assertEquals(seenAt, stored.lastSeenAt);
         assertTrue(stored.active);
+        assertEquals(RepositoryChangeClassification.NEW.name(), stored.changeClassification);
+        assertEquals(seenAt, stored.changeDetectedAt);
+    }
+
+    @Test
+    @Transactional
+    void classifiesUnchangedRepositoryWhenFingerprintMatches() {
+        Instant firstSeen = Instant.parse("2026-09-18T07:00:00Z");
+        Instant secondSeen = Instant.parse("2026-09-18T08:00:00Z");
+
+        persistenceService.synchronize(List.of(repositorySummary(1001L, "one")), firstSeen);
+        persistenceService.synchronize(List.of(repositorySummary(1001L, "one")), secondSeen);
+
+        RepositoryIdentity stored = repository.findByGitHubRepositoryId(1001L).orElseThrow();
+        assertEquals(
+                RepositoryChangeClassification.APPARENTLY_UNCHANGED.name(),
+                stored.changeClassification);
+        assertEquals(secondSeen, stored.changeDetectedAt);
+    }
+
+    @Test
+    @Transactional
+    void classifiesChangedRepositoryWhenFingerprintDiffers() {
+        Instant firstSeen = Instant.parse("2026-09-18T07:00:00Z");
+        Instant secondSeen = Instant.parse("2026-09-18T08:00:00Z");
+
+        persistenceService.synchronize(List.of(repositorySummary(1001L, "one")), firstSeen);
+
+        RepositorySummary changed = new RepositorySummary(
+                1001L,
+                "erland",
+                "one",
+                "erland/one",
+                "https://github.com/erland/one",
+                RepositoryVisibility.PRIVATE,
+                true,
+                false,
+                "trunk",
+                List.of(),
+                List.of(),
+                null,
+                new LicenseStatus(AnalysisState.NOT_ANALYZED, LicensePresence.UNKNOWN, null, null, null),
+                new GitHubActionsStatus(AnalysisState.NOT_ANALYZED, null, null),
+                new ReleaseStatus(AnalysisState.NOT_ANALYZED, null, null, null, null, null),
+                new ActivityStatus(
+                        Instant.parse("2026-09-18T12:00:00Z"),
+                        Instant.parse("2026-09-18T12:05:00Z")),
+                new RepositoryRefreshStatus(AnalysisState.NOT_ANALYZED, "pending"));
+
+        persistenceService.synchronize(List.of(changed), secondSeen);
+
+        RepositoryIdentity stored = repository.findByGitHubRepositoryId(1001L).orElseThrow();
+        assertEquals(
+                RepositoryChangeClassification.LIKELY_CHANGED.name(),
+                stored.changeClassification);
+        assertEquals(RepositoryVisibility.PRIVATE, stored.visibility);
+        assertTrue(stored.archived);
+        assertEquals("trunk", stored.defaultBranch);
+        assertEquals(secondSeen, stored.changeDetectedAt);
     }
 
     @Test
