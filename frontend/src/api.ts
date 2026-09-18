@@ -198,6 +198,9 @@ export type RepositoryComplianceDetail = {
   reason: string
   observedValue: string | null
   evaluatedAt: string
+  acceptedDeviation?: boolean
+  exceptionReason?: string | null
+  exceptionExpiresAt?: string | null
 }
 
 export async function fetchRepositoryCompliance(
@@ -218,6 +221,9 @@ export type ComplianceRuleAffectedRepository = {
   result: ComplianceResult
   reason: string
   observedValue: string | null
+  acceptedDeviation?: boolean
+  exceptionReason?: string | null
+  exceptionExpiresAt?: string | null
 }
 
 export type ComplianceRuleDetail = {
