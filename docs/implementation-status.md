@@ -73,8 +73,8 @@ The early CI bootstrap has been superseded by the completed Step 24 Quality Gate
 | 20 | Compliance summary API | DONE | Verified by green CI #234 and Coolify validation #154 on PR #38. Frontend can consume persisted portfolio, severity, group, repository and rule compliance summaries. |
 | 21 | Compliance overview UI | DONE | Verified by green CI #241 and Coolify validation #161 on PR #38. Compliance overview exposes severity/result counts, filters, priority deviations and freshness. |
 | 22 | Repository compliance detail | DONE | Verified by green CI #249 and Coolify validation #169 on PR #38. Repository detail now explains each persisted compliance flag. |
-| 23 | Rule detail and affected repositories | IN PROGRESS | Adding rule-centric drill-down with scope/groups, result counts and failed/unknown repositories with reasons. |
-| 24 | Repository exceptions / accepted deviations | NOT STARTED | |
+| 23 | Rule detail and affected repositories | DONE | Verified by green CI #258 and Coolify validation #178 on PR #38. Rule drill-down shows scope/groups, counts and affected repositories with reasons. |
+| 24 | Repository exceptions / accepted deviations | IN PROGRESS | Persisting accepted deviations with optional expiry and separating active exceptions from actionable compliance failures. |
 | 25 | Exception management UI | NOT STARTED | |
 | 26 | GitHub webhook endpoint foundation | NOT STARTED | |
 | 27 | Repository lifecycle webhook handling | NOT STARTED | |
@@ -88,10 +88,10 @@ The early CI bootstrap has been superseded by the completed Step 24 Quality Gate
 
 ## Current Position
 
-Current step: **Phase 2 Step 23 – Rule detail and affected repositories (IN PROGRESS).**
+Current step: **Phase 2 Step 24 – Repository exceptions / accepted deviations (IN PROGRESS).**
 
 Phase 1 completed steps: **26 / 26**  
-Phase 2 completed steps: **22 / 34**
+Phase 2 completed steps: **23 / 34**
 
 ## Update Convention
 
