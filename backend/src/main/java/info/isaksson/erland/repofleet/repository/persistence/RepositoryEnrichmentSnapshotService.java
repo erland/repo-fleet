@@ -34,10 +34,53 @@ public class RepositoryEnrichmentSnapshotService {
     }
 
     @Transactional
+    public RepositoryEnrichmentSnapshot persistProgressiveResult(
+            RepositorySummary summary,
+            Instant completedAt) {
+        RepositoryRefreshStatus refreshStatus = summary.refreshStatus();
+        AnalysisState state = refreshStatus == null
+                ? AnalysisState.FAILED
+                : refreshStatus.state();
+
+        if (state == AnalysisState.FAILED) {
+            return snapshotRepository.findByGitHubRepositoryId(summary.id())
+                    .map(snapshot -> {
+                        snapshot.enrichmentState = AnalysisState.FAILED.name();
+                        snapshot.enrichmentMessage = refreshStatus == null ? null : refreshStatus.message();
+                        snapshot.lastRelevantError = refreshStatus == null ? null : refreshStatus.message();
+                        snapshot.updatedAt = completedAt;
+                        return snapshot;
+                    })
+                    .orElseGet(() -> saveSnapshot(
+                            summary,
+                            null,
+                            refreshStatus == null ? null : refreshStatus.message(),
+                            completedAt));
+        }
+
+        RepositoryEnrichmentSnapshot existing =
+                snapshotRepository.findByGitHubRepositoryId(summary.id()).orElse(null);
+        Instant lastSuccessfulRefreshAt =
+                state == AnalysisState.COMPLETE
+                        ? completedAt
+                        : existing == null ? null : existing.lastSuccessfulRefreshAt;
+
+        return saveSnapshot(summary, lastSuccessfulRefreshAt, null, completedAt);
+    }
+
+    @Transactional
     public RepositoryEnrichmentSnapshot saveSnapshot(
             RepositorySummary summary,
             Instant lastSuccessfulRefreshAt,
             String lastRelevantError) {
+        return saveSnapshot(summary, lastSuccessfulRefreshAt, lastRelevantError, Instant.now());
+    }
+
+    private RepositoryEnrichmentSnapshot saveSnapshot(
+            RepositorySummary summary,
+            Instant lastSuccessfulRefreshAt,
+            String lastRelevantError,
+            Instant updatedAt) {
         RepositoryEnrichmentSnapshot snapshot =
                 snapshotRepository.findByGitHubRepositoryId(summary.id())
                         .orElseGet(RepositoryEnrichmentSnapshot::new);
@@ -83,7 +126,7 @@ public class RepositoryEnrichmentSnapshotService {
         snapshot.enrichmentMessage = refreshStatus == null ? null : refreshStatus.message();
         snapshot.lastSuccessfulRefreshAt = lastSuccessfulRefreshAt;
         snapshot.lastRelevantError = lastRelevantError;
-        snapshot.updatedAt = Instant.now();
+        snapshot.updatedAt = updatedAt;
 
         if (snapshot.id == null) {
             snapshotRepository.persist(snapshot);
