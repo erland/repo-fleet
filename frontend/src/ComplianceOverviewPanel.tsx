@@ -97,6 +97,7 @@ export function ComplianceOverviewPanel({ summary, repositories, loading, error 
         <div className="compliance-freshness" aria-label="Compliance data freshness">
           <span>{staleCount} stale</span>
           <span>{refreshingCount} refreshing</span>
+          <span>{summary?.acceptedDeviationCount ?? 0} accepted deviations</span>
         </div>
       </div>
 
