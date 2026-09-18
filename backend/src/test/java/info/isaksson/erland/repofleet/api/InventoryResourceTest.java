@@ -19,6 +19,15 @@ class InventoryResourceTest {
                 .body("state", anyOf(equalTo("COMPLETED"), equalTo("PARTIAL"), equalTo("FAILED"), equalTo("RUNNING"), equalTo("NOT_STARTED")));
     }
     @Test
+    void exposesRefreshHistory() {
+        given()
+                .queryParam("limit", 10)
+                .when().get("/api/inventory/history")
+                .then()
+                .statusCode(200);
+    }
+
+    @Test
     void startsRefreshAndReturnsProgressShape() {
         given()
                 .when().post("/api/inventory/refresh")
