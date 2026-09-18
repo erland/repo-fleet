@@ -34,6 +34,7 @@ Set these as Coolify environment variables/secrets:
 REPOFLEET_GITHUB_APP_ID
 REPOFLEET_GITHUB_INSTALLATION_ID
 REPOFLEET_GITHUB_PRIVATE_KEY
+REPOFLEET_GITHUB_WEBHOOK_SECRET
 REPOFLEET_AUTH_CLIENT_ID
 REPOFLEET_AUTH_CLIENT_SECRET
 REPOFLEET_AUTH_SESSION_SECRET
@@ -127,3 +128,19 @@ database plus backups.
 Treat `REPOFLEET_DB_PASSWORD`, GitHub App credentials, session secret and webhook secret as production
 secrets. Store backups outside the Git repository and restrict access because they contain RepoFleet
 application state and repository metadata.
+
+
+## GitHub App webhook
+
+Phase 2 uses GitHub App webhooks for repository lifecycle changes and targeted cache invalidation.
+
+Configure the GitHub App webhook with:
+
+```text
+Webhook URL: https://repo-fleet.apps.isaksson.info/api/github/webhook
+Content type: application/json
+Secret: same value as REPOFLEET_GITHUB_WEBHOOK_SECRET
+Active: enabled
+```
+
+The backend verifies `X-Hub-Signature-256` and deduplicates deliveries by GitHub delivery ID. If `REPOFLEET_GITHUB_WEBHOOK_SECRET` is empty, signed webhook processing fails closed.
