@@ -161,10 +161,16 @@ export function ComplianceOverviewPanel({ summary, repositories, loading, error 
                           <li key={repository.githubRepositoryId}>
                             <div>
                               <strong>{repository.fullName}</strong>
-                              <span>{repository.result}</span>
+                              <span>{repository.acceptedDeviation ? 'ACCEPTED DEVIATION' : repository.result}</span>
                             </div>
                             <p>{repository.reason}</p>
                             {repository.observedValue && <small>Observed: {repository.observedValue}</small>}
+                            {repository.acceptedDeviation && (
+                              <small>
+                                Exception: {repository.exceptionReason ?? 'Accepted deviation'}
+                                {repository.exceptionExpiresAt ? ' · expires ' + new Date(repository.exceptionExpiresAt).toLocaleString() : ''}
+                              </small>
+                            )}
                           </li>
                         ))}
                       </ul>
