@@ -180,6 +180,25 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
         return repositories;
     }
 
+    public synchronized void replaceRepository(RepositorySummary updated) {
+        List<RepositorySummary> next = new ArrayList<>(repositories);
+        boolean replaced = false;
+        for (int index = 0; index < next.size(); index++) {
+            if (next.get(index).id() == updated.id()) {
+                next.set(index, updated);
+                replaced = true;
+                break;
+            }
+        }
+        if (!replaced) {
+            next.add(updated);
+        }
+        next.sort(java.util.Comparator.comparing(
+                RepositorySummary::fullName,
+                String.CASE_INSENSITIVE_ORDER));
+        repositories = List.copyOf(next);
+    }
+
     @Override
     public InventoryStatus getStatus() {
         return status;
