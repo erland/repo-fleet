@@ -34,19 +34,21 @@ public class RepositoryComplianceSummaryService {
 
     @Transactional
     public CompliancePortfolioSummary summarize() {
+        Map<Long, RepositoryIdentity> repositoriesById =
+                identities.list("active", true).stream()
+                        .collect(Collectors.toMap(identity -> identity.githubRepositoryId, Function.identity()));
+        Set<Long> activeRepositoryIds = repositoriesById.keySet();
+
         List<RepositoryComplianceResult> results =
                 RepositoryComplianceResult.listAll().stream()
                         .map(RepositoryComplianceResult.class::cast)
+                        .filter(result -> activeRepositoryIds.contains(result.githubRepositoryId))
                         .toList();
 
         Map<String, RepositoryStandardRule> rulesByKey =
                 RepositoryStandardRule.listAll().stream()
                         .map(RepositoryStandardRule.class::cast)
                         .collect(Collectors.toMap(rule -> rule.ruleKey, Function.identity()));
-
-        Map<Long, RepositoryIdentity> repositoriesById =
-                identities.listAll().stream()
-                        .collect(Collectors.toMap(identity -> identity.githubRepositoryId, Function.identity()));
 
         Map<RepositoryRuleEvaluationResult, Long> resultCounts =
                 emptyResultCounts();
