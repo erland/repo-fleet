@@ -91,7 +91,7 @@ class RepositoryComplianceResultServiceTest {
         assertEquals(1, first.size());
         assertEquals(RepositoryRuleEvaluationResult.PASS, first.getFirst().evaluation().result());
 
-        RepositoryComplianceResult persisted = RepositoryComplianceResult.find(
+        RepositoryComplianceResult persisted = (RepositoryComplianceResult) RepositoryComplianceResult.find(
                         "githubRepositoryId = ?1 and ruleKey = ?2",
                         repository.id(),
                         "license-required")
