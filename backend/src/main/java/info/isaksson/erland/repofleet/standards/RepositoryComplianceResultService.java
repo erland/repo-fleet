@@ -2,6 +2,7 @@ package info.isaksson.erland.repofleet.standards;
 
 import info.isaksson.erland.repofleet.repository.api.RepositorySummary;
 import info.isaksson.erland.repofleet.repository.persistence.RepositoryEnrichmentSnapshotRepository;
+import info.isaksson.erland.repofleet.repository.persistence.RepositoryIdentityRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -17,24 +18,28 @@ public class RepositoryComplianceResultService {
     private final RepositoryRuleAssignmentService assignments;
     private final RepositoryRuleEvaluator evaluator;
     private final RepositoryEnrichmentSnapshotRepository snapshots;
+    private final RepositoryIdentityRepository identities;
     private final Clock clock;
 
     @Inject
     public RepositoryComplianceResultService(
             RepositoryRuleAssignmentService assignments,
             RepositoryRuleEvaluator evaluator,
-            RepositoryEnrichmentSnapshotRepository snapshots) {
-        this(assignments, evaluator, snapshots, Clock.systemUTC());
+            RepositoryEnrichmentSnapshotRepository snapshots,
+            RepositoryIdentityRepository identities) {
+        this(assignments, evaluator, snapshots, identities, Clock.systemUTC());
     }
 
     RepositoryComplianceResultService(
             RepositoryRuleAssignmentService assignments,
             RepositoryRuleEvaluator evaluator,
             RepositoryEnrichmentSnapshotRepository snapshots,
+            RepositoryIdentityRepository identities,
             Clock clock) {
         this.assignments = assignments;
         this.evaluator = evaluator;
         this.snapshots = snapshots;
+        this.identities = identities;
         this.clock = clock;
     }
 
@@ -42,7 +47,9 @@ public class RepositoryComplianceResultService {
     public List<StoredRepositoryComplianceResult> evaluateAndPersist(RepositorySummary repository) {
         Instant sourceUpdatedAt = snapshots.findByGitHubRepositoryId(repository.id())
                 .map(snapshot -> snapshot.updatedAt)
-                .orElse(null);
+                .orElseGet(() -> identities.findByGitHubRepositoryId(repository.id())
+                        .map(identity -> identity.lastSeenAt)
+                        .orElse(null));
 
         List<ApplicableRepositoryRule> applicableRules = assignments.applicableRules(repository);
         java.util.Set<String> applicableRuleKeys = applicableRules.stream()
