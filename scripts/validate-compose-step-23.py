@@ -9,8 +9,11 @@ workflow = (root / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8
 checks = {
     "frontend service": re.search(r"(?m)^  frontend:$", compose) is not None,
     "backend service": re.search(r"(?m)^  backend:$", compose) is not None,
-    "no postgres service": re.search(r"(?im)^  (postgres|database|db):$", compose) is None,
+    "postgres service": re.search(r"(?m)^  postgres:$", compose) is not None,
     "backend health dependency": "condition: service_healthy" in compose,
+    "database healthcheck": "pg_isready" in compose,
+    "database volume": "repofleet-postgres-data" in compose,
+    "backend database URL": "REPOFLEET_DB_URL:" in compose and "jdbc:postgresql://postgres:5432/" in compose,
     "internal backend URL": "BACKEND_URL: http://backend:8080" in compose,
     "frontend host port configurable": "${REPOFLEET_FRONTEND_PORT:-8080}:8080" in compose,
     "backend host port configurable": "${REPOFLEET_BACKEND_PORT:-8081}:8080" in compose,
@@ -19,6 +22,8 @@ checks = {
     "private key not baked": "BEGIN PRIVATE KEY" not in compose,
     "env frontend port": "REPOFLEET_FRONTEND_PORT=8080" in env,
     "env backend port": "REPOFLEET_BACKEND_PORT=8081" in env,
+    "env database name": "REPOFLEET_DB_NAME=repofleet" in env,
+    "env database user": "REPOFLEET_DB_USER=repofleet" in env,
     "CI compose verification": "bash scripts/verify-step-23.sh" in workflow,
 }
 
