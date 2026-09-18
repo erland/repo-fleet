@@ -40,7 +40,11 @@ public class GitHubWebhookResource {
             return Response.status(Response.Status.UNAUTHORIZED).build();
         }
 
-        GitHubWebhookReceipt receipt = deliveries.record(deliveryId, eventType);
-        return Response.ok(receipt).build();
+        try {
+            GitHubWebhookReceipt receipt = deliveries.record(deliveryId, eventType, payload);
+            return Response.ok(receipt).build();
+        } catch (IllegalArgumentException exception) {
+            return Response.status(Response.Status.BAD_REQUEST).build();
+        }
     }
 }
