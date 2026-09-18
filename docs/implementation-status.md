@@ -56,8 +56,8 @@ The early CI bootstrap has been superseded by the completed Step 24 Quality Gate
 | 3 | Persist discovered repository inventory | DONE | Verified by green CI #104 and Coolify validation #24 on PR #38. Successful discovery synchronizes repository identity and active state. |
 | 4 | Serve cached repositories immediately on startup | DONE | Verified by green CI #108 and Coolify validation #28 on PR #38. Active repository identities are loaded before asynchronous GitHub refresh. |
 | 5 | Persistent enrichment snapshot model | DONE | Verified by green CI #114 and Coolify validation #34 on PR #38. Full RepositorySummary values can be reconstructed from PostgreSQL snapshots. |
-| 6 | Persist progressive enrichment results | IN PROGRESS | Persisting each completed repository enrichment while preserving valid cached metadata on transient failures. |
-| 7 | Refresh history and observability | NOT STARTED | |
+| 6 | Persist progressive enrichment results | DONE | Verified by green CI #119 and Coolify validation #39 on PR #38. Each completed enrichment is persisted and transient failures preserve valid cached metadata. |
+| 7 | Refresh history and observability | IN PROGRESS | Persisting refresh runs and exposing recent run history for operators. |
 | 8 | Repository change fingerprinting | NOT STARTED | |
 | 9 | Incremental refresh planner | NOT STARTED | |
 | 10 | GitHub conditional request infrastructure | NOT STARTED | |
@@ -88,10 +88,10 @@ The early CI bootstrap has been superseded by the completed Step 24 Quality Gate
 
 ## Current Position
 
-Current step: **Phase 2 Step 6 – Persist progressive enrichment results (IN PROGRESS).**
+Current step: **Phase 2 Step 7 – Refresh history and observability (IN PROGRESS).**
 
 Phase 1 completed steps: **26 / 26**  
-Phase 2 completed steps: **5 / 34**
+Phase 2 completed steps: **6 / 34**
 
 ## Update Convention
 
