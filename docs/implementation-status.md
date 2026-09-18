@@ -58,8 +58,8 @@ The early CI bootstrap has been superseded by the completed Step 24 Quality Gate
 | 5 | Persistent enrichment snapshot model | DONE | Verified by green CI #114 and Coolify validation #34 on PR #38. Full RepositorySummary values can be reconstructed from PostgreSQL snapshots. |
 | 6 | Persist progressive enrichment results | DONE | Verified by green CI #119 and Coolify validation #39 on PR #38. Each completed enrichment is persisted and transient failures preserve valid cached metadata. |
 | 7 | Refresh history and observability | DONE | Verified by green CI #127 and Coolify validation #47 on PR #38. Refresh runs are persisted and exposed through the inventory history API. |
-| 8 | Repository change fingerprinting | IN PROGRESS | Classifying discovery results as NEW, LIKELY_CHANGED or APPARENTLY_UNCHANGED against persisted GitHub metadata. |
-| 9 | Incremental refresh planner | NOT STARTED | |
+| 8 | Repository change fingerprinting | DONE | Verified by green CI #132 and Coolify validation #52 on PR #38. Discovery results are classified against persisted GitHub metadata. |
+| 9 | Incremental refresh planner | IN PROGRESS | Planning reuse vs enrichment per repository from change classification and cached snapshot availability. |
 | 10 | GitHub conditional request infrastructure | NOT STARTED | |
 | 11 | Conditional topics and languages refresh | NOT STARTED | |
 | 12 | Conditional license, workflows and release refresh | NOT STARTED | |
@@ -88,10 +88,10 @@ The early CI bootstrap has been superseded by the completed Step 24 Quality Gate
 
 ## Current Position
 
-Current step: **Phase 2 Step 8 – Repository change fingerprinting (IN PROGRESS).**
+Current step: **Phase 2 Step 9 – Incremental refresh planner (IN PROGRESS).**
 
 Phase 1 completed steps: **26 / 26**  
-Phase 2 completed steps: **7 / 34**
+Phase 2 completed steps: **8 / 34**
 
 ## Update Convention
 
