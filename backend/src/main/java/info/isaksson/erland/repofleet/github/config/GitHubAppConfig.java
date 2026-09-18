@@ -11,6 +11,7 @@ public interface GitHubAppConfig {
     Optional<Long> installationId();
     Optional<String> privateKey();
     Optional<String> privateKeyPath();
+    Optional<String> webhookSecret();
 
     @WithDefault("300")
     long tokenRefreshMarginSeconds();
