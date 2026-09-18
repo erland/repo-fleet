@@ -4,15 +4,50 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
 import info.isaksson.erland.repofleet.github.api.GitHubApiCallExecutor;
 import jakarta.ws.rs.core.Response;
+import java.time.Duration;
 import java.time.Instant;
+import info.isaksson.erland.repofleet.repository.refresh.RepositoryRefreshPolicy;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
 class GitHubConditionalRequestExecutorTest {
+
+    @Test
+    void freshCategoryCacheSkipsGitHubRequestEntirely() {
+        GitHubApiCallExecutor apiCalls = mock(GitHubApiCallExecutor.class);
+        GitHubConditionalRequestStateService states = mock(GitHubConditionalRequestStateService.class);
+        GitHubConditionalRequestState existing = new GitHubConditionalRequestState();
+        existing.etag = "\"etag-1\"";
+        existing.lastSuccessfulFetchAt = Instant.parse("2026-09-18T08:50:00Z");
+        when(states.find(1234L, "topics")).thenReturn(java.util.Optional.of(existing));
+
+        RepositoryRefreshPolicy policy = new RepositoryRefreshPolicy(
+                Duration.ofMinutes(15),
+                Duration.ofMinutes(60),
+                Duration.ofHours(24));
+        GitHubConditionalRequestExecutor executor =
+                new GitHubConditionalRequestExecutor(apiCalls, states, policy);
+
+        var result = executor.execute(
+                1234L,
+                "topics",
+                "topics",
+                Instant.parse("2026-09-18T09:00:00Z"),
+                (authorization, etag) -> Response.ok("should-not-run").build(),
+                response -> response.readEntity(String.class),
+                () -> "cached-value");
+
+        assertEquals(GitHubConditionalResult.Status.CACHED_FRESH, result.status());
+        assertEquals("cached-value", result.value());
+        verify(apiCalls, never()).execute(
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.any());
+    }
 
     @Test
     void sendsPersistedEtagAndStoresNewEtagAfterModifiedResponse() {
