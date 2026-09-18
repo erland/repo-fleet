@@ -3,6 +3,7 @@ package info.isaksson.erland.repofleet.repository.inventory;
 import info.isaksson.erland.repofleet.repository.api.AnalysisState;
 import info.isaksson.erland.repofleet.repository.api.RepositoryRefreshStatus;
 import info.isaksson.erland.repofleet.repository.api.RepositorySummary;
+import info.isaksson.erland.repofleet.repository.persistence.RepositoryInventoryPersistenceService;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -22,6 +23,7 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
     private final RepositoryEnrichmentService enrichmentService;
     private final Clock clock;
     private final ExecutorService refreshExecutor;
+    private final RepositoryInventoryPersistenceService persistenceService;
     private final ReentrantLock refreshLock = new ReentrantLock();
 
     private volatile List<RepositorySummary> repositories = List.of();
@@ -30,7 +32,8 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
     @Inject
     public InMemoryRepositoryInventoryService(
             GitHubRepositoryDiscoveryService discoveryService,
-            RepositoryEnrichmentService enrichmentService) {
+            RepositoryEnrichmentService enrichmentService,
+            RepositoryInventoryPersistenceService persistenceService) {
         this(
                 discoveryService,
                 enrichmentService,
@@ -39,14 +42,15 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
                     Thread thread = new Thread(runnable, "repo-fleet-inventory-refresh");
                     thread.setDaemon(true);
                     return thread;
-                }));
+                }),
+                persistenceService);
     }
 
     InMemoryRepositoryInventoryService(
             GitHubRepositoryDiscoveryService discoveryService,
             RepositoryEnrichmentService enrichmentService,
             Clock clock) {
-        this(discoveryService, enrichmentService, clock, null);
+        this(discoveryService, enrichmentService, clock, null, null);
     }
 
     InMemoryRepositoryInventoryService(
@@ -54,10 +58,20 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
             RepositoryEnrichmentService enrichmentService,
             Clock clock,
             ExecutorService refreshExecutor) {
+        this(discoveryService, enrichmentService, clock, refreshExecutor, null);
+    }
+
+    InMemoryRepositoryInventoryService(
+            GitHubRepositoryDiscoveryService discoveryService,
+            RepositoryEnrichmentService enrichmentService,
+            Clock clock,
+            ExecutorService refreshExecutor,
+            RepositoryInventoryPersistenceService persistenceService) {
         this.discoveryService = discoveryService;
         this.enrichmentService = enrichmentService;
         this.clock = clock;
         this.refreshExecutor = refreshExecutor;
+        this.persistenceService = persistenceService;
     }
 
     @PostConstruct
@@ -127,6 +141,26 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
                         0,
                         null);
                 return status;
+            }
+
+            if (persistenceService != null) {
+                try {
+                    persistenceService.synchronize(discovered, clock.instant());
+                } catch (RuntimeException exception) {
+                    status = new InventoryStatus(
+                            InventoryRefreshState.FAILED,
+                            startedAt,
+                            status.lastSuccessfulRefreshAt(),
+                            clock.instant(),
+                            "Repository inventory persistence failed: " + safeMessage(exception),
+                            repositories.size(),
+                            discovered.size(),
+                            0,
+                            0,
+                            0,
+                            null);
+                    return status;
+                }
             }
 
             int total = discovered.size();
