@@ -8,7 +8,6 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.util.ArrayList;
 import java.util.EnumMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -57,6 +56,15 @@ public class RepositoryComplianceSummaryService {
         List<RepositoryComplianceResult> actionableResults = results.stream()
                 .filter(result -> !acceptedDeviation.test(result))
                 .toList();
+        Map<Long, List<RepositoryComplianceResult>> actionableResultsByRepositoryId =
+                actionableResults.stream()
+                        .collect(Collectors.groupingBy(result -> result.githubRepositoryId));
+        Map<String, List<RepositoryComplianceResult>> actionableResultsByRuleKey =
+                actionableResults.stream()
+                        .collect(Collectors.groupingBy(result -> result.ruleKey));
+        Map<String, List<RepositoryComplianceResult>> resultsByRuleKey =
+                results.stream()
+                        .collect(Collectors.groupingBy(result -> result.ruleKey));
         long acceptedDeviationCount = results.stream()
                 .filter(acceptedDeviation)
                 .count();
@@ -84,10 +92,10 @@ public class RepositoryComplianceSummaryService {
                         .map(repository -> new ComplianceRepositoryFailureSummary(
                                 repository.githubRepositoryId,
                                 repository.fullName,
-                                results.stream()
-                                        .filter(result -> result.githubRepositoryId == repository.githubRepositoryId)
+                                actionableResultsByRepositoryId
+                                        .getOrDefault(repository.githubRepositoryId, List.of())
+                                        .stream()
                                         .filter(result -> result.result == RepositoryRuleEvaluationResult.FAIL)
-                                        .filter(result -> !acceptedDeviation.test(result))
                                         .filter(result -> {
                                             RepositoryStandardRule rule = rulesByKey.get(result.ruleKey);
                                             return rule != null && rule.severity == RepositoryRuleSeverity.REQUIRED;
@@ -105,11 +113,12 @@ public class RepositoryComplianceSummaryService {
                 .sorted(java.util.Comparator.comparing(rule -> rule.ruleKey))
                 .map(rule -> {
                     Map<RepositoryRuleEvaluationResult, Long> counts = emptyResultCounts();
-                    actionableResults.stream()
-                            .filter(result -> result.ruleKey.equals(rule.ruleKey))
+                    actionableResultsByRuleKey
+                            .getOrDefault(rule.ruleKey, List.of())
                             .forEach(result -> increment(counts, result.result));
-                    long ruleAcceptedDeviations = results.stream()
-                            .filter(result -> result.ruleKey.equals(rule.ruleKey))
+                    long ruleAcceptedDeviations = resultsByRuleKey
+                            .getOrDefault(rule.ruleKey, List.of())
+                            .stream()
                             .filter(acceptedDeviation)
                             .count();
                     return new ComplianceRuleSummary(
@@ -121,12 +130,18 @@ public class RepositoryComplianceSummaryService {
                 })
                 .toList();
 
+        Map<Long, info.isaksson.erland.repofleet.repository.api.RepositorySummary> reconstructedRepositoriesById =
+                repositoriesById.values().stream()
+                        .map(snapshots::reconstruct)
+                        .collect(Collectors.toMap(
+                                repository -> repository.id(),
+                                Function.identity()));
+
         List<ComplianceGroupSummary> groupSummaries = new ArrayList<>();
         for (RepositoryGroupDefinition group : groups.list().stream()
                 .filter(RepositoryGroupDefinition::enabled)
                 .toList()) {
-            Set<Long> memberIds = repositoriesById.values().stream()
-                    .map(snapshots::reconstruct)
+            Set<Long> memberIds = reconstructedRepositoriesById.values().stream()
                     .filter(repository -> groups.matchingGroups(repository).stream()
                             .anyMatch(match -> match.groupKey().equals(group.groupKey())))
                     .map(repository -> repository.id())
