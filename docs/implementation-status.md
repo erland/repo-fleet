@@ -110,13 +110,13 @@ Detailed plan: `docs/ux-improvement-plan.md`.
 | 3 | Replace mobile result cards/table with a compact repository list | DONE | Verified by successful CI run #449 on PR #47. |
 | 4 | Make repository rows open RepoFleet details; GitHub becomes secondary | DONE | Verified by successful CI run #454 on PR #47. |
 | 5 | Compact repository details and add relative recent activity times | DONE | Verified by successful CI run #458 on PR #47. |
-| 6 | Final mobile density and usability validation | IN PROGRESS | Mobile header/navigation/launcher spacing tightened and compact rows protected by responsive tests. Awaiting CI verification. |
+| 6 | Final mobile density and usability validation | DONE | Verified by successful CI run #464 on PR #47. |
 
 Detailed plan: `docs/repository-launcher-ux-plan.md`.
 
 ## Current Position
 
-Current step: **Repository Launcher UX Iteration 2 – Step 6 IN PROGRESS; Phase 2 remains complete.**
+Current step: **Repository Launcher UX Iteration 2 COMPLETE; Phase 2 remains complete.**
 
 Phase 1 completed steps: **26 / 26**  
 Phase 2 completed steps: **34 / 34**
