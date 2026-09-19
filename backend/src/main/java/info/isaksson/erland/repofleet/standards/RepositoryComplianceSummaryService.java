@@ -130,12 +130,18 @@ public class RepositoryComplianceSummaryService {
                 })
                 .toList();
 
+        Map<Long, info.isaksson.erland.repofleet.repository.api.RepositorySummary> reconstructedRepositoriesById =
+                repositoriesById.values().stream()
+                        .map(snapshots::reconstruct)
+                        .collect(Collectors.toMap(
+                                repository -> repository.id(),
+                                Function.identity()));
+
         List<ComplianceGroupSummary> groupSummaries = new ArrayList<>();
         for (RepositoryGroupDefinition group : groups.list().stream()
                 .filter(RepositoryGroupDefinition::enabled)
                 .toList()) {
-            Set<Long> memberIds = repositoriesById.values().stream()
-                    .map(snapshots::reconstruct)
+            Set<Long> memberIds = reconstructedRepositoriesById.values().stream()
                     .filter(repository -> groups.matchingGroups(repository).stream()
                             .anyMatch(match -> match.groupKey().equals(group.groupKey())))
                     .map(repository -> repository.id())
