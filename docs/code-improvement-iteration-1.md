@@ -33,8 +33,8 @@ Improve maintainability without changing RepoFleet behaviour. Work in small, ver
 | 1 | Remove superseded finder/sort components and their dedicated tests | DONE |
 | 2 | Remove CSS that is proven unused after Step 1 | DONE |
 | 3 | Extract repository-workspace orchestration from `App.tsx` without behaviour changes | DONE |
-| 4 | Split monolithic frontend tests and centralize reusable repository fixtures | IN PROGRESS |
-| 5 | Perform focused backend service-boundary analysis and implement the highest-value low-risk finding | NOT STARTED |
+| 4 | Split monolithic frontend tests and centralize reusable repository fixtures | DONE |
+| 5 | Perform focused backend service-boundary analysis and implement the highest-value low-risk finding | IN PROGRESS |
 | 6 | Final cleanup, documentation and full CI verification | NOT STARTED |
 
 ## Step 1 acceptance
@@ -82,6 +82,24 @@ Completed and verified by successful CI run #474 on PR #48.
 - Existing coverage for repository discovery, details, accessibility and saved views is preserved.
 - Full CI passes.
 
+## Step 4 verification
+
+Completed and verified by successful CI run #478 on PR #48.
+
+## Step 5 finding
+
+The refresh queue service deduplicates active jobs in `enqueue()`, but `enqueueStaleRepositories()` previously incremented its queued counter even when `enqueue()` only returned an already-active job. This made the reported queueing result larger than the number of jobs actually created.
+
+The improvement keeps deduplication in one private helper and only increments the stale-queue count when no active job already exists.
+
+## Step 5 acceptance
+
+- Active targeted refresh jobs are still deduplicated.
+- `enqueueStaleRepositories()` counts only newly created jobs.
+- A regression test covers an already-active stale repository.
+- No queue state-machine semantics are changed.
+- Full CI passes.
+
 ## Next step
 
-After Step 4 is verified by CI: Step 5 – perform a focused backend service-boundary analysis and implement the highest-value low-risk finding.
+After Step 5 is verified by CI: Step 6 – final cleanup, documentation and full CI verification.
