@@ -6,6 +6,9 @@ import java.util.List;
 public record RefreshDiagnosticsSnapshot(
         Integer rateLimitRemaining,
         Instant rateLimitResetAt,
+        boolean rateLimitPaused,
+        Instant rateLimitResumeAt,
+        String rateLimitPauseReason,
         long conditionalModifiedCount,
         long conditionalNotModifiedCount,
         long conditionalCachedFreshCount,

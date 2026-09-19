@@ -85,10 +85,7 @@ public class RepositoryRefreshPlanner {
                 scheduled++;
             } else {
                 if (snapshot.isPresent()
-                        && AnalysisState.COMPLETE.name().equals(snapshot.get().enrichmentState)
-                        && refreshPolicy.identityFresh(identity, now)
-                        && refreshPolicy.enrichmentFresh(snapshot.get(), now)
-                        && !refreshPolicy.fullConsistencyDue(snapshot.get(), now)) {
+                        && AnalysisState.COMPLETE.name().equals(snapshot.get().enrichmentState)) {
                     action = RepositoryRefreshAction.REUSE_CACHED;
                     reused++;
                 } else {

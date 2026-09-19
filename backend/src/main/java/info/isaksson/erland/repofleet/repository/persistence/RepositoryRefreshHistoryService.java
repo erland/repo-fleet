@@ -47,6 +47,12 @@ public class RepositoryRefreshHistoryService {
     }
 
     @Transactional
+    public Instant latestAttemptAt() {
+        RepositoryRefreshRun run = RepositoryRefreshRun.find("order by startedAt desc").firstResult();
+        return run == null ? null : run.startedAt;
+    }
+
+    @Transactional
     public List<RepositoryRefreshRunSummary> recentRuns(int limit) {
         int boundedLimit = Math.max(1, Math.min(limit, 100));
         return RepositoryRefreshRun.find("order by startedAt desc")

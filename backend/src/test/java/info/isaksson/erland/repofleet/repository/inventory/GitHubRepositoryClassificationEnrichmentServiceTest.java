@@ -66,6 +66,32 @@ class GitHubRepositoryClassificationEnrichmentServiceTest {
 
 
     @Test
+    void volatileVerificationChecksTopicsAndReleasesOnly() {
+        when(client.getTopics(anyString(), anyString(), anyString(), anyString(), anyString()))
+                .thenReturn(new GitHubTopicsResponse(List.of("architecture")));
+        when(client.getReleases(
+                anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyInt()))
+                .thenReturn(List.of(new GitHubReleaseResponse(
+                        1L,
+                        "v1.1.0",
+                        "v1.1.0",
+                        false,
+                        false,
+                        Instant.parse("2026-09-19T04:00:00Z"),
+                        Instant.parse("2026-09-19T03:00:00Z"))));
+
+        RepositorySummary verified = service.verifyVolatileMetadata(repository());
+
+        assertEquals(List.of("architecture"), verified.topics());
+        assertEquals("v1.1.0", verified.release().latestReleaseTag());
+        assertEquals(AnalysisState.COMPLETE, verified.refreshStatus().state());
+        verify(client, never()).getLanguages(anyString(), anyString(), anyString(), anyString(), anyString());
+        verify(client, never()).getRootContents(anyString(), anyString(), anyString(), anyString(), anyString());
+        verify(client, never()).getWorkflows(
+                anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyInt());
+    }
+
+    @Test
     void stopsEnrichmentWhenRepositoryBecomesUnavailable() {
         when(client.getTopics(anyString(), anyString(), anyString(), anyString(), anyString()))
                 .thenThrow(new WebApplicationException(Response.status(404).build()));

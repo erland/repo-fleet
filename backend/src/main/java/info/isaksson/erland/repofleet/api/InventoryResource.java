@@ -40,6 +40,12 @@ public class InventoryResource {
         return inventoryService.startRefresh();
     }
 
+    @POST
+    @Path("/refresh/full")
+    public InventoryStatus fullRefresh() {
+        return inventoryService.startFullRefresh();
+    }
+
     @GET
     @Path("/history")
     public List<RepositoryRefreshRunSummary> history(@QueryParam("limit") Integer limit) {

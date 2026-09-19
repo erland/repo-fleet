@@ -92,7 +92,8 @@ Production deployments should always override the database password with a deplo
 | `REPOFLEET_REFRESH_ENRICHMENT_WORKERS` | `2` | Bounded worker count for full inventory enrichment. |
 | `REPOFLEET_REFRESH_TARGETED_QUEUE_ENABLED` | `true` | Enables the persistent targeted refresh worker/poller. |
 | `REPOFLEET_REFRESH_TARGETED_WORKERS` | `2` | Bounded worker count for targeted refresh jobs. |
-| `REPOFLEET_REFRESH_CONSISTENCY_SCHEDULER_ENABLED` | `true` | Enables low-frequency consistency refresh. |
+| `REPOFLEET_REFRESH_USAGE_CHECK_INTERVAL_MINUTES` | `60` | Minimum interval between repository discovery/fingerprint checks triggered by authenticated use. |
+| `REPOFLEET_REFRESH_CONSISTENCY_SCHEDULER_ENABLED` | `false` | Optional background consistency scheduler; disabled by default because normal consistency checks are usage-triggered. |
 | `REPOFLEET_REFRESH_CONSISTENCY_INTERVAL_HOURS` | `24` | Interval between scheduled consistency refreshes. |
 | `REPOFLEET_REFRESH_IDENTITY_FRESHNESS_MINUTES` | `15` | Identity freshness window. |
 | `REPOFLEET_REFRESH_ENRICHMENT_FRESHNESS_MINUTES` | `60` | Overall enrichment freshness window. |
@@ -104,3 +105,23 @@ Production deployments should always override the database password with a deplo
 | `REPOFLEET_REFRESH_FULL_CONSISTENCY_HOURS` | `24` | Maximum age before full consistency enrichment is forced. |
 
 Production must set a non-empty `REPOFLEET_GITHUB_WEBHOOK_SECRET` when GitHub App webhooks are enabled.
+
+
+### Usage-triggered consistency checks
+
+RepoFleet loads persisted repository data from PostgreSQL at backend startup without contacting GitHub. The first authenticated API use starts a repository discovery/fingerprint check when the latest refresh attempt is older than `REPOFLEET_REFRESH_USAGE_CHECK_INTERVAL_MINUTES`.
+
+Repositories with a complete persisted enrichment snapshot and an unchanged repository fingerprint are reused without full enrichment, regardless of snapshot age. New repositories, repositories whose fingerprint changed, and repositories with incomplete enrichment are scheduled for enrichment. A changed fingerprint invalidates conditional-resource freshness so the subsequent enrichment checks GitHub instead of trusting an otherwise-fresh category TTL.
+
+
+For apparently unchanged repositories, each usage-triggered consistency run performs lightweight conditional verification of topics and releases only. Their existing 60-minute freshness settings and ETags prevent these resources from being fetched more often than configured. Languages, license/root contents, and workflows are not re-enriched unless the repository fingerprint changes or the stored enrichment is incomplete.
+
+
+### GitHub rate limiting
+
+RepoFleet treats HTTP 429 and HTTP 403 with `X-RateLimit-Remaining: 0` as rate-limit responses. Before retrying, it waits for GitHub's `Retry-After` value when present, otherwise until `X-RateLimit-Reset`, with a one-second safety margin. If neither header is usable, it falls back to a short bounded backoff. While a refresh is waiting, the UI reports that GitHub rate limiting has temporarily paused progress and shows the expected automatic resume time.
+
+
+### Manual full refresh
+
+The normal **Refresh repositories** action uses discovery, fingerprint classification and lightweight cached verification. A separate **Full refresh** action calls `POST /api/inventory/refresh/full`. It invalidates conditional-resource freshness for every discovered repository and schedules full enrichment for all repositories, while retaining persisted values as a safe baseline for conditional 304 responses.

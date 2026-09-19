@@ -131,6 +131,20 @@ describe('InventoryRefreshPanel', () => {
     expect(html).toContain('Refresh repositories')
   })
 
+  it('renders a separate full refresh control when provided', () => {
+    const html = renderToString(
+      <InventoryRefreshPanel
+        status={inventoryStatus()}
+        statusError={null}
+        refreshing={false}
+        onRefresh={() => undefined}
+        onFullRefresh={() => undefined}
+      />,
+    )
+
+    expect(html).toContain('Full refresh')
+  })
+
   it('renders refresh progress without hiding existing-data guidance', () => {
     const html = renderToString(
       <InventoryRefreshPanel
@@ -153,6 +167,34 @@ describe('InventoryRefreshPanel', () => {
     expect(html).toContain('erland/repo-fleet')
     expect(html).toContain('Existing repository data remains available')
     expect(html).toContain('Refreshing')
+  })
+
+  it('shows a temporary GitHub rate-limit pause and resume time', () => {
+    const html = renderToString(
+      <InventoryRefreshPanel
+        status={inventoryStatus({ state: 'RUNNING', totalCount: 10, processedCount: 4, running: true })}
+        statusError={null}
+        refreshing
+        diagnostics={{
+          rateLimitRemaining: 0,
+          rateLimitResetAt: '2026-09-19T06:00:00Z',
+          rateLimitPaused: true,
+          rateLimitResumeAt: '2026-09-19T06:00:01Z',
+          rateLimitPauseReason: 'GitHub API rate limit reached',
+          conditionalModifiedCount: 0,
+          conditionalNotModifiedCount: 0,
+          conditionalCachedFreshCount: 0,
+          webhookTriggeredRefreshCount: 0,
+          targetedFailedCount: 0,
+          recentRuns: [],
+          recentTargetedFailures: [],
+        }}
+        onRefresh={() => undefined}
+      />,
+    )
+
+    expect(html).toContain('Temporarily paused by GitHub rate limiting')
+    expect(html).toContain('Refresh will continue automatically')
   })
 
   it('renders the success state', () => {
@@ -626,6 +668,9 @@ describe('RefreshDiagnosticsPanel', () => {
         diagnostics={{
           rateLimitRemaining: 4321,
           rateLimitResetAt: '2026-09-18T18:00:00Z',
+          rateLimitPaused: false,
+          rateLimitResumeAt: null,
+          rateLimitPauseReason: null,
           conditionalModifiedCount: 5,
           conditionalNotModifiedCount: 12,
           conditionalCachedFreshCount: 30,

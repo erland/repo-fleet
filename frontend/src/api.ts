@@ -120,6 +120,16 @@ export async function startInventoryRefresh(): Promise<InventoryStatus> {
   return response.json() as Promise<InventoryStatus>
 }
 
+export async function startFullInventoryRefresh(): Promise<InventoryStatus> {
+  const response = await fetch('/api/inventory/refresh/full', { method: 'POST' })
+
+  if (!response.ok) {
+    throw new Error(`Full inventory refresh request failed with HTTP ${response.status}`)
+  }
+
+  return response.json() as Promise<InventoryStatus>
+}
+
 
 export type AuthenticatedUser = {
   login: string
@@ -341,6 +351,9 @@ export type TargetedRefreshFailure = {
 export type RefreshDiagnosticsSnapshot = {
   rateLimitRemaining: number | null
   rateLimitResetAt: string | null
+  rateLimitPaused: boolean
+  rateLimitResumeAt: string | null
+  rateLimitPauseReason: string | null
   conditionalModifiedCount: number
   conditionalNotModifiedCount: number
   conditionalCachedFreshCount: number

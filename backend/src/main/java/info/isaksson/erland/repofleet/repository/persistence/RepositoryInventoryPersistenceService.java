@@ -1,5 +1,6 @@
 package info.isaksson.erland.repofleet.repository.persistence;
 
+import info.isaksson.erland.repofleet.github.conditional.GitHubConditionalRequestStateService;
 import info.isaksson.erland.repofleet.repository.api.RepositorySummary;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -14,13 +15,23 @@ public class RepositoryInventoryPersistenceService {
 
     private final RepositoryIdentityRepository repository;
     private final RepositoryChangeFingerprintService changeFingerprintService;
+    private final GitHubConditionalRequestStateService conditionalStateService;
 
     @Inject
     public RepositoryInventoryPersistenceService(
             RepositoryIdentityRepository repository,
-            RepositoryChangeFingerprintService changeFingerprintService) {
+            RepositoryChangeFingerprintService changeFingerprintService,
+            GitHubConditionalRequestStateService conditionalStateService) {
         this.repository = repository;
         this.changeFingerprintService = changeFingerprintService;
+        this.conditionalStateService = conditionalStateService;
+    }
+
+    @Transactional
+    public void invalidateConditionalState(List<RepositorySummary> repositories, Instant invalidatedAt) {
+        for (RepositorySummary summary : repositories) {
+            conditionalStateService.invalidateAll(summary.id(), invalidatedAt);
+        }
     }
 
     @Transactional
@@ -64,6 +75,9 @@ public class RepositoryInventoryPersistenceService {
             }
             stored.changeClassification = classification.name();
             stored.changeDetectedAt = seenAt;
+            if (classification == RepositoryChangeClassification.LIKELY_CHANGED) {
+                conditionalStateService.invalidateAll(summary.id(), seenAt);
+            }
         }
 
         repository.markMissingRepositoriesInactive(seenRepositoryIds);

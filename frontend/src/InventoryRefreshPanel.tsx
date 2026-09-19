@@ -1,10 +1,12 @@
-import type { InventoryStatus } from './api'
+import type { InventoryStatus, RefreshDiagnosticsSnapshot } from './api'
 
 type InventoryRefreshPanelProps = {
   status: InventoryStatus | null
   statusError: string | null
   refreshing: boolean
+  diagnostics?: RefreshDiagnosticsSnapshot | null
   onRefresh: () => void
+  onFullRefresh?: () => void
 }
 
 function formatTimestamp(value: string | null | undefined): string {
@@ -28,7 +30,9 @@ export function InventoryRefreshPanel({
   status,
   statusError,
   refreshing,
+  diagnostics,
   onRefresh,
+  onFullRefresh,
 }: InventoryRefreshPanelProps) {
   const running = refreshing || status?.state === 'RUNNING'
   const showPartial = status?.state === 'PARTIAL'
@@ -53,9 +57,16 @@ export function InventoryRefreshPanel({
             Last successful refresh: <strong>{formatTimestamp(status?.lastSuccessfulRefreshAt)}</strong>
           </p>
         </div>
-        <button className="refresh-button" type="button" onClick={onRefresh} disabled={running}>
-          {running ? 'Refreshing…' : 'Refresh repositories'}
-        </button>
+        <div className="refresh-actions">
+          <button className="refresh-button" type="button" onClick={onRefresh} disabled={running}>
+            {running ? 'Refreshing…' : 'Refresh repositories'}
+          </button>
+          {onFullRefresh && (
+            <button className="refresh-button refresh-button-secondary" type="button" onClick={onFullRefresh} disabled={running}>
+              Full refresh
+            </button>
+          )}
+        </div>
       </div>
 
       {running && status && (
@@ -69,7 +80,16 @@ export function InventoryRefreshPanel({
             max={Math.max(status.totalCount, 1)}
             value={Math.min(status.processedCount, Math.max(status.totalCount, 1))}
           />
-          {status.currentRepository && <p>Currently analyzing {status.currentRepository}</p>}
+          {diagnostics?.rateLimitPaused && diagnostics.rateLimitResumeAt ? (
+            <div className="refresh-message refresh-message-warning" role="status">
+              <strong>Temporarily paused by GitHub rate limiting.</strong>
+              <span>
+                Refresh will continue automatically around {formatTimestamp(diagnostics.rateLimitResumeAt)}.
+              </span>
+            </div>
+          ) : (
+            status.currentRepository && <p>Currently analyzing {status.currentRepository}</p>
+          )}
           <p className="refresh-note">Existing repository data remains available while refresh is running.</p>
         </div>
       )}

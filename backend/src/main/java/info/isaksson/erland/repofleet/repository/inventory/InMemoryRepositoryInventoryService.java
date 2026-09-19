@@ -165,7 +165,7 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
         if (cachedInventoryService != null) {
             repositories = List.copyOf(cachedInventoryService.loadActiveRepositories());
         }
-        startRefresh("AUTOMATIC");
+        status = InventoryStatus.cached(repositories.size());
     }
 
     @PreDestroy
@@ -206,33 +206,42 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
 
     @Override
     public InventoryStatus startRefresh() {
-        return startRefresh("MANUAL");
+        return startRefresh("MANUAL", false);
+    }
+
+    @Override
+    public InventoryStatus startFullRefresh() {
+        return startRefresh("MANUAL_FULL", true);
     }
 
     public InventoryStatus startScheduledConsistencyRefresh() {
-        return startRefresh("SCHEDULED_CONSISTENCY");
+        return startRefresh("SCHEDULED_CONSISTENCY", false);
     }
 
-    private InventoryStatus startRefresh(String triggerType) {
+    public InventoryStatus startUsageRefresh() {
+        return startRefresh("AUTHENTICATED_USE", false);
+    }
+
+    private InventoryStatus startRefresh(String triggerType, boolean forceFull) {
         if (status.running()) {
             return status;
         }
         if (refreshExecutor == null) {
-            return refreshFrom(clock.instant(), triggerType);
+            return refreshFrom(clock.instant(), triggerType, forceFull);
         }
 
         Instant startedAt = clock.instant();
         status = runningStatus(startedAt, 0, 0, 0, 0, null);
-        refreshExecutor.submit(() -> refreshFrom(startedAt, triggerType));
+        refreshExecutor.submit(() -> refreshFrom(startedAt, triggerType, forceFull));
         return status;
     }
 
     @Override
     public InventoryStatus refresh() {
-        return refreshFrom(clock.instant(), "MANUAL");
+        return refreshFrom(clock.instant(), "MANUAL", false);
     }
 
-    private InventoryStatus refreshFrom(Instant startedAt, String triggerType) {
+    private InventoryStatus refreshFrom(Instant startedAt, String triggerType, boolean forceFull) {
         if (!refreshLock.tryLock()) {
             return status;
         }
@@ -299,9 +308,27 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
                 }
             }
 
+            if (forceFull && persistenceService != null) {
+                persistenceService.invalidateConditionalState(discovered, clock.instant());
+            }
+
             RepositoryRefreshPlan refreshPlan = refreshPlanner == null
                     ? null
                     : refreshPlanner.plan(discovered);
+
+            if (forceFull && refreshPlan != null) {
+                refreshPlan = new RepositoryRefreshPlan(
+                        refreshPlan.items().stream()
+                                .map(item -> new RepositoryRefreshPlanItem(
+                                        item.discovered(),
+                                        RepositoryRefreshAction.FULL_ENRICHMENT,
+                                        item.cached()))
+                                .toList(),
+                        0,
+                        refreshPlan.newCount(),
+                        refreshPlan.changedCount(),
+                        refreshPlan.items().size());
+            }
             if (refreshPlan != null) {
                 reusedCount = refreshPlan.reusedCount();
                 newCount = refreshPlan.newCount();
@@ -438,22 +465,6 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
         try {
             for (int index = 0; index < refreshPlan.items().size(); index++) {
                 RepositoryRefreshPlanItem item = refreshPlan.items().get(index);
-                if (item.action() == RepositoryRefreshAction.REUSE_CACHED) {
-                    RepositorySummary reused = item.cached();
-                    working.set(index, reused);
-                    processed++;
-                    AnalysisState state = repositoryState(reused);
-                    if (state == AnalysisState.COMPLETE) {
-                        successful++;
-                    } else {
-                        errors++;
-                        if (state == AnalysisState.FAILED) {
-                            hardFailures++;
-                        }
-                    }
-                    continue;
-                }
-
                 final int resultIndex = index;
                 completion.submit(() -> new IndexedEnrichmentResult(
                         resultIndex,
@@ -547,7 +558,11 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
             RepositoryRefreshPlanItem planItem,
             RepositorySummary repository) {
         if (planItem != null && planItem.action() == RepositoryRefreshAction.REUSE_CACHED) {
-            return planItem.cached();
+            RepositorySummary verified = verifyVolatileMetadataSafely(planItem.cached());
+            if (snapshotService != null) {
+                snapshotService.persistProgressiveResult(verified, clock.instant());
+            }
+            return verified;
         }
 
         RepositorySummary enrichmentBase = enrichmentBase(planItem, repository);
@@ -670,6 +685,33 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
                         current == null ? AnalysisState.NOT_ANALYZED : current.state(),
                         current == null ? null : current.message(),
                         freshness));
+    }
+
+    private RepositorySummary verifyVolatileMetadataSafely(RepositorySummary repository) {
+        try {
+            return enrichmentService.verifyVolatileMetadata(repository);
+        } catch (RuntimeException exception) {
+            return new RepositorySummary(
+                    repository.id(),
+                    repository.owner(),
+                    repository.name(),
+                    repository.fullName(),
+                    repository.url(),
+                    repository.visibility(),
+                    repository.archived(),
+                    repository.fork(),
+                    repository.defaultBranch(),
+                    repository.topics(),
+                    repository.languages(),
+                    repository.primaryLanguage(),
+                    repository.license(),
+                    repository.githubActions(),
+                    repository.release(),
+                    repository.activity(),
+                    new RepositoryRefreshStatus(
+                            AnalysisState.PARTIAL,
+                            "Repository volatile metadata verification failed: " + safeMessage(exception)));
+        }
     }
 
     private RepositorySummary enrichSafely(RepositorySummary repository) {
