@@ -60,6 +60,7 @@ export default function App() {
   const [detailComplianceLoading, setDetailComplianceLoading] = useState(false)
   const [detailComplianceError, setDetailComplianceError] = useState<string | null>(null)
   const [savedViews, setSavedViews] = useState<SavedRepositoryView[]>([])
+  const [activeSavedViewId, setActiveSavedViewId] = useState<string | null>(null)
   const [savedViewsInitialized, setSavedViewsInitialized] = useState(false)
   const [savedViewsStorageAvailable, setSavedViewsStorageAvailable] = useState(true)
   const mountedRef = useRef(true)
@@ -242,10 +243,28 @@ export default function App() {
 
     setFilters({ ...view.filters })
     setSort({ ...view.sort })
+    setActiveSavedViewId(viewId)
   }, [savedViews])
+
+  const showAllRepositories = useCallback(() => {
+    setFilters(emptyRepositoryFilters)
+    setSort(defaultRepositorySort)
+    setActiveSavedViewId(null)
+  }, [])
+
+  const changeFilters = useCallback((nextFilters: typeof filters) => {
+    setFilters(nextFilters)
+    setActiveSavedViewId(null)
+  }, [])
+
+  const changeSort = useCallback((nextSort: typeof sort) => {
+    setSort(nextSort)
+    setActiveSavedViewId(null)
+  }, [])
 
   const deleteSavedView = useCallback((viewId: string) => {
     setSavedViews((current) => removeSavedView(current, viewId))
+    setActiveSavedViewId((current) => current === viewId ? null : current)
   }, [])
 
   const reloadRepositoryCompliance = useCallback(async (repositoryId: number) => {
@@ -452,14 +471,16 @@ export default function App() {
 
         <RepositoryFiltersPanel
           filters={filters}
-          onChange={setFilters}
+          onChange={changeFilters}
           totalCount={repositories.length}
           filteredCount={filteredRepositories.length}
         />
 
         <SavedViewsPanel
           views={savedViews}
+          activeViewId={activeSavedViewId}
           storageAvailable={savedViewsStorageAvailable}
+          onShowAll={showAllRepositories}
           onSave={saveCurrentView}
           onLoad={loadSavedView}
           onDelete={deleteSavedView}
@@ -467,7 +488,7 @@ export default function App() {
 
         <RepositorySortControls
           sort={sort}
-          onChange={setSort}
+          onChange={changeSort}
           totalCount={repositories.length}
           filteredCount={filteredRepositories.length}
         />
