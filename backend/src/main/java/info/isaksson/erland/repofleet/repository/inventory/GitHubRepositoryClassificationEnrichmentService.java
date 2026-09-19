@@ -61,8 +61,17 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
         LicenseStatus license = repository.license();
         GitHubActionsStatus githubActions = repository.githubActions();
         ReleaseStatus release = repository.release();
+        LicenseStatus cachedLicense = license;
+        GitHubActionsStatus cachedActions = githubActions;
+        ReleaseStatus cachedRelease = release;
         boolean cachedEnrichmentComplete = repository.refreshStatus() != null
                 && repository.refreshStatus().state() == AnalysisState.COMPLETE;
+        boolean cachedLicenseComplete = license != null
+                && license.analysisState() == AnalysisState.COMPLETE;
+        boolean cachedActionsComplete = githubActions != null
+                && githubActions.analysisState() == AnalysisState.COMPLETE;
+        boolean cachedReleaseComplete = release != null
+                && release.analysisState() == AnalysisState.COMPLETE;
 
         boolean topicsComplete = false;
         boolean languagesComplete = false;
@@ -171,7 +180,6 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
             if (conditionalRequests == null) {
                 license = refreshLicenseDirect(repository);
             } else {
-                LicenseStatus cachedLicense = license;
                 var contentsResult = conditionalRequests.execute(
                         repository.id(),
                         "root-contents",
@@ -188,11 +196,9 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
                         () -> null);
 
                 if (contentsResult.reusedCached()) {
-                    if (!cachedEnrichmentComplete) {
-                        throw new IllegalStateException(
-                                "Root contents were not modified but no complete cached license state is available.");
-                    }
-                    license = cachedLicense;
+                    license = cachedLicenseComplete
+                            ? cachedLicense
+                            : refreshLicenseDirect(repository);
                 } else {
                     List<GitHubContentItemResponse> contents =
                             contentsResult.value() == null ? List.of() : contentsResult.value();
@@ -224,8 +230,10 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
                                         etag),
                                 response -> response.readEntity(GitHubLicenseResponse.class),
                                 () -> null);
-                        if (licenseResult.reusedCached() && cachedEnrichmentComplete) {
-                            license = cachedLicense;
+                        if (licenseResult.reusedCached()) {
+                            license = cachedLicenseComplete
+                                    ? cachedLicense
+                                    : refreshLicenseDirect(repository);
                         } else {
                             license = toLicenseStatus(licenseResult.value());
                         }
@@ -244,13 +252,15 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
                         null,
                         "Custom or unrecognized license");
                 licenseComplete = true;
-            } else if (cachedEnrichmentComplete) {
+            } else if (cachedLicenseComplete) {
+                license = cachedLicense;
                 licenseComplete = true;
             } else {
                 errors.add("license: " + safeMessage(exception));
             }
         } catch (RuntimeException exception) {
-            if (cachedEnrichmentComplete) {
+            if (cachedLicenseComplete) {
+                license = cachedLicense;
                 licenseComplete = true;
             } else {
                 errors.add("license: " + safeMessage(exception));
@@ -271,7 +281,6 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
                                 1));
                 githubActions = toActionsStatus(response);
             } else {
-                GitHubActionsStatus cachedActions = githubActions;
                 var result = conditionalRequests.execute(
                         repository.id(),
                         "workflows",
@@ -288,13 +297,18 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
                                 1),
                         response -> response.readEntity(GitHubWorkflowsResponse.class),
                         () -> null);
-                githubActions = result.reusedCached() && cachedEnrichmentComplete
-                        ? cachedActions
-                        : toActionsStatus(result.value());
+                if (result.reusedCached()) {
+                    githubActions = cachedActionsComplete
+                            ? cachedActions
+                            : refreshActionsDirect(repository);
+                } else {
+                    githubActions = toActionsStatus(result.value());
+                }
             }
             actionsComplete = true;
         } catch (RuntimeException exception) {
-            if (cachedEnrichmentComplete) {
+            if (cachedActionsComplete) {
+                githubActions = cachedActions;
                 actionsComplete = true;
             } else {
                 githubActions = new GitHubActionsStatus(
@@ -310,7 +324,6 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
                 GitHubReleaseResponse latest = findLatestPublishedRelease(repository);
                 release = toReleaseStatus(latest);
             } else {
-                ReleaseStatus cachedRelease = release;
                 var result = conditionalRequests.execute(
                         repository.id(),
                         "releases",
@@ -327,15 +340,18 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
                                 1),
                         response -> response.readEntity(new GenericType<List<GitHubReleaseResponse>>() {}),
                         () -> null);
-                if (result.reusedCached() && cachedEnrichmentComplete) {
-                    release = cachedRelease;
+                if (result.reusedCached()) {
+                    release = cachedReleaseComplete
+                            ? cachedRelease
+                            : toReleaseStatus(findLatestPublishedRelease(repository));
                 } else {
                     release = toReleaseStatus(findLatestPublishedRelease(repository, result.value()));
                 }
             }
             releaseComplete = true;
         } catch (RuntimeException exception) {
-            if (cachedEnrichmentComplete) {
+            if (cachedReleaseComplete) {
+                release = cachedRelease;
                 releaseComplete = true;
             } else {
                 release = new ReleaseStatus(
@@ -600,6 +616,20 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
                 recognized,
                 key,
                 name);
+    }
+
+    private GitHubActionsStatus refreshActionsDirect(RepositorySummary repository) {
+        GitHubWorkflowsResponse response = apiCalls.execute(
+                "workflows for " + repository.fullName(),
+                authorization -> client.getWorkflows(
+                        repository.owner(),
+                        repository.name(),
+                        authorization,
+                        GitHubInstallationTokenService.ACCEPT,
+                        GitHubInstallationTokenService.API_VERSION,
+                        1,
+                        1));
+        return toActionsStatus(response);
     }
 
     private GitHubActionsStatus toActionsStatus(GitHubWorkflowsResponse response) {
