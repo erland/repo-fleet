@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import appSource from './App.tsx?raw'
+import stylesSource from './styles.css?raw'
 
 describe('repository finder layout', () => {
   it('keeps the compact repository launcher directly before repository results', () => {
@@ -26,5 +27,19 @@ describe('repository finder layout', () => {
     expect(appSource).toContain('Skip to main content')
     expect(appSource).toContain('aria-controls="repositories-workspace"')
     expect(appSource).toContain('aria-controls="insights-workspace"')
+  })
+
+  it('keeps the mobile discovery shell compact without shrinking primary touch targets', () => {
+    expect(stylesSource).toContain('@media (max-width: 720px)')
+    expect(stylesSource).toContain('.app-header .intro')
+    expect(stylesSource).toContain('display: none')
+    expect(stylesSource).toContain('.workspace-tab')
+    expect(stylesSource).toContain('min-height: 2.75rem')
+    expect(stylesSource).toContain('.repository-finder')
+    expect(stylesSource).toContain('margin-bottom: .5rem')
+    expect(stylesSource).toContain('.repository-table tbody')
+    expect(stylesSource).toContain('gap: .35rem')
+    expect(stylesSource).toContain('.repository-table td[data-label="Topics"]')
+    expect(stylesSource).toContain('.mobile-github-link { display: none; }')
   })
 })
