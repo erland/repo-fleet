@@ -122,20 +122,42 @@ export function RepositoryInventory({
               const visibleTopics = repository.topics.slice(0, 2)
               const hiddenTopicCount = Math.max(0, repository.topics.length - visibleTopics.length)
               return (
-                <tr key={repository.id} className={selectedRepositoryIds.has(repository.id) ? 'repository-row-selected' : undefined}>
+                <tr
+                  key={repository.id}
+                  className={selectedRepositoryIds.has(repository.id) ? 'repository-row-selected repository-row-interactive' : 'repository-row-interactive'}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Open details for ${repository.fullName}`}
+                  onClick={() => onOpenDetails(repository.id)}
+                  onKeyDown={(event) => {
+                    if (event.target !== event.currentTarget) return
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault()
+                      onOpenDetails(repository.id)
+                    }
+                  }}
+                >
                   <td className="selection-column" data-label="Select">
                     <input
                       type="checkbox"
                       aria-label={`Select ${repository.fullName}`}
                       checked={selectedRepositoryIds.has(repository.id)}
+                      onClick={(event) => event.stopPropagation()}
                       onChange={() => onToggleRepository(repository.id)}
                     />
                   </td>
                   <td data-label="Repository">
                     <div className="repository-identity">
-                      <a href={repository.url} target="_blank" rel="noreferrer" className="repository-link">
+                      <button
+                        className="repository-link repository-details-link"
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          onOpenDetails(repository.id)
+                        }}
+                      >
                         {repository.fullName}
-                      </a>
+                      </button>
                       <div className="repository-badges repository-badges-desktop">
                         <span className="inline-badge">{repository.visibility.toLowerCase()}</span>
                         {repository.archived && <span className="inline-badge">Archived</span>}
@@ -151,13 +173,15 @@ export function RepositoryInventory({
                         {hiddenTopicCount > 0 && <span className="repository-signal">+{hiddenTopicCount}</span>}
                         {flags.map((flag) => <span className="repository-signal repository-signal-warning" key={flag}>{flag}</span>)}
                       </div>
-                      <button
-                        className="mobile-details-button"
-                        type="button"
-                        onClick={() => onOpenDetails(repository.id)}
+                      <a
+                        className="mobile-github-link"
+                        href={repository.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={(event) => event.stopPropagation()}
                       >
-                        View details
-                      </button>
+                        GitHub
+                      </a>
                     </div>
                   </td>
                   <td data-label="Topics">
@@ -179,9 +203,15 @@ export function RepositoryInventory({
                     )}
                   </td>
                   <td data-label="Details">
-                    <button className="table-action-button" type="button" onClick={() => onOpenDetails(repository.id)}>
-                      View details
-                    </button>
+                    <a
+                      className="table-action-button repository-github-link"
+                      href={repository.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      GitHub
+                    </a>
                   </td>
                 </tr>
               )
