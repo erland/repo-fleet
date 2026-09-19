@@ -56,7 +56,7 @@ describe('RepositoryLauncherToolbar', () => {
       />,
     )
 
-    expect(html).toContain('Filters · 2')
+    expect(html).toMatch(/Filters(?:<!-- -->)? · 2/)
     expect(html).toContain('<details class="launcher-filters">')
     expect(html).not.toContain('<details class="launcher-filters" open')
     expect(html).toContain('4 of 20 repositories')
