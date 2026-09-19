@@ -95,15 +95,15 @@ The early CI bootstrap has been superseded by the completed Step 24 Quality Gate
 | 3 | Make saved views first-class navigation | DONE | Verified by successful CI run #410 on PR #46. |
 | 4 | Simplify repository result list | DONE | Verified by successful CI run #416 on PR #46. |
 | 5 | Compress refresh into system status | DONE | Verified by successful CI run #421 on PR #46. |
-| 6 | Move analytics and diagnostics to secondary navigation | IN PROGRESS | Repositories remain the default workspace; portfolio, compliance and diagnostics moved to a secondary workspace. Awaiting CI verification. |
-| 7 | Refine repository detail flow | NOT STARTED | |
+| 6 | Move analytics and diagnostics to secondary navigation | DONE | Verified by successful CI run #425 on PR #46. |
+| 7 | Refine repository detail flow | IN PROGRESS | Repository details now open in a focused drawer with grouped overview, progressive maintenance disclosure and retained compliance context. Awaiting CI verification. |
 | 8 | Responsive and accessibility final pass | NOT STARTED | |
 
 Detailed plan: `docs/ux-improvement-plan.md`.
 
 ## Current Position
 
-Current step: **UX improvement Step 6 IN PROGRESS; Phase 2 remains complete.**
+Current step: **UX improvement Step 7 IN PROGRESS; Phase 2 remains complete.**
 
 Phase 1 completed steps: **26 / 26**  
 Phase 2 completed steps: **34 / 34**
