@@ -31,8 +31,8 @@ Improve maintainability without changing RepoFleet behaviour. Work in small, ver
 | Step | Change | Status |
 |---|---|---|
 | 1 | Remove superseded finder/sort components and their dedicated tests | DONE |
-| 2 | Remove CSS that is proven unused after Step 1 | IN PROGRESS |
-| 3 | Extract repository-workspace orchestration from `App.tsx` without behaviour changes | NOT STARTED |
+| 2 | Remove CSS that is proven unused after Step 1 | DONE |
+| 3 | Extract repository-workspace orchestration from `App.tsx` without behaviour changes | IN PROGRESS |
 | 4 | Split monolithic frontend tests and centralize reusable repository fixtures | NOT STARTED |
 | 5 | Perform focused backend service-boundary analysis and implement the highest-value low-risk finding | NOT STARTED |
 | 6 | Final cleanup, documentation and full CI verification | NOT STARTED |
@@ -57,6 +57,19 @@ Completed and verified by successful CI run #468 on PR #48.
 - No active component loses required selectors.
 - Full CI passes.
 
+## Step 2 verification
+
+Completed and verified by successful CI run #470 on PR #48.
+
+## Step 3 acceptance
+
+- Repository workspace composition is moved out of `App.tsx` into a dedicated `RepositoryWorkspace` component.
+- Authentication, backend loading, refresh orchestration and state ownership remain in `App.tsx`.
+- Repository launcher, details, selection, inventory, saved-view management and refresh panel are composed inside `RepositoryWorkspace`.
+- Existing finder/layout tests protect the new component boundary.
+- No user-visible behaviour changes.
+- Full CI passes.
+
 ## Next step
 
-After Step 2 is verified by CI: Step 3 – extract repository-workspace orchestration from `App.tsx` without behaviour changes.
+After Step 3 is verified by CI: Step 4 – split monolithic frontend tests and centralize reusable repository fixtures.
