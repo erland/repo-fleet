@@ -21,8 +21,8 @@ Design principle:
 | ---: | --- | --- |
 | 1 | Replace finder panels with a compact repository launcher toolbar | DONE |
 | 2 | Move advanced filters into a dedicated secondary disclosure/drawer | DONE |
-| 3 | Replace mobile result cards/table with a compact repository list | IN PROGRESS |
-| 4 | Make repository rows open RepoFleet details; GitHub becomes secondary | NOT STARTED |
+| 3 | Replace mobile result cards/table with a compact repository list | DONE |
+| 4 | Make repository rows open RepoFleet details; GitHub becomes secondary | IN PROGRESS |
 | 5 | Compact repository details and add relative recent activity times | NOT STARTED |
 | 6 | Final mobile density and usability validation | NOT STARTED |
 
@@ -68,6 +68,20 @@ Completed and verified by successful CI run #444 on PR #47.
 - Existing repository selection and detail actions remain available.
 - Frontend tests pass.
 
-## Next step after Step 3
+## Step 3 verification
 
-Step 4 – Make repository rows open RepoFleet details; GitHub becomes secondary.
+Completed and verified by successful CI run #449 on PR #47.
+
+## Step 4 acceptance
+
+- Clicking a repository row opens RepoFleet repository details.
+- Repository name is an explicit internal details action rather than an external GitHub link.
+- Enter/Space on a focused repository row opens details.
+- Selection checkbox remains independent and does not open details.
+- GitHub remains available as a secondary link and does not trigger the RepoFleet detail action.
+- Mobile and desktop use the same primary interaction model.
+- Frontend tests pass.
+
+## Next step after Step 4
+
+Step 5 – Compact repository details and add relative recent activity times.
