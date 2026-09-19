@@ -1,6 +1,8 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import appSource from './App.tsx?raw'
-import stylesSource from './styles.css?raw'
+
+const stylesSource = readFileSync(new URL('./styles.css', import.meta.url), 'utf8')
 
 describe('repository finder layout', () => {
   it('keeps the compact repository launcher directly before repository results', () => {
