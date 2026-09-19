@@ -192,6 +192,48 @@ class InMemoryRepositoryInventoryServiceTest {
     }
 
     @Test
+    void manualFullRefreshForcesEnrichmentForOtherwiseReusableRepository() {
+        RepositorySummary discovered = repository(1L, "one");
+        RepositorySummary cached = complete(discovered);
+        AtomicInteger fullCalls = new AtomicInteger();
+
+        RepositoryRefreshPlanner planner = org.mockito.Mockito.mock(RepositoryRefreshPlanner.class);
+        org.mockito.Mockito.when(planner.plan(List.of(discovered)))
+                .thenReturn(new RepositoryRefreshPlan(
+                        List.of(new RepositoryRefreshPlanItem(
+                                discovered,
+                                RepositoryRefreshAction.REUSE_CACHED,
+                                cached)),
+                        1, 0, 0, 0));
+
+        RepositoryInventoryPersistenceService persistence =
+                org.mockito.Mockito.mock(RepositoryInventoryPersistenceService.class);
+
+        var service = new InMemoryRepositoryInventoryService(
+                () -> List.of(discovered),
+                repository -> {
+                    fullCalls.incrementAndGet();
+                    return complete(repository);
+                },
+                CLOCK,
+                null,
+                persistence,
+                null,
+                null,
+                null,
+                planner,
+                1);
+
+        InventoryStatus completed = service.startFullRefresh();
+
+        assertEquals(1, fullCalls.get());
+        assertEquals(0, completed.reusedCount());
+        assertEquals(1, completed.scheduledCount());
+        org.mockito.Mockito.verify(persistence)
+                .invalidateConditionalState(List.of(discovered), CLOCK.instant());
+    }
+
+    @Test
     void concurrentEnrichmentNeverExceedsConfiguredWorkerCount() throws Exception {
         List<RepositorySummary> discovered = List.of(
                 repository(1L, "one"),

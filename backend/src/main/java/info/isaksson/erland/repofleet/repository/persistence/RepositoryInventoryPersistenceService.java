@@ -28,6 +28,13 @@ public class RepositoryInventoryPersistenceService {
     }
 
     @Transactional
+    public void invalidateConditionalState(List<RepositorySummary> repositories, Instant invalidatedAt) {
+        for (RepositorySummary summary : repositories) {
+            conditionalStateService.invalidateAll(summary.id(), invalidatedAt);
+        }
+    }
+
+    @Transactional
     public void synchronize(List<RepositorySummary> discovered, Instant seenAt) {
         Set<Long> seenRepositoryIds = new HashSet<>();
 

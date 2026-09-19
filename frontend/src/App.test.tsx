@@ -131,6 +131,20 @@ describe('InventoryRefreshPanel', () => {
     expect(html).toContain('Refresh repositories')
   })
 
+  it('renders a separate full refresh control when provided', () => {
+    const html = renderToString(
+      <InventoryRefreshPanel
+        status={inventoryStatus()}
+        statusError={null}
+        refreshing={false}
+        onRefresh={() => undefined}
+        onFullRefresh={() => undefined}
+      />,
+    )
+
+    expect(html).toContain('Full refresh')
+  })
+
   it('renders refresh progress without hiding existing-data guidance', () => {
     const html = renderToString(
       <InventoryRefreshPanel

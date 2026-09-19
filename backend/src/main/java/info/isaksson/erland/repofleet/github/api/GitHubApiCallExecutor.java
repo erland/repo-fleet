@@ -31,7 +31,7 @@ public class GitHubApiCallExecutor {
         this(tokenService, rateLimitWaitState, Clock.systemUTC(), GitHubApiCallExecutor::sleep);
     }
 
-    GitHubApiCallExecutor(GitHubInstallationTokenService tokenService) {
+    public GitHubApiCallExecutor(GitHubInstallationTokenService tokenService) {
         this(tokenService, new GitHubRateLimitWaitState(), Clock.systemUTC(), ignored -> {});
     }
 

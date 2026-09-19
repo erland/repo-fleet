@@ -11,6 +11,7 @@ import {
   removeRepositoryComplianceException,
   logout,
   startInventoryRefresh,
+  startFullInventoryRefresh,
   type AuthSession,
   type InventoryStatus,
   type RepositorySummary,
@@ -349,6 +350,28 @@ export default function App() {
     }
   }, [inventoryStatus?.state, loadRepositories, refreshing])
 
+  const fullRefreshRepositories = useCallback(async () => {
+    if (refreshing || inventoryStatus?.state === 'RUNNING') return
+
+    setRefreshing(true)
+    setStatusError(null)
+
+    try {
+      const started = await startFullInventoryRefresh()
+      if (!mountedRef.current) return
+      setInventoryStatus(started)
+
+      if (started.state !== 'RUNNING') {
+        setRefreshing(false)
+        await loadRepositories(false)
+      }
+    } catch {
+      if (!mountedRef.current) return
+      setRefreshing(false)
+      setStatusError('Full repository refresh could not be started.')
+    }
+  }, [inventoryStatus?.state, loadRepositories, refreshing])
+
   const signOut = useCallback(async () => {
     try {
       await logout()
@@ -426,6 +449,7 @@ export default function App() {
         refreshing={refreshing}
         diagnostics={refreshDiagnostics}
         onRefresh={refreshRepositories}
+        onFullRefresh={fullRefreshRepositories}
       />
 
       <RepositoryFiltersPanel

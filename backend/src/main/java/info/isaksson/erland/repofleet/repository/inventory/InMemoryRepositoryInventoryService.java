@@ -206,37 +206,42 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
 
     @Override
     public InventoryStatus startRefresh() {
-        return startRefresh("MANUAL");
+        return startRefresh("MANUAL", false);
+    }
+
+    @Override
+    public InventoryStatus startFullRefresh() {
+        return startRefresh("MANUAL_FULL", true);
     }
 
     public InventoryStatus startScheduledConsistencyRefresh() {
-        return startRefresh("SCHEDULED_CONSISTENCY");
+        return startRefresh("SCHEDULED_CONSISTENCY", false);
     }
 
     public InventoryStatus startUsageRefresh() {
-        return startRefresh("AUTHENTICATED_USE");
+        return startRefresh("AUTHENTICATED_USE", false);
     }
 
-    private InventoryStatus startRefresh(String triggerType) {
+    private InventoryStatus startRefresh(String triggerType, boolean forceFull) {
         if (status.running()) {
             return status;
         }
         if (refreshExecutor == null) {
-            return refreshFrom(clock.instant(), triggerType);
+            return refreshFrom(clock.instant(), triggerType, forceFull);
         }
 
         Instant startedAt = clock.instant();
         status = runningStatus(startedAt, 0, 0, 0, 0, null);
-        refreshExecutor.submit(() -> refreshFrom(startedAt, triggerType));
+        refreshExecutor.submit(() -> refreshFrom(startedAt, triggerType, forceFull));
         return status;
     }
 
     @Override
     public InventoryStatus refresh() {
-        return refreshFrom(clock.instant(), "MANUAL");
+        return refreshFrom(clock.instant(), "MANUAL", false);
     }
 
-    private InventoryStatus refreshFrom(Instant startedAt, String triggerType) {
+    private InventoryStatus refreshFrom(Instant startedAt, String triggerType, boolean forceFull) {
         if (!refreshLock.tryLock()) {
             return status;
         }
@@ -303,9 +308,27 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
                 }
             }
 
+            if (forceFull && persistenceService != null) {
+                persistenceService.invalidateConditionalState(discovered, clock.instant());
+            }
+
             RepositoryRefreshPlan refreshPlan = refreshPlanner == null
                     ? null
                     : refreshPlanner.plan(discovered);
+
+            if (forceFull && refreshPlan != null) {
+                refreshPlan = new RepositoryRefreshPlan(
+                        refreshPlan.items().stream()
+                                .map(item -> new RepositoryRefreshPlanItem(
+                                        item.discovered(),
+                                        RepositoryRefreshAction.FULL_ENRICHMENT,
+                                        item.cached()))
+                                .toList(),
+                        0,
+                        refreshPlan.newCount(),
+                        refreshPlan.changedCount(),
+                        refreshPlan.items().size());
+            }
             if (refreshPlan != null) {
                 reusedCount = refreshPlan.reusedCount();
                 newCount = refreshPlan.newCount();

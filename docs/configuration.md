@@ -120,3 +120,8 @@ For apparently unchanged repositories, each usage-triggered consistency run perf
 ### GitHub rate limiting
 
 RepoFleet treats HTTP 429 and HTTP 403 with `X-RateLimit-Remaining: 0` as rate-limit responses. Before retrying, it waits for GitHub's `Retry-After` value when present, otherwise until `X-RateLimit-Reset`, with a one-second safety margin. If neither header is usable, it falls back to a short bounded backoff. While a refresh is waiting, the UI reports that GitHub rate limiting has temporarily paused progress and shows the expected automatic resume time.
+
+
+### Manual full refresh
+
+The normal **Refresh repositories** action uses discovery, fingerprint classification and lightweight cached verification. A separate **Full refresh** action calls `POST /api/inventory/refresh/full`. It invalidates conditional-resource freshness for every discovered repository and schedules full enrichment for all repositories, while retaining persisted values as a safe baseline for conditional 304 responses.
