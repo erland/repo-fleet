@@ -20,8 +20,8 @@ Design principle:
 | Step | Change | Status |
 | ---: | --- | --- |
 | 1 | Replace finder panels with a compact repository launcher toolbar | DONE |
-| 2 | Move advanced filters into a dedicated secondary disclosure/drawer | IN PROGRESS |
-| 3 | Replace mobile result cards/table with a compact repository list | NOT STARTED |
+| 2 | Move advanced filters into a dedicated secondary disclosure/drawer | DONE |
+| 3 | Replace mobile result cards/table with a compact repository list | IN PROGRESS |
 | 4 | Make repository rows open RepoFleet details; GitHub becomes secondary | NOT STARTED |
 | 5 | Compact repository details and add relative recent activity times | NOT STARTED |
 | 6 | Final mobile density and usability validation | NOT STARTED |
@@ -52,6 +52,22 @@ Completed and verified by successful CI run #439 on PR #47.
 - Existing filter semantics remain unchanged.
 - Frontend tests pass.
 
-## Next step after Step 2
+## Step 2 verification
 
-Step 3 – Replace mobile result cards/table with a compact repository list.
+Completed and verified by successful CI run #444 on PR #47.
+
+## Step 3 acceptance
+
+- Desktop keeps the information-dense table layout.
+- Mobile no longer renders each table cell as a labelled card row.
+- Each mobile repository result is a compact row with repository name and only present indicators/values.
+- Visibility, language, activity, archived/fork state, up to two topics and maintenance warnings can appear as compact badges.
+- Missing optional metadata consumes no mobile space.
+- Additional topics collapse to a compact "+N" indicator.
+- The repository results heading is compact on mobile.
+- Existing repository selection and detail actions remain available.
+- Frontend tests pass.
+
+## Next step after Step 3
+
+Step 4 – Make repository rows open RepoFleet details; GitHub becomes secondary.
