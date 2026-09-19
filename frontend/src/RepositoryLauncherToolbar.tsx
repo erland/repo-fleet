@@ -28,11 +28,16 @@ const sortOptions: Array<{ value: string; label: string }> = [
   { value: 'name:DESC', label: 'Name Z–A' },
   { value: 'activity:DESC', label: 'Recently active' },
   { value: 'activity:ASC', label: 'Oldest activity' },
-  { value: 'owner:ASC', label: 'Owner' },
-  { value: 'primaryLanguage:ASC', label: 'Language' },
+  { value: 'owner:ASC', label: 'Owner A–Z' },
+  { value: 'owner:DESC', label: 'Owner Z–A' },
+  { value: 'primaryLanguage:ASC', label: 'Language A–Z' },
+  { value: 'primaryLanguage:DESC', label: 'Language Z–A' },
   { value: 'license:ASC', label: 'License status' },
+  { value: 'license:DESC', label: 'License status reversed' },
   { value: 'actions:ASC', label: 'Actions status' },
+  { value: 'actions:DESC', label: 'Actions status reversed' },
   { value: 'release:ASC', label: 'Release status' },
+  { value: 'release:DESC', label: 'Release status reversed' },
 ]
 
 export function RepositoryLauncherToolbar({
