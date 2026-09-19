@@ -465,6 +465,75 @@ h2 { margin: 0; font-size: 1.5rem; }
 
 
 @media (max-width: 720px) {
+  .app-shell {
+    padding: .65rem;
+  }
+
+  .app-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .6rem;
+    margin-bottom: .55rem;
+    min-height: 2.75rem;
+  }
+
+  .app-header .eyebrow,
+  .app-header .intro {
+    display: none;
+  }
+
+  .app-header h1 {
+    font-size: 1.15rem;
+    line-height: 1.1;
+  }
+
+  .auth-user {
+    gap: .35rem;
+    font-size: .78rem;
+  }
+
+  .auth-user img {
+    width: 24px;
+    height: 24px;
+  }
+
+  .auth-user button {
+    min-height: 2.5rem;
+    padding: .35rem .55rem;
+  }
+
+  .workspace-navigation {
+    margin-bottom: .55rem;
+    gap: .3rem;
+    padding: .25rem;
+  }
+
+  .workspace-tab {
+    flex: 1;
+    min-height: 2.75rem;
+    padding: .45rem .55rem;
+    font-size: .82rem;
+  }
+
+  .repository-finder {
+    margin-bottom: .5rem;
+  }
+
+  .repository-launcher {
+    border-radius: .7rem;
+    box-shadow: 0 .35rem 1rem rgb(23 32 51 / 5%);
+  }
+
+  .launcher-primary {
+    padding: .45rem;
+  }
+
+  .launcher-meta {
+    padding: 0 .55rem .45rem;
+    font-size: .75rem;
+  }
+
   .table-scroll {
     overflow: visible;
   }
@@ -601,7 +670,6 @@ h2 { margin: 0; font-size: 1.5rem; }
     min-width: 0;
   }
 
-  .app-shell { padding: 1rem; }
   .summary-heading, .detail-heading, .saved-views-heading { align-items: stretch; flex-direction: column; }
   .refresh-status-summary { align-items: flex-start; flex-direction: column; }
   .simple-search-row, .advanced-filters summary { align-items: stretch; flex-direction: column; }
