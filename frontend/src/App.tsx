@@ -432,7 +432,7 @@ export default function App() {
         <div>
           <p className="eyebrow">Repository portfolio management</p>
           <h1>RepoFleet</h1>
-          <p className="intro">Analytics and maintenance for a large GitHub repository portfolio.</p>
+          <p className="intro">Find repositories quickly, then open one to inspect its maintenance and compliance details.</p>
         </div>
         {authSession.authenticated && authSession.user && (
           <div className="auth-user">
@@ -443,54 +443,35 @@ export default function App() {
         )}
       </header>
 
-      <InventoryRefreshPanel
-        status={inventoryStatus}
-        statusError={statusError}
-        refreshing={refreshing}
-        diagnostics={refreshDiagnostics}
-        onRefresh={refreshRepositories}
-        onFullRefresh={fullRefreshRepositories}
-      />
+      <section className="repository-finder" aria-labelledby="repository-finder-heading">
+        <div className="repository-finder-heading">
+          <p className="eyebrow">Repository finder</p>
+          <h2 id="repository-finder-heading">Find a repository</h2>
+          <p>Search or choose a saved view, then open a matching repository for details.</p>
+        </div>
 
-      <RepositoryFiltersPanel
-        filters={filters}
-        onChange={setFilters}
-        totalCount={repositories.length}
-        filteredCount={filteredRepositories.length}
-      />
+        <RepositoryFiltersPanel
+          filters={filters}
+          onChange={setFilters}
+          totalCount={repositories.length}
+          filteredCount={filteredRepositories.length}
+        />
 
-      <SavedViewsPanel
-        views={savedViews}
-        storageAvailable={savedViewsStorageAvailable}
-        onSave={saveCurrentView}
-        onLoad={loadSavedView}
-        onDelete={deleteSavedView}
-      />
+        <SavedViewsPanel
+          views={savedViews}
+          storageAvailable={savedViewsStorageAvailable}
+          onSave={saveCurrentView}
+          onLoad={loadSavedView}
+          onDelete={deleteSavedView}
+        />
 
-      <PortfolioSummaryPanel
-        summary={portfolioSummary}
-        totalPortfolioCount={repositories.length}
-      />
-
-      <ComplianceOverviewPanel
-        summary={complianceSummary}
-        repositories={repositories}
-        loading={complianceLoading}
-        error={complianceError}
-      />
-
-      <RefreshDiagnosticsPanel
-        diagnostics={refreshDiagnostics}
-        loading={refreshDiagnosticsLoading}
-        error={refreshDiagnosticsError}
-      />
-
-      <RepositorySortControls
-        sort={sort}
-        onChange={setSort}
-        totalCount={repositories.length}
-        filteredCount={filteredRepositories.length}
-      />
+        <RepositorySortControls
+          sort={sort}
+          onChange={setSort}
+          totalCount={repositories.length}
+          filteredCount={filteredRepositories.length}
+        />
+      </section>
 
       <RepositoryDetailPanel
         repository={detailRepository}
@@ -523,6 +504,33 @@ export default function App() {
         selectedRepositoryIds={selectedRepositoryIds}
         onToggleRepository={toggleRepository}
         onOpenDetails={openRepositoryDetails}
+      />
+
+      <PortfolioSummaryPanel
+        summary={portfolioSummary}
+        totalPortfolioCount={repositories.length}
+      />
+
+      <ComplianceOverviewPanel
+        summary={complianceSummary}
+        repositories={repositories}
+        loading={complianceLoading}
+        error={complianceError}
+      />
+
+      <InventoryRefreshPanel
+        status={inventoryStatus}
+        statusError={statusError}
+        refreshing={refreshing}
+        diagnostics={refreshDiagnostics}
+        onRefresh={refreshRepositories}
+        onFullRefresh={fullRefreshRepositories}
+      />
+
+      <RefreshDiagnosticsPanel
+        diagnostics={refreshDiagnostics}
+        loading={refreshDiagnosticsLoading}
+        error={refreshDiagnosticsError}
       />
       </main>
     </>
