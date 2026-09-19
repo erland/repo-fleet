@@ -40,7 +40,7 @@ describe('RepositoryLauncherToolbar', () => {
     expect(html).toContain('200 repositories')
   })
 
-  it('shows active advanced filter count without making filters permanently visible', () => {
+  it('shows active advanced filter count without rendering the filter drawer permanently', () => {
     const html = renderToString(
       <RepositoryLauncherToolbar
         filters={{ ...emptyRepositoryFilters, owner: 'erland', license: 'MISSING' }}
@@ -57,8 +57,9 @@ describe('RepositoryLauncherToolbar', () => {
     )
 
     expect(html).toMatch(/Filters(?:<!-- -->)? · 2/)
-    expect(html).toContain('<details class="launcher-filters">')
-    expect(html).not.toContain('<details class="launcher-filters" open')
+    expect(html).toContain('aria-haspopup="dialog"')
+    expect(html).toContain('aria-expanded="false"')
+    expect(html).not.toContain('role="dialog"')
     expect(html).toContain('4 of 20 repositories')
   })
 })
