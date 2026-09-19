@@ -17,8 +17,8 @@ Portfolio analytics, compliance, refresh controls and diagnostics remain availab
 | 1 | Establish repository finder as the primary information architecture | DONE |
 | 2 | Separate simple search from advanced filters | DONE |
 | 3 | Make saved views first-class navigation | DONE |
-| 4 | Simplify the repository result list | IN PROGRESS |
-| 5 | Compress refresh into system status | NOT STARTED |
+| 4 | Simplify the repository result list | DONE |
+| 5 | Compress refresh into system status | IN PROGRESS |
 | 6 | Move portfolio/compliance/diagnostics into secondary navigation | NOT STARTED |
 | 7 | Refine the repository detail flow | NOT STARTED |
 | 8 | Responsive and accessibility-focused final pass | NOT STARTED |
@@ -73,6 +73,20 @@ Completed and verified by successful CI run #410 on PR #46.
 - Mobile result cards contain substantially fewer labelled rows.
 - Frontend tests pass.
 
-## Next step after Step 4
+## Step 4 verification
 
-Step 5 – Compress refresh into system status.
+Completed and verified by successful CI run #416 on PR #46.
+
+## Step 5 acceptance
+
+- Refresh is represented by a compact system-status row instead of a full dashboard panel.
+- Normal/completed state is collapsed by default.
+- Running, partial, failed and unavailable states expand automatically.
+- Progress, current repository, rate-limit pauses and failure messages remain visible when relevant.
+- Standard and full refresh actions remain available behind the status disclosure.
+- Last successful refresh remains visible in the compact summary.
+- Frontend tests pass.
+
+## Next step after Step 5
+
+Step 6 – Move portfolio/compliance/diagnostics into secondary navigation.
