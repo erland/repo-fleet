@@ -206,17 +206,22 @@ h2 { margin: 0; font-size: 1.5rem; }
 .repository-count { font-size: .9rem; color: #596273; white-space: nowrap; }
 .table-scroll { overflow-x: auto; }
 .table-scroll:focus-visible { outline-offset: -3px; }
-.repository-table { width: 100%; min-width: 1050px; border-collapse: collapse; }
+.repository-table { width: 100%; min-width: 820px; border-collapse: collapse; }
 .repository-table th,
 .repository-table td { padding: .85rem 1rem; text-align: left; vertical-align: top; border-bottom: 1px solid #edf0f3; }
 .repository-table th { font-size: .78rem; letter-spacing: .04em; text-transform: uppercase; color: #596273; background: #fafbfc; }
 .repository-table tbody tr:last-child td { border-bottom: 0; }
 .repository-link { font-weight: 700; text-decoration-thickness: 1px; text-underline-offset: 2px; }
+.repository-identity { display: grid; gap: .35rem; }
+.repository-badges { display: flex; flex-wrap: wrap; gap: .3rem; }
 .inline-badge,
-.topic { display: inline-block; border-radius: 999px; font-size: .75rem; line-height: 1.4; }
-.inline-badge { margin-left: .45rem; padding: .12rem .42rem; border: 1px solid #d8dde4; }
-.topic-list { display: flex; flex-wrap: wrap; gap: .3rem; }
+.topic,
+.maintenance-flag { display: inline-block; border-radius: 999px; font-size: .75rem; line-height: 1.4; }
+.inline-badge { padding: .12rem .42rem; border: 1px solid #d8dde4; }
+.topic-list, .maintenance-flags { display: flex; flex-wrap: wrap; gap: .3rem; }
 .topic { padding: .15rem .48rem; background: #eef1f5; }
+.maintenance-flag { padding: .15rem .48rem; border: 1px solid #e0c88e; background: #fff7df; }
+.maintenance-clear { color: #596273; font-size: .82rem; }
 
 @media (max-width: 1100px) {
   .summary-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
