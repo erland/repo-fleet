@@ -19,6 +19,8 @@ export function RepositorySelectionBar({
   onDeselectVisible,
   onClear,
 }: RepositorySelectionBarProps) {
+  if (selection.size === 0) return null
+
   const visibleSelected = selectedVisibleCount(selection, visibleRepositories)
   const allVisibleSelected = visibleRepositories.length > 0 && visibleSelected === visibleRepositories.length
   const selectedCountLabel = `${selection.size} selected`
