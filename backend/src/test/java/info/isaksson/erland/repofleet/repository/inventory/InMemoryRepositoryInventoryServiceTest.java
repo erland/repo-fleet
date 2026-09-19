@@ -143,6 +143,55 @@ class InMemoryRepositoryInventoryServiceTest {
     }
 
     @Test
+    void reusedRepositoryRunsLightweightVerificationInsteadOfFullEnrichment() {
+        RepositorySummary discovered = repository(1L, "one");
+        RepositorySummary cached = complete(discovered);
+        AtomicInteger fullCalls = new AtomicInteger();
+        AtomicInteger volatileCalls = new AtomicInteger();
+
+        RepositoryRefreshPlanner planner = org.mockito.Mockito.mock(RepositoryRefreshPlanner.class);
+        org.mockito.Mockito.when(planner.plan(List.of(discovered)))
+                .thenReturn(new RepositoryRefreshPlan(
+                        List.of(new RepositoryRefreshPlanItem(
+                                discovered,
+                                RepositoryRefreshAction.REUSE_CACHED,
+                                cached)),
+                        1, 0, 0, 0));
+
+        RepositoryEnrichmentService enrichment = new RepositoryEnrichmentService() {
+            @Override
+            public RepositorySummary enrich(RepositorySummary repository) {
+                fullCalls.incrementAndGet();
+                return complete(repository);
+            }
+
+            @Override
+            public RepositorySummary verifyVolatileMetadata(RepositorySummary repository) {
+                volatileCalls.incrementAndGet();
+                return complete(repository);
+            }
+        };
+
+        var service = new InMemoryRepositoryInventoryService(
+                () -> List.of(discovered),
+                enrichment,
+                CLOCK,
+                null,
+                null,
+                null,
+                null,
+                null,
+                planner,
+                2);
+
+        InventoryStatus completed = service.refresh();
+
+        assertEquals(0, fullCalls.get());
+        assertEquals(1, volatileCalls.get());
+        assertEquals(InventoryRefreshState.COMPLETED, completed.state());
+    }
+
+    @Test
     void concurrentEnrichmentNeverExceedsConfiguredWorkerCount() throws Exception {
         List<RepositorySummary> discovered = List.of(
                 repository(1L, "one"),

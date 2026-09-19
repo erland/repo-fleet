@@ -442,22 +442,6 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
         try {
             for (int index = 0; index < refreshPlan.items().size(); index++) {
                 RepositoryRefreshPlanItem item = refreshPlan.items().get(index);
-                if (item.action() == RepositoryRefreshAction.REUSE_CACHED) {
-                    RepositorySummary reused = item.cached();
-                    working.set(index, reused);
-                    processed++;
-                    AnalysisState state = repositoryState(reused);
-                    if (state == AnalysisState.COMPLETE) {
-                        successful++;
-                    } else {
-                        errors++;
-                        if (state == AnalysisState.FAILED) {
-                            hardFailures++;
-                        }
-                    }
-                    continue;
-                }
-
                 final int resultIndex = index;
                 completion.submit(() -> new IndexedEnrichmentResult(
                         resultIndex,
@@ -551,7 +535,11 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
             RepositoryRefreshPlanItem planItem,
             RepositorySummary repository) {
         if (planItem != null && planItem.action() == RepositoryRefreshAction.REUSE_CACHED) {
-            return planItem.cached();
+            RepositorySummary verified = verifyVolatileMetadataSafely(planItem.cached());
+            if (snapshotService != null) {
+                snapshotService.persistProgressiveResult(verified, clock.instant());
+            }
+            return verified;
         }
 
         RepositorySummary enrichmentBase = enrichmentBase(planItem, repository);
@@ -674,6 +662,33 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
                         current == null ? AnalysisState.NOT_ANALYZED : current.state(),
                         current == null ? null : current.message(),
                         freshness));
+    }
+
+    private RepositorySummary verifyVolatileMetadataSafely(RepositorySummary repository) {
+        try {
+            return enrichmentService.verifyVolatileMetadata(repository);
+        } catch (RuntimeException exception) {
+            return new RepositorySummary(
+                    repository.id(),
+                    repository.owner(),
+                    repository.name(),
+                    repository.fullName(),
+                    repository.url(),
+                    repository.visibility(),
+                    repository.archived(),
+                    repository.fork(),
+                    repository.defaultBranch(),
+                    repository.topics(),
+                    repository.languages(),
+                    repository.primaryLanguage(),
+                    repository.license(),
+                    repository.githubActions(),
+                    repository.release(),
+                    repository.activity(),
+                    new RepositoryRefreshStatus(
+                            AnalysisState.PARTIAL,
+                            "Repository volatile metadata verification failed: " + safeMessage(exception)));
+        }
     }
 
     private RepositorySummary enrichSafely(RepositorySummary repository) {

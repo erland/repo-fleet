@@ -112,3 +112,6 @@ Production must set a non-empty `REPOFLEET_GITHUB_WEBHOOK_SECRET` when GitHub Ap
 RepoFleet loads persisted repository data from PostgreSQL at backend startup without contacting GitHub. The first authenticated API use starts a repository discovery/fingerprint check when the latest refresh attempt is older than `REPOFLEET_REFRESH_USAGE_CHECK_INTERVAL_MINUTES`.
 
 Repositories with a complete persisted enrichment snapshot and an unchanged repository fingerprint are reused without full enrichment, regardless of snapshot age. New repositories, repositories whose fingerprint changed, and repositories with incomplete enrichment are scheduled for enrichment. A changed fingerprint invalidates conditional-resource freshness so the subsequent enrichment checks GitHub instead of trusting an otherwise-fresh category TTL.
+
+
+For apparently unchanged repositories, each usage-triggered consistency run performs lightweight conditional verification of topics and releases only. Their existing 60-minute freshness settings and ETags prevent these resources from being fetched more often than configured. Languages, license/root contents, and workflows are not re-enriched unless the repository fingerprint changes or the stored enrichment is incomplete.

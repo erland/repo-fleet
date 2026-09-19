@@ -387,6 +387,118 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
                 new RepositoryRefreshStatus(state, message));
     }
 
+    @Override
+    public RepositorySummary verifyVolatileMetadata(RepositorySummary repository) {
+        List<String> topics = repository.topics();
+        ReleaseStatus release = repository.release();
+        List<String> errors = new ArrayList<>();
+        boolean topicsComplete = false;
+        boolean releaseComplete = false;
+
+        try {
+            if (conditionalRequests == null) {
+                GitHubTopicsResponse response = apiCalls.execute(
+                        "topics for " + repository.fullName(),
+                        authorization -> client.getTopics(
+                                repository.owner(),
+                                repository.name(),
+                                authorization,
+                                GitHubInstallationTokenService.ACCEPT,
+                                GitHubInstallationTokenService.API_VERSION));
+                topics = response == null ? List.of() : response.names().stream()
+                        .sorted(String.CASE_INSENSITIVE_ORDER)
+                        .toList();
+            } else {
+                List<String> cachedTopics = topics;
+                var result = conditionalRequests.execute(
+                        repository.id(),
+                        "topics",
+                        "topics for " + repository.fullName(),
+                        java.time.Instant.now(),
+                        (authorization, etag) -> client.getTopicsConditional(
+                                repository.owner(),
+                                repository.name(),
+                                authorization,
+                                GitHubInstallationTokenService.ACCEPT,
+                                GitHubInstallationTokenService.API_VERSION,
+                                etag),
+                        response -> {
+                            GitHubTopicsResponse body = response.readEntity(GitHubTopicsResponse.class);
+                            return body == null ? List.<String>of() : body.names().stream()
+                                    .sorted(String.CASE_INSENSITIVE_ORDER)
+                                    .toList();
+                        },
+                        () -> cachedTopics);
+                topics = result.value();
+            }
+            topicsComplete = true;
+        } catch (GitHubApiException exception) {
+            if (exception.kind() == GitHubApiFailureKind.NOT_FOUND) {
+                return unavailableRepository(repository, exception);
+            }
+            errors.add("topics: " + safeMessage(exception));
+        } catch (RuntimeException exception) {
+            errors.add("topics: " + safeMessage(exception));
+        }
+
+        try {
+            if (conditionalRequests == null) {
+                release = toReleaseStatus(findLatestPublishedRelease(repository));
+            } else {
+                ReleaseStatus cachedRelease = release;
+                var result = conditionalRequests.execute(
+                        repository.id(),
+                        "releases",
+                        "releases for " + repository.fullName() + " page 1",
+                        java.time.Instant.now(),
+                        (authorization, etag) -> client.getReleasesConditional(
+                                repository.owner(),
+                                repository.name(),
+                                authorization,
+                                GitHubInstallationTokenService.ACCEPT,
+                                GitHubInstallationTokenService.API_VERSION,
+                                etag,
+                                100,
+                                1),
+                        response -> response.readEntity(new GenericType<List<GitHubReleaseResponse>>() {}),
+                        () -> null);
+                release = result.reusedCached()
+                        ? cachedRelease
+                        : toReleaseStatus(findLatestPublishedRelease(repository, result.value()));
+            }
+            releaseComplete = true;
+        } catch (RuntimeException exception) {
+            errors.add("release: " + safeMessage(exception));
+        }
+
+        AnalysisState state = topicsComplete && releaseComplete
+                ? AnalysisState.COMPLETE
+                : AnalysisState.PARTIAL;
+        String message = state == AnalysisState.COMPLETE
+                ? "Repository volatile metadata verified."
+                : "Repository volatile metadata verification partially completed ("
+                        + String.join("; ", errors) + ").";
+
+        return new RepositorySummary(
+                repository.id(),
+                repository.owner(),
+                repository.name(),
+                repository.fullName(),
+                repository.url(),
+                repository.visibility(),
+                repository.archived(),
+                repository.fork(),
+                repository.defaultBranch(),
+                topics,
+                repository.languages(),
+                repository.primaryLanguage(),
+                repository.license(),
+                repository.githubActions(),
+                release,
+                repository.activity(),
+                new RepositoryRefreshStatus(state, message));
+    }
+
     private RepositorySummary unavailableRepository(
             RepositorySummary repository,
             GitHubApiException exception) {
