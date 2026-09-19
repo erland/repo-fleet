@@ -79,6 +79,50 @@ a { color: inherit; }
   margin: 0 auto 1rem;
 }
 
+.workspace-navigation {
+  width: min(1440px, 100%);
+  margin: 0 auto 1rem;
+  display: flex;
+  gap: .5rem;
+  padding: .35rem;
+  border: 1px solid #dfe4ea;
+  border-radius: .85rem;
+  background: #f7f8fa;
+}
+
+.workspace-tab {
+  min-height: 2.5rem;
+  border: 0;
+  border-radius: .65rem;
+  background: transparent;
+  padding: .55rem .9rem;
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.workspace-tab-active {
+  background: #fff;
+  box-shadow: 0 .35rem 1rem rgb(23 32 51 / 8%);
+}
+
+.insights-section {
+  width: min(1440px, 100%);
+  margin: 0 auto 1rem;
+}
+
+.insights-heading {
+  margin-bottom: 1rem;
+  padding: .25rem .1rem;
+}
+
+.insights-heading p:last-child {
+  max-width: 52rem;
+  margin: .55rem 0 0;
+  color: #596273;
+}
+
+
 .repository-finder-heading {
   margin-bottom: 1rem;
   padding: .25rem .1rem;
@@ -473,4 +517,9 @@ h2 { margin: 0; font-size: 1.5rem; }
 
 @media (max-width: 600px) {
   .diagnostics-cards { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 600px) {
+  .workspace-navigation { display: grid; grid-template-columns: 1fr; }
+  .workspace-tab { width: 100%; text-align: left; }
 }
