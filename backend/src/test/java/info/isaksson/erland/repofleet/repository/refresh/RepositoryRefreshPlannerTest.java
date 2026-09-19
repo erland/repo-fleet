@@ -114,6 +114,8 @@ class RepositoryRefreshPlannerTest {
         RepositoryRefreshPlan plan = planner.plan(List.of(discovered));
 
         assertEquals(RepositoryRefreshAction.FULL_ENRICHMENT, plan.items().getFirst().action());
+        assertEquals(AnalysisState.COMPLETE, plan.items().getFirst().cached().refreshStatus().state());
+        assertEquals(LicensePresence.PRESENT, plan.items().getFirst().cached().license().presence());
         assertEquals(0, plan.reusedCount());
         assertEquals(1, plan.scheduledCount());
     }
@@ -138,6 +140,8 @@ class RepositoryRefreshPlannerTest {
         RepositoryRefreshPlan plan = planner.plan(List.of(changed));
 
         assertEquals(RepositoryRefreshAction.FULL_ENRICHMENT, plan.items().getFirst().action());
+        assertEquals(AnalysisState.COMPLETE, plan.items().getFirst().cached().refreshStatus().state());
+        assertEquals(LicensePresence.PRESENT, plan.items().getFirst().cached().license().presence());
         assertEquals(0, plan.reusedCount());
         assertEquals(0, plan.newCount());
         assertEquals(1, plan.changedCount());
