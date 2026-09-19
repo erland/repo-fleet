@@ -78,11 +78,11 @@ describe('RepositoryInventory', () => {
   it('renders a populated repository table', () => {
     const html = renderToString(<RepositoryInventory repositories={[repository]} loading={false} error={null} />)
 
-    expect(html).toContain('roman-nollpunkten')
+    expect(html).toContain('erland/roman-nollpunkten')
     expect(html).toContain('novel')
-    expect(html).toContain('MIT License')
-    expect(html).toContain('3 workflows')
-    expect(html).toContain('v1.2.0')
+    expect(html).toContain('Python')
+    expect(html).toContain('No maintenance flags')
+    expect(html).toContain('View details')
   })
 
   it('renders the loading state', () => {
@@ -120,7 +120,9 @@ describe('RepositoryInventory', () => {
     } satisfies RepositorySummary
 
     const html = renderToString(<RepositoryInventory repositories={[incomplete]} loading={false} error={null} />)
-    expect((html.match(/Unknown/g) ?? []).length).toBeGreaterThanOrEqual(3)
+    expect(html).toContain('License unknown')
+    expect(html).toContain('Actions unknown')
+    expect(html).toContain('Release unknown')
   })
 })
 
@@ -574,9 +576,9 @@ describe('Accessibility and responsive markup', () => {
     expect(html).toContain('role="region"')
     expect(html).toContain('aria-label="Repository inventory table"')
     expect(html).toContain('tabindex="0"')
-    expect(html).toContain('Repository inventory with maintenance status and actions')
+    expect(html).toContain('Repository results with discovery information and maintenance flags')
     expect(html).toContain('data-label="Repository"')
-    expect(html).toContain('data-label="License"')
+    expect(html).toContain('data-label="Maintenance"')
     expect(html).toContain('data-label="Details"')
   })
 
