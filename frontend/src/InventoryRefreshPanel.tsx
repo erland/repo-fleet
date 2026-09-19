@@ -26,6 +26,15 @@ function progressLabel(status: InventoryStatus): string {
   return `${status.processedCount} of ${status.totalCount} repositories processed`
 }
 
+function statusLabel(status: InventoryStatus | null, running: boolean, statusError: string | null): string {
+  if (statusError) return 'Status unavailable'
+  if (running) return 'Refreshing'
+  if (status?.state === 'PARTIAL') return 'Needs attention'
+  if (status?.state === 'FAILED') return 'Refresh failed'
+  if (status?.state === 'COMPLETED') return 'Up to date'
+  return 'Not refreshed'
+}
+
 export function InventoryRefreshPanel({
   status,
   statusError,
@@ -37,90 +46,94 @@ export function InventoryRefreshPanel({
   const running = refreshing || status?.state === 'RUNNING'
   const showPartial = status?.state === 'PARTIAL'
   const showFailed = status?.state === 'FAILED'
+  const attention = running || showPartial || showFailed || Boolean(statusError)
   const progressPercent = status && status.totalCount > 0
     ? `${Math.round((status.processedCount / status.totalCount) * 100)}%`
-    : null
-  const successMessage = status?.state === 'COMPLETED'
-    ? `${status.repositoryCount} repositories are up to date.`
     : null
   const partialMessage = status?.state === 'PARTIAL'
     ? `${status.errorCount} ${status.errorCount === 1 ? 'repository has' : 'repositories have'} incomplete or failed analysis.`
     : null
+  const currentStatusLabel = statusLabel(status, running, statusError)
 
   return (
     <section className="refresh-panel" aria-labelledby="refresh-heading">
-      <div className="refresh-summary">
-        <div>
-          <p className="eyebrow">Inventory freshness</p>
-          <h2 id="refresh-heading">Repository refresh</h2>
-          <p className="refresh-meta">
-            Last successful refresh: <strong>{formatTimestamp(status?.lastSuccessfulRefreshAt)}</strong>
-          </p>
-        </div>
-        <div className="refresh-actions">
-          <button className="refresh-button" type="button" onClick={onRefresh} disabled={running}>
-            {running ? 'Refreshing…' : 'Refresh repositories'}
-          </button>
-          {onFullRefresh && (
-            <button className="refresh-button refresh-button-secondary" type="button" onClick={onFullRefresh} disabled={running}>
-              Full refresh
-            </button>
-          )}
-        </div>
-      </div>
-
-      {running && status && (
-        <div className="refresh-progress" role="status" aria-live="polite">
-          <div className="progress-row">
-            <span id="refresh-progress-label">{progressLabel(status)}</span>
-            {progressPercent && <span>{progressPercent}</span>}
-          </div>
-          <progress
-            aria-labelledby="refresh-progress-label"
-            max={Math.max(status.totalCount, 1)}
-            value={Math.min(status.processedCount, Math.max(status.totalCount, 1))}
-          />
-          {diagnostics?.rateLimitPaused && diagnostics.rateLimitResumeAt ? (
-            <div className="refresh-message refresh-message-warning" role="status">
-              <strong>Temporarily paused by GitHub rate limiting.</strong>
-              <span>
-                Refresh will continue automatically around {formatTimestamp(diagnostics.rateLimitResumeAt)}.
-              </span>
+      <details className="refresh-details" open={attention}>
+        <summary className="refresh-status-summary">
+          <div className="refresh-status-copy">
+            <span
+              className={`refresh-status-indicator refresh-status-${attention ? 'attention' : 'normal'}`}
+              aria-hidden="true"
+            />
+            <div>
+              <h2 id="refresh-heading">System status</h2>
+              <p>
+                <strong>{currentStatusLabel}</strong>
+                <span> · Last successful refresh: {formatTimestamp(status?.lastSuccessfulRefreshAt)}</span>
+              </p>
             </div>
-          ) : (
-            status.currentRepository && <p>Currently analyzing {status.currentRepository}</p>
+          </div>
+          <span className="refresh-status-action">Refresh controls</span>
+        </summary>
+
+        <div className="refresh-controls">
+          <div className="refresh-actions">
+            <button className="refresh-button" type="button" onClick={onRefresh} disabled={running}>
+              {running ? 'Refreshing…' : 'Refresh repositories'}
+            </button>
+            {onFullRefresh && (
+              <button className="refresh-button refresh-button-secondary" type="button" onClick={onFullRefresh} disabled={running}>
+                Full refresh
+              </button>
+            )}
+          </div>
+
+          {running && status && (
+            <div className="refresh-progress" role="status" aria-live="polite">
+              <div className="progress-row">
+                <span id="refresh-progress-label">{progressLabel(status)}</span>
+                {progressPercent && <span>{progressPercent}</span>}
+              </div>
+              <progress
+                aria-labelledby="refresh-progress-label"
+                max={Math.max(status.totalCount, 1)}
+                value={Math.min(status.processedCount, Math.max(status.totalCount, 1))}
+              />
+              {diagnostics?.rateLimitPaused && diagnostics.rateLimitResumeAt ? (
+                <div className="refresh-message refresh-message-warning" role="status">
+                  <strong>Temporarily paused by GitHub rate limiting.</strong>
+                  <span>
+                    Refresh will continue automatically around {formatTimestamp(diagnostics.rateLimitResumeAt)}.
+                  </span>
+                </div>
+              ) : (
+                status.currentRepository && <p>Currently analyzing {status.currentRepository}</p>
+              )}
+              <p className="refresh-note">Existing repository data remains available while refresh is running.</p>
+            </div>
           )}
-          <p className="refresh-note">Existing repository data remains available while refresh is running.</p>
-        </div>
-      )}
 
-      {showPartial && (
-        <div className="refresh-message refresh-message-warning" role="status">
-          <strong>Refresh completed with partial failures.</strong>
-          <span>{partialMessage}</span>
-        </div>
-      )}
+          {showPartial && (
+            <div className="refresh-message refresh-message-warning" role="status">
+              <strong>Refresh completed with partial failures.</strong>
+              <span>{partialMessage}</span>
+            </div>
+          )}
 
-      {showFailed && (
-        <div className="refresh-message refresh-message-error" role="alert">
-          <strong>Refresh failed.</strong>
-          <span>{status.errorMessage ?? 'The repository inventory could not be fully refreshed.'}</span>
-        </div>
-      )}
+          {showFailed && (
+            <div className="refresh-message refresh-message-error" role="alert">
+              <strong>Refresh failed.</strong>
+              <span>{status.errorMessage ?? 'The repository inventory could not be fully refreshed.'}</span>
+            </div>
+          )}
 
-      {status?.state === 'COMPLETED' && (
-        <div className="refresh-message refresh-message-success" role="status">
-          <strong>Refresh complete.</strong>
-          <span>{successMessage}</span>
+          {statusError && (
+            <div className="refresh-message refresh-message-error" role="alert">
+              <strong>Refresh status unavailable.</strong>
+              <span>{statusError}</span>
+            </div>
+          )}
         </div>
-      )}
-
-      {statusError && (
-        <div className="refresh-message refresh-message-error" role="alert">
-          <strong>Refresh status unavailable.</strong>
-          <span>{statusError}</span>
-        </div>
-      )}
+      </details>
     </section>
   )
 }
