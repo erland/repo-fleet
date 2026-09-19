@@ -340,7 +340,14 @@ a { color: inherit; }
 .detail-actions { padding: 1rem 1.5rem 0; }
 .detail-section { padding: 1rem 1.5rem 0; }
 .detail-section h3 { margin: 0; }
-.detail-disclosure { margin: 1rem 1.5rem 0; border-top: 1px solid #e6e9ed; padding-top: 1rem; }
+.detail-overview { padding-top: .85rem; }
+.detail-summary-signals { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .65rem; }
+.detail-summary-signals span { display: inline-flex; align-items: center; min-height: 1.5rem; border-radius: 999px; background: #eef1f5; padding: .15rem .5rem; color: #465064; font-size: .75rem; font-weight: 650; }
+.detail-activity-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .55rem; margin: .7rem 0 0; }
+.detail-activity-grid .detail-item { padding: .55rem .65rem; }
+.detail-activity-grid .detail-item dt { font-size: .68rem; }
+.detail-activity-grid .detail-item dd { font-size: .92rem; }
+.detail-disclosure { margin: .8rem 1.5rem 0; border-top: 1px solid #e6e9ed; padding-top: .8rem; }
 .detail-disclosure summary { cursor: pointer; font-weight: 750; }
 .detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; margin: 1rem 0 0; }
 .detail-item { min-width: 0; padding: .75rem; border: 1px solid #e5e8ec; border-radius: .65rem; background: #fafbfc; }
@@ -602,6 +609,8 @@ h2 { margin: 0; font-size: 1.5rem; }
   .saved-view-shortcuts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .saved-view-chip { width: 100%; }
   .detail-grid { grid-template-columns: 1fr; }
+  .detail-activity-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .detail-summary-signals { margin-top: .5rem; }
   .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .sort-controls { align-items: stretch; flex-direction: column; }
   .selection-bar { align-items: stretch; flex-direction: column; }
@@ -817,4 +826,14 @@ h2 { margin: 0; font-size: 1.5rem; }
     min-width: 0;
     text-overflow: ellipsis;
   }
+}
+
+@media (max-width: 420px) {
+  .detail-heading { padding: .85rem 1rem; }
+  .detail-description { display: none; }
+  .detail-actions,
+  .detail-section { padding-inline: 1rem; }
+  .detail-disclosure { margin-inline: 1rem; }
+  .detail-activity-grid { gap: .4rem; }
+  .detail-activity-grid .detail-item { padding: .5rem; }
 }
