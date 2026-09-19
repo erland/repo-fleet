@@ -229,6 +229,68 @@ class GitHubRepositoryClassificationEnrichmentServiceTest {
 
 
     @Test
+    void keepsCompleteMissingLicenseWhenAnotherCategoryFails() {
+        when(client.getTopics(anyString(), anyString(), anyString(), anyString(), anyString()))
+                .thenThrow(new IllegalStateException("topics unavailable"));
+
+        RepositorySummary partial = new RepositorySummary(
+                1L,
+                "erland",
+                "repo-fleet",
+                "erland/repo-fleet",
+                "https://github.com/erland/repo-fleet",
+                RepositoryVisibility.PRIVATE,
+                false,
+                false,
+                "main",
+                List.of(),
+                List.of(),
+                null,
+                new LicenseStatus(AnalysisState.COMPLETE, LicensePresence.MISSING, false, null, null),
+                new GitHubActionsStatus(AnalysisState.COMPLETE, false, 0),
+                new ReleaseStatus(AnalysisState.COMPLETE, false, null, null, null, null),
+                new ActivityStatus(null, null),
+                new RepositoryRefreshStatus(AnalysisState.PARTIAL, "previous partial"));
+
+        RepositorySummary enriched = service.enrich(partial);
+
+        assertEquals(LicensePresence.MISSING, enriched.license().presence());
+        assertEquals(AnalysisState.COMPLETE, enriched.license().analysisState());
+        assertEquals(AnalysisState.PARTIAL, enriched.refreshStatus().state());
+    }
+
+    @Test
+    void keepsCompleteEmptyActionsWhenAnotherCategoryFails() {
+        when(client.getTopics(anyString(), anyString(), anyString(), anyString(), anyString()))
+                .thenThrow(new IllegalStateException("topics unavailable"));
+
+        RepositorySummary partial = new RepositorySummary(
+                1L,
+                "erland",
+                "repo-fleet",
+                "erland/repo-fleet",
+                "https://github.com/erland/repo-fleet",
+                RepositoryVisibility.PRIVATE,
+                false,
+                false,
+                "main",
+                List.of(),
+                List.of(),
+                null,
+                new LicenseStatus(AnalysisState.COMPLETE, LicensePresence.MISSING, false, null, null),
+                new GitHubActionsStatus(AnalysisState.COMPLETE, false, 0),
+                new ReleaseStatus(AnalysisState.COMPLETE, false, null, null, null, null),
+                new ActivityStatus(null, null),
+                new RepositoryRefreshStatus(AnalysisState.PARTIAL, "previous partial"));
+
+        RepositorySummary enriched = service.enrich(partial);
+
+        assertEquals(AnalysisState.COMPLETE, enriched.githubActions().analysisState());
+        assertEquals(Boolean.FALSE, enriched.githubActions().workflowsPresent());
+        assertEquals(0, enriched.githubActions().workflowCount());
+    }
+
+    @Test
     void marksRepositoryFailedWhenAllCurrentEnrichmentLookupsFail() {
         when(client.getTopics(anyString(), anyString(), anyString(), anyString(), anyString()))
                 .thenThrow(new IllegalStateException("topics unavailable"));
