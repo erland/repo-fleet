@@ -6,18 +6,44 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.ProcessingException;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.function.Function;
+import java.util.function.LongConsumer;
 
 @ApplicationScoped
 public class GitHubApiCallExecutor {
 
     static final int MAX_ATTEMPTS = 3;
+    static final long TRANSIENT_BACKOFF_MILLIS = 1000L;
 
     private final GitHubInstallationTokenService tokenService;
+    private final GitHubRateLimitWaitState rateLimitWaitState;
+    private final Clock clock;
+    private final LongConsumer sleeper;
 
     @Inject
-    public GitHubApiCallExecutor(GitHubInstallationTokenService tokenService) {
+    public GitHubApiCallExecutor(
+            GitHubInstallationTokenService tokenService,
+            GitHubRateLimitWaitState rateLimitWaitState) {
+        this(tokenService, rateLimitWaitState, Clock.systemUTC(), GitHubApiCallExecutor::sleep);
+    }
+
+    GitHubApiCallExecutor(GitHubInstallationTokenService tokenService) {
+        this(tokenService, new GitHubRateLimitWaitState(), Clock.systemUTC(), ignored -> {});
+    }
+
+    GitHubApiCallExecutor(
+            GitHubInstallationTokenService tokenService,
+            GitHubRateLimitWaitState rateLimitWaitState,
+            Clock clock,
+            LongConsumer sleeper) {
         this.tokenService = tokenService;
+        this.rateLimitWaitState = rateLimitWaitState;
+        this.clock = clock;
+        this.sleeper = sleeper;
     }
 
     public <T> T execute(String operation, Function<String, T> request) {
@@ -41,12 +67,14 @@ public class GitHubApiCallExecutor {
 
                 GitHubApiFailureKind kind = classify(response);
                 if (isRetryable(kind) && attempt < MAX_ATTEMPTS) {
+                    waitBeforeRetry(kind, response, attempt);
                     continue;
                 }
 
                 throw safeException(operation, kind, status, exception);
             } catch (ProcessingException exception) {
                 if (attempt < MAX_ATTEMPTS) {
+                    waitMillis(TRANSIENT_BACKOFF_MILLIS * attempt);
                     continue;
                 }
                 throw safeException(operation, GitHubApiFailureKind.TRANSIENT, 0, exception);
@@ -83,6 +111,69 @@ public class GitHubApiCallExecutor {
 
     private boolean isRetryable(GitHubApiFailureKind kind) {
         return kind == GitHubApiFailureKind.RATE_LIMIT || kind == GitHubApiFailureKind.TRANSIENT;
+    }
+
+    private void waitBeforeRetry(GitHubApiFailureKind kind, Response response, int attempt) {
+        if (kind == GitHubApiFailureKind.RATE_LIMIT) {
+            Instant now = clock.instant();
+            Instant resumeAt = rateLimitResumeAt(response, now, attempt);
+            rateLimitWaitState.pauseUntil(resumeAt, "GitHub API rate limit reached");
+            waitMillis(Math.max(0L, resumeAt.toEpochMilli() - now.toEpochMilli()));
+            rateLimitWaitState.clearIfElapsed(clock.instant());
+            return;
+        }
+        waitMillis(TRANSIENT_BACKOFF_MILLIS * attempt);
+    }
+
+    static Instant rateLimitResumeAt(Response response, Instant now, int attempt) {
+        if (response != null) {
+            String retryAfter = response.getHeaderString("Retry-After");
+            Instant parsedRetryAfter = parseRetryAfter(retryAfter, now);
+            if (parsedRetryAfter != null) {
+                return parsedRetryAfter.plusSeconds(1);
+            }
+
+            String reset = response.getHeaderString("X-RateLimit-Reset");
+            if (reset != null && !reset.isBlank()) {
+                try {
+                    return Instant.ofEpochSecond(Long.parseLong(reset)).plusSeconds(1);
+                } catch (NumberFormatException ignored) {
+                    // Fall through to bounded fallback backoff.
+                }
+            }
+        }
+        return now.plusSeconds(Math.max(1, attempt * 5L));
+    }
+
+    private static Instant parseRetryAfter(String value, Instant now) {
+        if (value == null || value.isBlank()) return null;
+        try {
+            return now.plusSeconds(Long.parseLong(value.trim()));
+        } catch (NumberFormatException ignored) {
+            try {
+                return ZonedDateTime.parse(value.trim(), DateTimeFormatter.RFC_1123_DATE_TIME).toInstant();
+            } catch (RuntimeException ignoredDate) {
+                return null;
+            }
+        }
+    }
+
+    private void waitMillis(long millis) {
+        if (millis <= 0) return;
+        sleeper.accept(millis);
+    }
+
+    private static void sleep(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new GitHubApiException(
+                    GitHubApiFailureKind.TRANSIENT,
+                    null,
+                    "GitHub API retry wait was interrupted",
+                    exception);
+        }
     }
 
     private GitHubApiException safeException(

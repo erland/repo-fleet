@@ -115,3 +115,8 @@ Repositories with a complete persisted enrichment snapshot and an unchanged repo
 
 
 For apparently unchanged repositories, each usage-triggered consistency run performs lightweight conditional verification of topics and releases only. Their existing 60-minute freshness settings and ETags prevent these resources from being fetched more often than configured. Languages, license/root contents, and workflows are not re-enriched unless the repository fingerprint changes or the stored enrichment is incomplete.
+
+
+### GitHub rate limiting
+
+RepoFleet treats HTTP 429 and HTTP 403 with `X-RateLimit-Remaining: 0` as rate-limit responses. Before retrying, it waits for GitHub's `Retry-After` value when present, otherwise until `X-RateLimit-Reset`, with a one-second safety margin. If neither header is usable, it falls back to a short bounded backoff. While a refresh is waiting, the UI reports that GitHub rate limiting has temporarily paused progress and shows the expected automatic resume time.

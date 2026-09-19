@@ -13,7 +13,11 @@ import info.isaksson.erland.repofleet.github.auth.GitHubInstallationTokenService
 import jakarta.ws.rs.ProcessingException;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
+import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
@@ -75,6 +79,45 @@ class GitHubApiCallExecutorTest {
 
         assertEquals("ok", result);
         assertEquals(2, calls.get());
+    }
+
+    @Test
+    void waitsUntilRateLimitResetBeforeRetrying() {
+        GitHubInstallationTokenService tokens = mock(GitHubInstallationTokenService.class);
+        when(tokens.getToken()).thenReturn(token("token"));
+        GitHubRateLimitWaitState waitState = new GitHubRateLimitWaitState();
+        Instant now = Instant.parse("2026-09-19T05:00:00Z");
+        Clock clock = Clock.fixed(now, ZoneOffset.UTC);
+        List<Long> waits = new ArrayList<>();
+        GitHubApiCallExecutor executor = new GitHubApiCallExecutor(tokens, waitState, clock, waits::add);
+        AtomicInteger calls = new AtomicInteger();
+
+        String result = executor.execute("topics", authorization -> {
+            if (calls.getAndIncrement() == 0) {
+                throw new WebApplicationException(
+                        Response.status(403)
+                                .header("X-RateLimit-Remaining", "0")
+                                .header("X-RateLimit-Reset", Long.toString(now.plusSeconds(30).getEpochSecond()))
+                                .build());
+            }
+            return "ok";
+        });
+
+        assertEquals("ok", result);
+        assertEquals(List.of(31_000L), waits);
+        assertTrue(waitState.paused(now));
+        assertEquals(now.plusSeconds(31), waitState.pausedUntil());
+    }
+
+    @Test
+    void prefersRetryAfterForRateLimitWait() {
+        Instant now = Instant.parse("2026-09-19T05:00:00Z");
+        Response response = Response.status(429)
+                .header("Retry-After", "12")
+                .header("X-RateLimit-Reset", Long.toString(now.plusSeconds(60).getEpochSecond()))
+                .build();
+
+        assertEquals(now.plusSeconds(13), GitHubApiCallExecutor.rateLimitResumeAt(response, now, 1));
     }
 
     @Test

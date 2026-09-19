@@ -341,6 +341,9 @@ export type TargetedRefreshFailure = {
 export type RefreshDiagnosticsSnapshot = {
   rateLimitRemaining: number | null
   rateLimitResetAt: string | null
+  rateLimitPaused: boolean
+  rateLimitResumeAt: string | null
+  rateLimitPauseReason: string | null
   conditionalModifiedCount: number
   conditionalNotModifiedCount: number
   conditionalCachedFreshCount: number

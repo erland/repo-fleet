@@ -179,7 +179,10 @@ export default function App() {
 
     setRefreshing(true)
     const timer = window.setInterval(async () => {
-      const nextStatus = await loadStatus()
+      const [nextStatus] = await Promise.all([
+        loadStatus(),
+        loadRefreshDiagnostics(),
+      ])
       if (!nextStatus) return
 
       await loadRepositories(false)
@@ -421,6 +424,7 @@ export default function App() {
         status={inventoryStatus}
         statusError={statusError}
         refreshing={refreshing}
+        diagnostics={refreshDiagnostics}
         onRefresh={refreshRepositories}
       />
 
