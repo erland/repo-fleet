@@ -446,7 +446,7 @@ export default function App() {
 
   return (
     <>
-      <a className="skip-link" href="#main-content">Skip to repository inventory</a>
+      <a className="skip-link" href="#main-content">Skip to main content</a>
       <main className="app-shell" id="main-content" tabIndex={-1}>
       <header className="app-header">
         <div>
@@ -468,6 +468,7 @@ export default function App() {
           type="button"
           className={workspaceView === 'repositories' ? 'workspace-tab workspace-tab-active' : 'workspace-tab'}
           aria-current={workspaceView === 'repositories' ? 'page' : undefined}
+          aria-controls="repositories-workspace"
           onClick={() => setWorkspaceView('repositories')}
         >
           Repositories
@@ -476,6 +477,7 @@ export default function App() {
           type="button"
           className={workspaceView === 'insights' ? 'workspace-tab workspace-tab-active' : 'workspace-tab'}
           aria-current={workspaceView === 'insights' ? 'page' : undefined}
+          aria-controls="insights-workspace"
           onClick={() => setWorkspaceView('insights')}
         >
           Insights & diagnostics
@@ -483,7 +485,7 @@ export default function App() {
       </nav>
 
       {workspaceView === 'repositories' ? (
-        <>
+        <section id="repositories-workspace" aria-label="Repository workspace">
           <section className="repository-finder" aria-labelledby="repository-finder-heading">
             <div className="repository-finder-heading">
               <p className="eyebrow">Repository finder</p>
@@ -557,9 +559,9 @@ export default function App() {
             onRefresh={refreshRepositories}
             onFullRefresh={fullRefreshRepositories}
           />
-        </>
+        </section>
       ) : (
-        <section className="insights-section" aria-labelledby="insights-heading">
+        <section id="insights-workspace" className="insights-section" aria-labelledby="insights-heading">
           <div className="insights-heading">
             <p className="eyebrow">Secondary workspace</p>
             <h2 id="insights-heading">Insights & diagnostics</h2>
