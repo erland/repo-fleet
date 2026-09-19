@@ -93,8 +93,8 @@ The early CI bootstrap has been superseded by the completed Step 24 Quality Gate
 | 1 | Establish repository finder as primary information architecture | DONE | Verified by successful CI run #398 on PR #46. |
 | 2 | Separate simple search from advanced filters | DONE | Verified by successful CI run #405 on PR #46. |
 | 3 | Make saved views first-class navigation | DONE | Verified by successful CI run #410 on PR #46. |
-| 4 | Simplify repository result list | IN PROGRESS | Discovery list reduced to essential repository identity, topics, language, activity and compact maintenance flags; selection controls are deferred until needed. Awaiting CI verification. |
-| 5 | Compress refresh into system status | NOT STARTED | |
+| 4 | Simplify repository result list | DONE | Verified by successful CI run #416 on PR #46. |
+| 5 | Compress refresh into system status | IN PROGRESS | Refresh is now a compact system-status disclosure; attention states expand automatically. Awaiting CI verification. |
 | 6 | Move analytics and diagnostics to secondary navigation | NOT STARTED | |
 | 7 | Refine repository detail flow | NOT STARTED | |
 | 8 | Responsive and accessibility final pass | NOT STARTED | |
@@ -103,7 +103,7 @@ Detailed plan: `docs/ux-improvement-plan.md`.
 
 ## Current Position
 
-Current step: **UX improvement Step 4 IN PROGRESS; Phase 2 remains complete.**
+Current step: **UX improvement Step 5 IN PROGRESS; Phase 2 remains complete.**
 
 Phase 1 completed steps: **26 / 26**  
 Phase 2 completed steps: **34 / 34**
