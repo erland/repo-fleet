@@ -14,8 +14,8 @@ Portfolio analytics, compliance, refresh controls and diagnostics remain availab
 
 | Step | Change | Status |
 | ---: | --- | --- |
-| 1 | Establish repository finder as the primary information architecture | IN PROGRESS |
-| 2 | Separate simple search from advanced filters | NOT STARTED |
+| 1 | Establish repository finder as the primary information architecture | DONE |
+| 2 | Separate simple search from advanced filters | IN PROGRESS |
 | 3 | Make saved views first-class navigation | NOT STARTED |
 | 4 | Simplify the repository result list | NOT STARTED |
 | 5 | Compress refresh into system status | NOT STARTED |
@@ -31,6 +31,20 @@ Portfolio analytics, compliance, refresh controls and diagnostics remain availab
 - Existing detail, compliance, refresh and diagnostics functionality remains available.
 - Frontend tests pass.
 
-## Next step after Step 1
+## Step 1 verification
 
-Step 2 – Separate simple search from advanced filters.
+Completed and verified by successful CI run #398 on PR #46.
+
+## Step 2 acceptance
+
+- Simple repository search is always visible.
+- Search matches repository name and full `owner/name`.
+- Advanced filters remain available behind progressive disclosure.
+- The collapsed advanced-filter control indicates how many advanced filters are active.
+- Clear all resets both simple search and advanced filters.
+- Existing saved views remain compatible with the filter model.
+- Frontend tests pass.
+
+## Next step after Step 2
+
+Step 3 – Make saved views first-class navigation.
