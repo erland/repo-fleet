@@ -79,6 +79,108 @@ a { color: inherit; }
   margin: 0 auto 1rem;
 }
 
+.repository-launcher {
+  position: relative;
+  border: 1px solid #dfe4ea;
+  border-radius: .9rem;
+  background: #fff;
+  box-shadow: 0 .75rem 2rem rgb(23 32 51 / 6%);
+}
+
+.launcher-primary {
+  display: grid;
+  grid-template-columns: minmax(18rem, 1fr) minmax(11rem, auto) minmax(10rem, auto) auto;
+  gap: .55rem;
+  align-items: center;
+  padding: .7rem;
+}
+
+.launcher-search input,
+.launcher-select select {
+  width: 100%;
+  min-height: 2.75rem;
+  border: 1px solid #c7ced7;
+  border-radius: .65rem;
+  background: #fff;
+  padding: .55rem .7rem;
+  font: inherit;
+  color: inherit;
+}
+
+.launcher-search input {
+  font-size: 1rem;
+}
+
+.launcher-filters {
+  position: relative;
+}
+
+.launcher-filters > summary {
+  min-height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #c7ced7;
+  border-radius: .65rem;
+  background: #fff;
+  padding: .55rem .8rem;
+  cursor: pointer;
+  font-weight: 750;
+  list-style: none;
+  white-space: nowrap;
+}
+
+.launcher-filters > summary::-webkit-details-marker { display: none; }
+
+.launcher-filter-panel {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + .45rem);
+  right: 0;
+  width: min(58rem, calc(100vw - 2rem));
+  padding: 1rem;
+  border: 1px solid #d7dde5;
+  border-radius: .8rem;
+  background: #fff;
+  box-shadow: 0 1rem 2.5rem rgb(23 32 51 / 16%);
+}
+
+.launcher-filter-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+}
+
+.launcher-filter-heading .secondary-button {
+  min-height: 2.25rem;
+  padding-block: .4rem;
+}
+
+.launcher-meta {
+  padding: 0 .8rem .65rem;
+  color: #596273;
+  font-size: .82rem;
+}
+
+.saved-views-panel-management {
+  margin-top: .7rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.saved-views-panel-management .saved-view-management {
+  margin-top: 0;
+  border-top: 0;
+  padding: .45rem .15rem;
+}
+
+.saved-views-panel-management .saved-view-management > summary {
+  color: #596273;
+  font-size: .85rem;
+}
+
 .workspace-navigation {
   width: min(1440px, 100%);
   margin: 0 auto 1rem;
@@ -594,4 +696,49 @@ h2 { margin: 0; font-size: 1.5rem; }
   .summary-panel,
   .compliance-panel { padding-inline: 1rem; }
   .saved-view-shortcuts { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 760px) {
+  .launcher-primary {
+    grid-template-columns: minmax(0, 1fr) minmax(7.75rem, auto) minmax(7.75rem, auto) auto;
+    padding: .55rem;
+    gap: .4rem;
+  }
+
+  .launcher-search {
+    grid-column: 1 / -1;
+  }
+
+  .launcher-select select,
+  .launcher-filters > summary {
+    min-height: 2.5rem;
+    font-size: .86rem;
+  }
+
+  .launcher-filter-panel {
+    position: fixed;
+    inset: auto .75rem .75rem;
+    width: auto;
+    max-height: min(75vh, 42rem);
+    overflow-y: auto;
+  }
+
+  .launcher-meta {
+    padding-inline: .65rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .launcher-primary {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  }
+
+  .launcher-select:first-of-type {
+    min-width: 0;
+  }
+
+  .launcher-select select {
+    min-width: 0;
+    text-overflow: ellipsis;
+  }
 }
