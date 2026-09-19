@@ -101,9 +101,22 @@ The early CI bootstrap has been superseded by the completed Step 24 Quality Gate
 
 Detailed plan: `docs/ux-improvement-plan.md`.
 
+## Repository Launcher UX Iteration 2
+
+| Step | UX improvement | Status | Notes |
+|---:|---|---|---|
+| 1 | Replace finder panels with a compact repository launcher toolbar | IN PROGRESS | Search, Saved View, Sort and Filters are consolidated; saved-view management moved after results. Awaiting CI verification. |
+| 2 | Move advanced filters into a dedicated secondary disclosure/drawer | NOT STARTED | |
+| 3 | Replace mobile result cards/table with a compact repository list | NOT STARTED | |
+| 4 | Make repository rows open RepoFleet details; GitHub becomes secondary | NOT STARTED | |
+| 5 | Compact repository details and add relative recent activity times | NOT STARTED | |
+| 6 | Final mobile density and usability validation | NOT STARTED | |
+
+Detailed plan: `docs/repository-launcher-ux-plan.md`.
+
 ## Current Position
 
-Current step: **UX improvement series COMPLETE; Phase 2 remains complete.**
+Current step: **Repository Launcher UX Iteration 2 – Step 1 IN PROGRESS; Phase 2 remains complete.**
 
 Phase 1 completed steps: **26 / 26**  
 Phase 2 completed steps: **34 / 34**
