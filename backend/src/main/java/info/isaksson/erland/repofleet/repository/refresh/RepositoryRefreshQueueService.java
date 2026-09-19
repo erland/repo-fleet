@@ -35,17 +35,7 @@ public class RepositoryRefreshQueueService {
             throw new IllegalArgumentException("Unknown repository: " + repositoryId);
         }
 
-        RepositoryRefreshJob active = RepositoryRefreshJob.find(
-                        "githubRepositoryId = ?1 and state in ?2",
-                        repositoryId,
-                        List.of(
-                                RepositoryRefreshJobState.PENDING,
-                                RepositoryRefreshJobState.RUNNING,
-                                RepositoryRefreshJobState.RETRY))
-                .firstResultOptional()
-                .map(RepositoryRefreshJob.class::cast)
-                .orElse(null);
-
+        RepositoryRefreshJob active = findActiveJob(repositoryId);
         if (active != null) {
             return toView(active);
         }
@@ -125,7 +115,8 @@ public class RepositoryRefreshQueueService {
         int queued = 0;
         for (var identity : identities.list("active", true)) {
             var snapshot = snapshots.findByGitHubRepositoryId(identity.githubRepositoryId).orElse(null);
-            if (!refreshPolicy.identityFresh(identity, now) || !refreshPolicy.enrichmentFresh(snapshot, now)) {
+            if ((!refreshPolicy.identityFresh(identity, now) || !refreshPolicy.enrichmentFresh(snapshot, now))
+                    && findActiveJob(identity.githubRepositoryId) == null) {
                 enqueue(identity.githubRepositoryId, "STALE_CACHE", now);
                 queued++;
             }
@@ -136,6 +127,19 @@ public class RepositoryRefreshQueueService {
     public RepositoryRefreshJobView get(long jobId) {
         RepositoryRefreshJob job = RepositoryRefreshJob.findById(jobId);
         return job == null ? null : toView(job);
+    }
+
+    private RepositoryRefreshJob findActiveJob(long repositoryId) {
+        return RepositoryRefreshJob.find(
+                        "githubRepositoryId = ?1 and state in ?2",
+                        repositoryId,
+                        List.of(
+                                RepositoryRefreshJobState.PENDING,
+                                RepositoryRefreshJobState.RUNNING,
+                                RepositoryRefreshJobState.RETRY))
+                .firstResultOptional()
+                .map(RepositoryRefreshJob.class::cast)
+                .orElse(null);
     }
 
     private RepositoryRefreshJobView toView(RepositoryRefreshJob job) {

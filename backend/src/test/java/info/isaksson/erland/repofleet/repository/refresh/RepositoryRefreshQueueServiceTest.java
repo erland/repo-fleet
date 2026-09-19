@@ -87,6 +87,19 @@ class RepositoryRefreshQueueServiceTest {
         assertNotEquals(null, failed.completedAt());
     }
 
+
+    @Test
+    @Transactional
+    void staleEnqueueCountExcludesAlreadyActiveJobs() {
+        Instant now = Instant.parse("2026-09-18T15:00:00Z");
+        persistRepository(503L, now);
+
+        queue.enqueue(503L, "WEBHOOK_PUSH", now);
+
+        assertEquals(0, queue.enqueueStaleRepositories(now.plusSeconds(1)));
+        assertEquals(1L, RepositoryRefreshJob.count());
+    }
+
     @Test
     void returnsNullWhenNoJobIsDue() {
         assertNull(queue.claimNext(Instant.parse("2026-09-18T15:00:00Z")));

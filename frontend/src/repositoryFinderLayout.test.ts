@@ -2,28 +2,27 @@ import { describe, expect, it } from 'vitest'
 import appSource from './App.tsx?raw'
 import inventorySource from './RepositoryInventory.tsx?raw'
 import launcherSource from './RepositoryLauncherToolbar.tsx?raw'
+import workspaceSource from './RepositoryWorkspace.tsx?raw'
 
 describe('repository finder layout', () => {
   it('keeps the compact repository launcher directly before repository results', () => {
     const navigation = appSource.indexOf('className="workspace-navigation"')
-    const launcher = appSource.indexOf('<RepositoryLauncherToolbar')
-    const inventory = appSource.indexOf('<RepositoryInventory')
-    const savedViewManagement = appSource.indexOf('<SavedViewsPanel')
-    const refresh = appSource.indexOf('<InventoryRefreshPanel')
+    const workspace = appSource.indexOf('<RepositoryWorkspace')
     const portfolio = appSource.indexOf('<PortfolioSummaryPanel')
     const diagnostics = appSource.indexOf('<RefreshDiagnosticsPanel')
 
     expect(navigation).toBeGreaterThan(-1)
-    expect(launcher).toBeGreaterThan(navigation)
-    expect(inventory).toBeGreaterThan(launcher)
-    expect(savedViewManagement).toBeGreaterThan(inventory)
-    expect(refresh).toBeGreaterThan(inventory)
-    expect(portfolio).toBeGreaterThan(refresh)
+    expect(workspace).toBeGreaterThan(navigation)
+    expect(portfolio).toBeGreaterThan(workspace)
     expect(diagnostics).toBeGreaterThan(portfolio)
 
-    expect(appSource).not.toContain('<RepositoryFiltersPanel')
-    expect(appSource).not.toContain('<RepositorySortControls')
-    expect(appSource).toContain('managementOnly')
+    expect(appSource).not.toContain('<RepositoryLauncherToolbar')
+    expect(appSource).not.toContain('<RepositoryInventory')
+    expect(workspaceSource).toContain('<RepositoryLauncherToolbar')
+    expect(workspaceSource).toContain('<RepositoryInventory')
+    expect(workspaceSource).toContain('<SavedViewsPanel')
+    expect(workspaceSource).toContain('<InventoryRefreshPanel')
+    expect(workspaceSource).toContain('managementOnly')
     expect(appSource).toContain('Insights & diagnostics')
     expect(appSource).toContain('Skip to main content')
     expect(appSource).toContain('aria-controls="repositories-workspace"')
@@ -33,8 +32,9 @@ describe('repository finder layout', () => {
   it('keeps the mobile discovery flow structurally compact and detail-first', () => {
     expect(appSource).toContain('className="app-header"')
     expect(appSource).toContain('className="workspace-navigation"')
-    expect(appSource).toContain('<RepositoryLauncherToolbar')
-    expect(appSource).toContain('<RepositoryInventory')
+    expect(appSource).toContain('<RepositoryWorkspace')
+    expect(workspaceSource).toContain('<RepositoryLauncherToolbar')
+    expect(workspaceSource).toContain('<RepositoryInventory')
 
     expect(launcherSource).toContain('className="launcher-primary"')
     expect(launcherSource).toContain('Search repositories…')
