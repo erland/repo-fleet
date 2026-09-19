@@ -105,8 +105,8 @@ Detailed plan: `docs/ux-improvement-plan.md`.
 
 | Step | UX improvement | Status | Notes |
 |---:|---|---|---|
-| 1 | Replace finder panels with a compact repository launcher toolbar | IN PROGRESS | Search, Saved View, Sort and Filters are consolidated; saved-view management moved after results. Awaiting CI verification. |
-| 2 | Move advanced filters into a dedicated secondary disclosure/drawer | NOT STARTED | |
+| 1 | Replace finder panels with a compact repository launcher toolbar | DONE | Verified by successful CI run #439 on PR #47. |
+| 2 | Move advanced filters into a dedicated secondary disclosure/drawer | IN PROGRESS | Advanced filters now open in an overlay drawer and no longer push repository results down. Awaiting CI verification. |
 | 3 | Replace mobile result cards/table with a compact repository list | NOT STARTED | |
 | 4 | Make repository rows open RepoFleet details; GitHub becomes secondary | NOT STARTED | |
 | 5 | Compact repository details and add relative recent activity times | NOT STARTED | |
@@ -116,7 +116,7 @@ Detailed plan: `docs/repository-launcher-ux-plan.md`.
 
 ## Current Position
 
-Current step: **Repository Launcher UX Iteration 2 – Step 1 IN PROGRESS; Phase 2 remains complete.**
+Current step: **Repository Launcher UX Iteration 2 – Step 2 IN PROGRESS; Phase 2 remains complete.**
 
 Phase 1 completed steps: **26 / 26**  
 Phase 2 completed steps: **34 / 34**
