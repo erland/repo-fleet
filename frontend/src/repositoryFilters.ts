@@ -102,7 +102,8 @@ export function filterRepositories(
 
   return repositories.filter((repository) => {
     const repositoryName = normalize(repository.name)
-    if (contains && !repositoryName.includes(contains)) return false
+    const repositoryFullName = normalize(repository.fullName)
+    if (contains && !repositoryName.includes(contains) && !repositoryFullName.includes(contains)) return false
     if (prefix && !repositoryName.startsWith(prefix)) return false
     if (owner && normalize(repository.owner) !== owner) return false
     if (filters.visibility !== 'ANY' && repository.visibility !== filters.visibility) return false
@@ -140,4 +141,11 @@ export function filterRepositories(
 
 export function hasActiveRepositoryFilters(filters: RepositoryFilters): boolean {
   return Object.entries(filters).some(([key, value]) => value !== emptyRepositoryFilters[key as keyof RepositoryFilters])
+}
+
+export function countActiveAdvancedRepositoryFilters(filters: RepositoryFilters): number {
+  return Object.entries(filters)
+    .filter(([key]) => key !== 'nameContains')
+    .filter(([key, value]) => value !== emptyRepositoryFilters[key as keyof RepositoryFilters])
+    .length
 }

@@ -1,9 +1,4 @@
-import type {
-  GitHubActionsStatus,
-  LicenseStatus,
-  ReleaseStatus,
-  RepositorySummary,
-} from './api'
+import type { RepositorySummary } from './api'
 
 type RepositoryInventoryProps = {
   repositories: RepositorySummary[]
@@ -19,25 +14,6 @@ function analysisUnavailable(state: string): boolean {
   return state === 'FAILED' || state === 'PARTIAL' || state === 'NOT_ANALYZED'
 }
 
-function licenseLabel(license: LicenseStatus): string {
-  if (license.analysisState === 'FAILED' || license.presence === 'UNKNOWN') return 'Unknown'
-  if (license.presence === 'MISSING') return 'Missing'
-  if (license.name) return license.name
-  return license.recognized === false ? 'Custom' : 'Present'
-}
-
-function actionsLabel(actions: GitHubActionsStatus): string {
-  if (analysisUnavailable(actions.analysisState) || actions.workflowsPresent === null) return 'Unknown'
-  if (!actions.workflowsPresent) return 'None'
-  return `${actions.workflowCount ?? 0} workflow${actions.workflowCount === 1 ? '' : 's'}`
-}
-
-function releaseLabel(release: ReleaseStatus): string {
-  if (analysisUnavailable(release.analysisState) || release.releasePresent === null) return 'Unknown'
-  if (!release.releasePresent) return 'None'
-  return release.latestReleaseTag ?? release.latestReleaseName ?? 'Published'
-}
-
 function activityLabel(repository: RepositorySummary): string {
   const value = repository.activity.pushedAt ?? repository.activity.updatedAt
   if (!value) return 'Unknown'
@@ -46,6 +22,30 @@ function activityLabel(repository: RepositorySummary): string {
   if (Number.isNaN(date.getTime())) return 'Unknown'
 
   return date.toLocaleDateString('en-CA')
+}
+
+function maintenanceFlags(repository: RepositorySummary): string[] {
+  const flags: string[] = []
+
+  if (repository.license.analysisState === 'FAILED' || repository.license.presence === 'UNKNOWN') {
+    flags.push('License unknown')
+  } else if (repository.license.presence === 'MISSING') {
+    flags.push('Missing license')
+  }
+
+  if (analysisUnavailable(repository.githubActions.analysisState) || repository.githubActions.workflowsPresent === null) {
+    flags.push('Actions unknown')
+  } else if (!repository.githubActions.workflowsPresent) {
+    flags.push('No Actions')
+  }
+
+  if (analysisUnavailable(repository.release.analysisState) || repository.release.releasePresent === null) {
+    flags.push('Release unknown')
+  } else if (!repository.release.releasePresent) {
+    flags.push('No release')
+  }
+
+  return flags
 }
 
 export function RepositoryInventory({
@@ -88,7 +88,7 @@ export function RepositoryInventory({
     <section className="inventory-section" aria-labelledby="repository-heading">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Portfolio inventory</p>
+          <p className="eyebrow">Repository results</p>
           <h2 id="repository-heading">Repositories</h2>
         </div>
         <span className="repository-count">{repositories.length} repositories</span>
@@ -102,62 +102,70 @@ export function RepositoryInventory({
       >
         <table className="repository-table">
           <caption className="sr-only">
-            Repository inventory with maintenance status and actions
+            Repository results with discovery information and maintenance flags
           </caption>
           <thead>
             <tr>
               <th scope="col" className="selection-column">Select</th>
               <th scope="col">Repository</th>
-              <th scope="col">Owner</th>
-              <th scope="col">Visibility</th>
               <th scope="col">Topics</th>
               <th scope="col">Language</th>
-              <th scope="col">License</th>
-              <th scope="col">Actions</th>
-              <th scope="col">Release</th>
               <th scope="col">Last activity</th>
+              <th scope="col">Maintenance</th>
               <th scope="col">Details</th>
             </tr>
           </thead>
           <tbody>
-            {repositories.map((repository) => (
-              <tr key={repository.id} className={selectedRepositoryIds.has(repository.id) ? 'repository-row-selected' : undefined}>
-                <td className="selection-column" data-label="Select">
-                  <input
-                    type="checkbox"
-                    aria-label={`Select ${repository.fullName}`}
-                    checked={selectedRepositoryIds.has(repository.id)}
-                    onChange={() => onToggleRepository(repository.id)}
-                  />
-                </td>
-                <td data-label="Repository">
-                  <a href={repository.url} target="_blank" rel="noreferrer" className="repository-link">
-                    {repository.name}
-                  </a>
-                  {repository.archived && <span className="inline-badge">Archived</span>}
-                  {repository.fork && <span className="inline-badge">Fork</span>}
-                </td>
-                <td data-label="Owner">{repository.owner}</td>
-                <td data-label="Visibility">{repository.visibility.toLowerCase()}</td>
-                <td data-label="Topics">
-                  {repository.topics.length > 0 ? (
-                    <div className="topic-list">
-                      {repository.topics.map((topic) => <span className="topic" key={topic}>{topic}</span>)}
+            {repositories.map((repository) => {
+              const flags = maintenanceFlags(repository)
+              return (
+                <tr key={repository.id} className={selectedRepositoryIds.has(repository.id) ? 'repository-row-selected' : undefined}>
+                  <td className="selection-column" data-label="Select">
+                    <input
+                      type="checkbox"
+                      aria-label={`Select ${repository.fullName}`}
+                      checked={selectedRepositoryIds.has(repository.id)}
+                      onChange={() => onToggleRepository(repository.id)}
+                    />
+                  </td>
+                  <td data-label="Repository">
+                    <div className="repository-identity">
+                      <a href={repository.url} target="_blank" rel="noreferrer" className="repository-link">
+                        {repository.fullName}
+                      </a>
+                      <div className="repository-badges">
+                        <span className="inline-badge">{repository.visibility.toLowerCase()}</span>
+                        {repository.archived && <span className="inline-badge">Archived</span>}
+                        {repository.fork && <span className="inline-badge">Fork</span>}
+                      </div>
                     </div>
-                  ) : '—'}
-                </td>
-                <td data-label="Language">{repository.primaryLanguage ?? '—'}</td>
-                <td data-label="License">{licenseLabel(repository.license)}</td>
-                <td data-label="Actions">{actionsLabel(repository.githubActions)}</td>
-                <td data-label="Release">{releaseLabel(repository.release)}</td>
-                <td data-label="Last activity">{activityLabel(repository)}</td>
-                <td data-label="Details">
-                  <button className="table-action-button" type="button" onClick={() => onOpenDetails(repository.id)}>
-                    View details
-                  </button>
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <td data-label="Topics">
+                    {repository.topics.length > 0 ? (
+                      <div className="topic-list">
+                        {repository.topics.map((topic) => <span className="topic" key={topic}>{topic}</span>)}
+                      </div>
+                    ) : '—'}
+                  </td>
+                  <td data-label="Language">{repository.primaryLanguage ?? '—'}</td>
+                  <td data-label="Last activity">{activityLabel(repository)}</td>
+                  <td data-label="Maintenance">
+                    {flags.length === 0 ? (
+                      <span className="maintenance-clear">No maintenance flags</span>
+                    ) : (
+                      <div className="maintenance-flags">
+                        {flags.map((flag) => <span className="maintenance-flag" key={flag}>{flag}</span>)}
+                      </div>
+                    )}
+                  </td>
+                  <td data-label="Details">
+                    <button className="table-action-button" type="button" onClick={() => onOpenDetails(repository.id)}>
+                      View details
+                    </button>
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>

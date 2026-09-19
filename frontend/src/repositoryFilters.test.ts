@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { RepositorySummary } from './api'
-import { emptyRepositoryFilters, filterRepositories } from './repositoryFilters'
+import { countActiveAdvancedRepositoryFilters, emptyRepositoryFilters, filterRepositories } from './repositoryFilters'
 import { sortRepositories } from './repositorySorting'
 
 function repository(overrides: Partial<RepositorySummary> = {}): RepositorySummary {
@@ -61,8 +61,9 @@ describe('filterRepositories', () => {
     }),
   ]
 
-  it('supports name contains, prefix and owner filters', () => {
+  it('supports simple search across repository name and full name plus advanced prefix and owner filters', () => {
     expect(filterRepositories(repos, { ...emptyRepositoryFilters, nameContains: 'fleet' })).toHaveLength(1)
+    expect(filterRepositories(repos, { ...emptyRepositoryFilters, nameContains: 'other/roman' })).toHaveLength(1)
     expect(filterRepositories(repos, { ...emptyRepositoryFilters, namePrefix: 'roman-' })).toHaveLength(1)
     expect(filterRepositories(repos, { ...emptyRepositoryFilters, owner: 'OTHER' })).toHaveLength(1)
   })
@@ -153,6 +154,20 @@ describe('filterRepositories', () => {
     const sorted = sortRepositories(filtered, { field: 'name', direction: 'DESC' })
 
     expect(sorted.map((item) => item.name)).toEqual(['repo-fleet'])
+  })
+
+  it('counts advanced filters separately from simple search', () => {
+    expect(countActiveAdvancedRepositoryFilters({
+      ...emptyRepositoryFilters,
+      nameContains: 'fleet',
+    })).toBe(0)
+
+    expect(countActiveAdvancedRepositoryFilters({
+      ...emptyRepositoryFilters,
+      nameContains: 'fleet',
+      owner: 'erland',
+      license: 'MISSING',
+    })).toBe(2)
   })
 
 })

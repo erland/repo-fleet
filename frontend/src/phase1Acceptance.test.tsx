@@ -64,8 +64,9 @@ describe('Phase 1 end-to-end acceptance validation', () => {
     )
 
     expect(phase1Repositories).toHaveLength(4)
-    expect(html).toContain('Refresh complete')
-    expect(html).toContain('4 repositories are up to date')
+    expect(html).toContain('System status')
+    expect(html).toContain('Up to date')
+    expect(html).toContain('Last successful refresh')
   })
 
   it('4. reproduces the name-prefix use case', () => {

@@ -54,15 +54,35 @@ describe('App', () => {
   })
 })
 
+describe('RepositoryFiltersPanel', () => {
+  it('keeps simple search visible and advanced filters collapsed by default', () => {
+    const html = renderToString(
+      <RepositoryFiltersPanel
+        filters={{ ...emptyRepositoryFilters, owner: 'erland', license: 'MISSING' }}
+        onChange={() => undefined}
+        totalCount={20}
+        filteredCount={4}
+      />,
+    )
+
+    expect(html).toContain('Search repositories')
+    expect(html).toContain('Repository name or owner/name')
+    expect(html).toContain('<details')
+    expect(html).toContain('Advanced filters · 2 active')
+    expect(html).toContain('Clear all')
+    expect(html).toContain('4 of 20 repositories match current filters')
+  })
+})
+
 describe('RepositoryInventory', () => {
   it('renders a populated repository table', () => {
     const html = renderToString(<RepositoryInventory repositories={[repository]} loading={false} error={null} />)
 
-    expect(html).toContain('roman-nollpunkten')
+    expect(html).toContain('erland/roman-nollpunkten')
     expect(html).toContain('novel')
-    expect(html).toContain('MIT License')
-    expect(html).toContain('3 workflows')
-    expect(html).toContain('v1.2.0')
+    expect(html).toContain('Python')
+    expect(html).toContain('No maintenance flags')
+    expect(html).toContain('View details')
   })
 
   it('renders the loading state', () => {
@@ -100,7 +120,9 @@ describe('RepositoryInventory', () => {
     } satisfies RepositorySummary
 
     const html = renderToString(<RepositoryInventory repositories={[incomplete]} loading={false} error={null} />)
-    expect((html.match(/Unknown/g) ?? []).length).toBeGreaterThanOrEqual(3)
+    expect(html).toContain('License unknown')
+    expect(html).toContain('Actions unknown')
+    expect(html).toContain('Release unknown')
   })
 })
 
@@ -126,7 +148,9 @@ describe('InventoryRefreshPanel', () => {
       <InventoryRefreshPanel status={null} statusError={null} refreshing={false} onRefresh={() => undefined} />,
     )
 
-    expect(html).toContain('Last successful refresh')
+    expect(html).toContain('System status')
+    expect(html).toContain('Not refreshed')
+    expect(html).toContain('Last successful refresh:')
     expect(html).toContain('Never')
     expect(html).toContain('Refresh repositories')
   })
@@ -162,8 +186,10 @@ describe('InventoryRefreshPanel', () => {
       />,
     )
 
+    expect(html).toContain('Refreshing')
     expect(html).toContain('3 of 10 repositories processed')
     expect(html).toContain('30%')
+    expect(html).toContain('<details class="refresh-details" open=""')
     expect(html).toContain('erland/repo-fleet')
     expect(html).toContain('Existing repository data remains available')
     expect(html).toContain('Refreshing')
@@ -207,8 +233,9 @@ describe('InventoryRefreshPanel', () => {
       />,
     )
 
-    expect(html).toContain('Refresh complete')
-    expect(html).toContain('2 repositories are up to date')
+    expect(html).toContain('System status')
+    expect(html).toContain('Up to date')
+    expect(html).toContain('Last successful refresh')
   })
 
   it('renders the partial failure warning', () => {
@@ -221,8 +248,10 @@ describe('InventoryRefreshPanel', () => {
       />,
     )
 
+    expect(html).toContain('Needs attention')
     expect(html).toContain('Refresh completed with partial failures')
     expect(html).toContain('1 repository has incomplete or failed analysis')
+    expect(html).toContain('<details class="refresh-details" open=""')
   })
 
   it('renders the failed refresh state', () => {
@@ -242,6 +271,7 @@ describe('InventoryRefreshPanel', () => {
 
     expect(html).toContain('Refresh failed')
     expect(html).toContain('GitHub unavailable')
+    expect(html).toContain('<details class="refresh-details" open=""')
   })
 })
 
@@ -256,7 +286,8 @@ describe('RepositoryFiltersPanel', () => {
       />,
     )
 
-    expect(html).toContain('Name contains')
+    expect(html).toContain('Search repositories')
+    expect(html).toContain('Advanced filters')
     expect(html).toContain('Name prefix')
     expect(html).toContain('Owner')
     expect(html).toContain('Visibility')
@@ -339,6 +370,22 @@ describe('RepositorySelectionBar', () => {
   })
 })
 
+describe('RepositorySelectionBar visibility', () => {
+  it('keeps repository selection controls out of the discovery flow until needed', () => {
+    const html = renderToString(
+      <RepositorySelectionBar
+        selection={new Set()}
+        visibleRepositories={[repository]}
+        onSelectVisible={() => undefined}
+        onDeselectVisible={() => undefined}
+        onClear={() => undefined}
+      />,
+    )
+
+    expect(html).toBe('')
+  })
+})
+
 describe('PortfolioSummaryPanel', () => {
   it('renders core portfolio signals for the filtered scope', () => {
     const summary = summarizePortfolio([repository])
@@ -400,6 +447,10 @@ describe('RepositoryDetailPanel', () => {
 
     expect(html).toContain('Repository details')
     expect(html).toContain('erland/roman-nollpunkten')
+    expect(html).toContain('role="dialog"')
+    expect(html).toContain('aria-modal="true"')
+    expect(html).toContain('Repository overview')
+    expect(html).toContain('Maintenance analysis')
     expect(html).toContain('Default branch')
     expect(html).toContain('publishing')
     expect(html).toContain('MIT License')
@@ -499,19 +550,23 @@ describe('SavedViewsPanel', () => {
     const html = renderToString(
       <SavedViewsPanel
         views={[view]}
+        activeViewId="view-1"
         storageAvailable
+        onShowAll={() => undefined}
         onSave={() => undefined}
         onLoad={() => undefined}
         onDelete={() => undefined}
       />,
     )
 
-    expect(html).toContain('Saved views')
+    expect(html).toContain('Quick categories')
+    expect(html).toContain('All repositories')
     expect(html).toContain('Java missing LICENSE')
     expect(html).toContain('1 saved view')
+    expect(html).toContain('Manage views')
     expect(html).toContain('Save current view')
-    expect(html).toContain('Load')
     expect(html).toContain('Delete')
+    expect(html).toContain('aria-pressed="true"')
     expect(html).toContain('Repository selection is not included')
   })
 
@@ -519,7 +574,9 @@ describe('SavedViewsPanel', () => {
     const html = renderToString(
       <SavedViewsPanel
         views={[]}
+        activeViewId={null}
         storageAvailable={false}
+        onShowAll={() => undefined}
         onSave={() => undefined}
         onLoad={() => undefined}
         onDelete={() => undefined}
@@ -547,9 +604,9 @@ describe('Accessibility and responsive markup', () => {
     expect(html).toContain('role="region"')
     expect(html).toContain('aria-label="Repository inventory table"')
     expect(html).toContain('tabindex="0"')
-    expect(html).toContain('Repository inventory with maintenance status and actions')
+    expect(html).toContain('Repository results with discovery information and maintenance flags')
     expect(html).toContain('data-label="Repository"')
-    expect(html).toContain('data-label="License"')
+    expect(html).toContain('data-label="Maintenance"')
     expect(html).toContain('data-label="Details"')
   })
 
@@ -559,7 +616,11 @@ describe('Accessibility and responsive markup', () => {
     )
 
     expect(html).toContain('tabindex="-1"')
+    expect(html).toContain('role="dialog"')
+    expect(html).toContain('aria-modal="true"')
     expect(html).toContain('aria-labelledby="repository-detail-heading"')
+    expect(html).toContain('aria-describedby="repository-detail-description"')
+    expect(html).toContain('aria-label="Close details for erland/roman-nollpunkten"')
   })
 
   it('gives saved-view actions descriptive accessible names', () => {
@@ -573,14 +634,17 @@ describe('Accessibility and responsive markup', () => {
     const html = renderToString(
       <SavedViewsPanel
         views={[view]}
+        activeViewId="view-1"
         storageAvailable
+        onShowAll={() => undefined}
         onSave={() => undefined}
         onLoad={() => undefined}
         onDelete={() => undefined}
       />,
     )
 
-    expect(html).toContain('aria-label="Load saved view Java missing LICENSE"')
+    expect(html).toContain('aria-label="Repository views"')
+    expect(html).toContain('aria-pressed="true"')
     expect(html).toContain('aria-label="Delete saved view Java missing LICENSE"')
     expect(html).toContain('aria-describedby="saved-views-description"')
   })

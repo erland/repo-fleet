@@ -215,28 +215,86 @@ export function RepositoryDetailPanel({
   onClose,
 }: RepositoryDetailPanelProps) {
   const panelRef = useRef<HTMLElement>(null)
+  const previousFocusRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
-    if (repository) {
-      panelRef.current?.focus()
+    if (!repository) return
+
+    previousFocusRef.current = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    panelRef.current?.focus()
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        onClose()
+        return
+      }
+
+      if (event.key !== 'Tab' || !panelRef.current) return
+
+      const focusable = Array.from(panelRef.current.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ))
+      if (focusable.length === 0) {
+        event.preventDefault()
+        panelRef.current.focus()
+        return
+      }
+
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      const active = document.activeElement
+
+      if (event.shiftKey && (active === first || active === panelRef.current)) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault()
+        first.focus()
+      }
     }
-  }, [repository])
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      document.body.style.overflow = previousOverflow
+      previousFocusRef.current?.focus()
+    }
+  }, [repository, onClose])
 
   if (!repository) return null
 
   return (
-    <aside
-      ref={panelRef}
-      className="detail-panel"
-      aria-labelledby="repository-detail-heading"
-      tabIndex={-1}
+    <div
+      className="detail-backdrop"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose()
+      }}
     >
+      <aside
+        ref={panelRef}
+        className="detail-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="repository-detail-heading"
+        aria-describedby="repository-detail-description"
+        tabIndex={-1}
+      >
       <div className="detail-heading">
         <div>
           <p className="eyebrow">Repository details</p>
           <h2 id="repository-detail-heading">{repository.fullName}</h2>
+          <p id="repository-detail-description" className="detail-description">
+            Repository metadata, maintenance analysis and compliance without leaving the result list.
+          </p>
         </div>
-        <button className="secondary-button" type="button" onClick={onClose}>Close details</button>
+        <button className="secondary-button" type="button" onClick={onClose} aria-label={`Close details for ${repository.fullName}`}>
+          Close
+        </button>
       </div>
 
       <div className="detail-actions">
@@ -245,38 +303,43 @@ export function RepositoryDetailPanel({
         </a>
       </div>
 
-      <dl className="detail-grid">
-        <DetailItem label="Owner" value={repository.owner} />
-        <DetailItem label="Visibility" value={repository.visibility.toLowerCase()} />
-        <DetailItem label="Default branch" value={repository.defaultBranch} />
-        <DetailItem label="Archived" value={booleanLabel(repository.archived)} />
-        <DetailItem label="Fork" value={booleanLabel(repository.fork)} />
-        <DetailItem label="Primary language" value={repository.primaryLanguage ?? 'Unknown'} />
-        <DetailItem label="Languages" value={repository.languages.length ? repository.languages.join(', ') : 'None detected'} />
-        <DetailItem label="Topics" value={repository.topics.length ? repository.topics.join(', ') : 'None'} />
+      <section className="detail-section" aria-labelledby="repository-overview-heading">
+        <h3 id="repository-overview-heading">Repository overview</h3>
+        <dl className="detail-grid">
+          <DetailItem label="Owner" value={repository.owner} />
+          <DetailItem label="Visibility" value={repository.visibility.toLowerCase()} />
+          <DetailItem label="Default branch" value={repository.defaultBranch} />
+          <DetailItem label="Primary language" value={repository.primaryLanguage ?? 'Unknown'} />
+          <DetailItem label="Languages" value={repository.languages.length ? repository.languages.join(', ') : 'None detected'} />
+          <DetailItem label="Topics" value={repository.topics.length ? repository.topics.join(', ') : 'None'} />
+          <DetailItem label="Archived" value={booleanLabel(repository.archived)} />
+          <DetailItem label="Fork" value={booleanLabel(repository.fork)} />
+          <DetailItem label="Last push" value={formatDate(repository.activity.pushedAt)} />
+          <DetailItem label="Last update" value={formatDate(repository.activity.updatedAt)} />
+        </dl>
+      </section>
 
-        <DetailItem label="LICENSE" value={licenseValue(repository)} />
-        <DetailItem label="LICENSE analysis" value={analysisLabel(repository.license.analysisState)} />
-        <DetailItem label="License key" value={repository.license.key ?? '—'} />
-        <DetailItem label="Recognized license" value={repository.license.recognized === null ? 'Unknown' : booleanLabel(repository.license.recognized)} />
-
-        <DetailItem label="GitHub Actions" value={actionsValue(repository)} />
-        <DetailItem label="Actions analysis" value={analysisLabel(repository.githubActions.analysisState)} />
-
-        <DetailItem label="Official release" value={releaseValue(repository)} />
-        <DetailItem label="Release analysis" value={analysisLabel(repository.release.analysisState)} />
-        <DetailItem label="Release name" value={repository.release.latestReleaseName ?? '—'} />
-        <DetailItem label="Release date" value={formatDate(repository.release.latestReleaseDate)} />
-        <DetailItem
-          label="Prerelease"
-          value={repository.release.latestReleasePrerelease === null ? 'Unknown' : booleanLabel(repository.release.latestReleasePrerelease)}
-        />
-
-        <DetailItem label="Last push" value={formatDate(repository.activity.pushedAt)} />
-        <DetailItem label="Last update" value={formatDate(repository.activity.updatedAt)} />
-        <DetailItem label="Repository analysis" value={analysisLabel(repository.refreshStatus.state)} />
-        <DetailItem label="Analysis message" value={repository.refreshStatus.message ?? '—'} />
-      </dl>
+      <details className="detail-disclosure">
+        <summary>Maintenance analysis</summary>
+        <dl className="detail-grid">
+          <DetailItem label="LICENSE" value={licenseValue(repository)} />
+          <DetailItem label="LICENSE analysis" value={analysisLabel(repository.license.analysisState)} />
+          <DetailItem label="License key" value={repository.license.key ?? '—'} />
+          <DetailItem label="Recognized license" value={repository.license.recognized === null ? 'Unknown' : booleanLabel(repository.license.recognized)} />
+          <DetailItem label="GitHub Actions" value={actionsValue(repository)} />
+          <DetailItem label="Actions analysis" value={analysisLabel(repository.githubActions.analysisState)} />
+          <DetailItem label="Official release" value={releaseValue(repository)} />
+          <DetailItem label="Release analysis" value={analysisLabel(repository.release.analysisState)} />
+          <DetailItem label="Release name" value={repository.release.latestReleaseName ?? '—'} />
+          <DetailItem label="Release date" value={formatDate(repository.release.latestReleaseDate)} />
+          <DetailItem
+            label="Prerelease"
+            value={repository.release.latestReleasePrerelease === null ? 'Unknown' : booleanLabel(repository.release.latestReleasePrerelease)}
+          />
+          <DetailItem label="Repository analysis" value={analysisLabel(repository.refreshStatus.state)} />
+          <DetailItem label="Analysis message" value={repository.refreshStatus.message ?? '—'} />
+        </dl>
+      </details>
 
       <section className="compliance-detail" aria-labelledby="repository-compliance-heading">
         <div className="compliance-detail-heading">
@@ -340,6 +403,7 @@ export function RepositoryDetailPanel({
           </div>
         )}
       </section>
-    </aside>
+      </aside>
+    </div>
   )
 }

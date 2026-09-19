@@ -59,7 +59,9 @@ export default function App() {
   const [detailCompliance, setDetailCompliance] = useState<RepositoryComplianceDetail[]>([])
   const [detailComplianceLoading, setDetailComplianceLoading] = useState(false)
   const [detailComplianceError, setDetailComplianceError] = useState<string | null>(null)
+  const [workspaceView, setWorkspaceView] = useState<'repositories' | 'insights'>('repositories')
   const [savedViews, setSavedViews] = useState<SavedRepositoryView[]>([])
+  const [activeSavedViewId, setActiveSavedViewId] = useState<string | null>(null)
   const [savedViewsInitialized, setSavedViewsInitialized] = useState(false)
   const [savedViewsStorageAvailable, setSavedViewsStorageAvailable] = useState(true)
   const mountedRef = useRef(true)
@@ -242,10 +244,28 @@ export default function App() {
 
     setFilters({ ...view.filters })
     setSort({ ...view.sort })
+    setActiveSavedViewId(viewId)
   }, [savedViews])
+
+  const showAllRepositories = useCallback(() => {
+    setFilters(emptyRepositoryFilters)
+    setSort(defaultRepositorySort)
+    setActiveSavedViewId(null)
+  }, [])
+
+  const changeFilters = useCallback((nextFilters: typeof filters) => {
+    setFilters(nextFilters)
+    setActiveSavedViewId(null)
+  }, [])
+
+  const changeSort = useCallback((nextSort: typeof sort) => {
+    setSort(nextSort)
+    setActiveSavedViewId(null)
+  }, [])
 
   const deleteSavedView = useCallback((viewId: string) => {
     setSavedViews((current) => removeSavedView(current, viewId))
+    setActiveSavedViewId((current) => current === viewId ? null : current)
   }, [])
 
   const reloadRepositoryCompliance = useCallback(async (repositoryId: number) => {
@@ -426,13 +446,13 @@ export default function App() {
 
   return (
     <>
-      <a className="skip-link" href="#main-content">Skip to repository inventory</a>
+      <a className="skip-link" href="#main-content">Skip to main content</a>
       <main className="app-shell" id="main-content" tabIndex={-1}>
       <header className="app-header">
         <div>
           <p className="eyebrow">Repository portfolio management</p>
           <h1>RepoFleet</h1>
-          <p className="intro">Analytics and maintenance for a large GitHub repository portfolio.</p>
+          <p className="intro">Find repositories quickly, then open one to inspect its maintenance and compliance details.</p>
         </div>
         {authSession.authenticated && authSession.user && (
           <div className="auth-user">
@@ -443,87 +463,130 @@ export default function App() {
         )}
       </header>
 
-      <InventoryRefreshPanel
-        status={inventoryStatus}
-        statusError={statusError}
-        refreshing={refreshing}
-        diagnostics={refreshDiagnostics}
-        onRefresh={refreshRepositories}
-        onFullRefresh={fullRefreshRepositories}
-      />
+      <nav className="workspace-navigation" aria-label="RepoFleet sections">
+        <button
+          type="button"
+          className={workspaceView === 'repositories' ? 'workspace-tab workspace-tab-active' : 'workspace-tab'}
+          aria-current={workspaceView === 'repositories' ? 'page' : undefined}
+          aria-controls="repositories-workspace"
+          onClick={() => setWorkspaceView('repositories')}
+        >
+          Repositories
+        </button>
+        <button
+          type="button"
+          className={workspaceView === 'insights' ? 'workspace-tab workspace-tab-active' : 'workspace-tab'}
+          aria-current={workspaceView === 'insights' ? 'page' : undefined}
+          aria-controls="insights-workspace"
+          onClick={() => setWorkspaceView('insights')}
+        >
+          Insights & diagnostics
+        </button>
+      </nav>
 
-      <RepositoryFiltersPanel
-        filters={filters}
-        onChange={setFilters}
-        totalCount={repositories.length}
-        filteredCount={filteredRepositories.length}
-      />
+      {workspaceView === 'repositories' ? (
+        <section id="repositories-workspace" aria-label="Repository workspace">
+          <section className="repository-finder" aria-labelledby="repository-finder-heading">
+            <div className="repository-finder-heading">
+              <p className="eyebrow">Repository finder</p>
+              <h2 id="repository-finder-heading">Find a repository</h2>
+              <p>Search or choose a saved view, then open a matching repository for details.</p>
+            </div>
 
-      <SavedViewsPanel
-        views={savedViews}
-        storageAvailable={savedViewsStorageAvailable}
-        onSave={saveCurrentView}
-        onLoad={loadSavedView}
-        onDelete={deleteSavedView}
-      />
+            <RepositoryFiltersPanel
+              filters={filters}
+              onChange={changeFilters}
+              totalCount={repositories.length}
+              filteredCount={filteredRepositories.length}
+            />
 
-      <PortfolioSummaryPanel
-        summary={portfolioSummary}
-        totalPortfolioCount={repositories.length}
-      />
+            <SavedViewsPanel
+              views={savedViews}
+              activeViewId={activeSavedViewId}
+              storageAvailable={savedViewsStorageAvailable}
+              onShowAll={showAllRepositories}
+              onSave={saveCurrentView}
+              onLoad={loadSavedView}
+              onDelete={deleteSavedView}
+            />
 
-      <ComplianceOverviewPanel
-        summary={complianceSummary}
-        repositories={repositories}
-        loading={complianceLoading}
-        error={complianceError}
-      />
+            <RepositorySortControls
+              sort={sort}
+              onChange={changeSort}
+              totalCount={repositories.length}
+              filteredCount={filteredRepositories.length}
+            />
+          </section>
 
-      <RefreshDiagnosticsPanel
-        diagnostics={refreshDiagnostics}
-        loading={refreshDiagnosticsLoading}
-        error={refreshDiagnosticsError}
-      />
+          <RepositoryDetailPanel
+            repository={detailRepository}
+            compliance={detailCompliance}
+            complianceLoading={detailComplianceLoading}
+            complianceError={detailComplianceError}
+            onSaveException={saveComplianceException}
+            onExpireException={expireComplianceException}
+            onRemoveException={removeComplianceException}
+            onClose={closeRepositoryDetails}
+          />
 
-      <RepositorySortControls
-        sort={sort}
-        onChange={setSort}
-        totalCount={repositories.length}
-        filteredCount={filteredRepositories.length}
-      />
+          <RepositorySelectionBar
+            selection={selectedRepositoryIds}
+            visibleRepositories={sortedRepositories}
+            onSelectVisible={selectVisible}
+            onDeselectVisible={deselectVisible}
+            onClear={clearSelection}
+          />
 
-      <RepositoryDetailPanel
-        repository={detailRepository}
-        compliance={detailCompliance}
-        complianceLoading={detailComplianceLoading}
-        complianceError={detailComplianceError}
-        onSaveException={saveComplianceException}
-        onExpireException={expireComplianceException}
-        onRemoveException={removeComplianceException}
-        onClose={closeRepositoryDetails}
-      />
+          <RepositoryInventory
+            repositories={sortedRepositories}
+            loading={loading}
+            error={error}
+            emptyMessage={repositories.length > 0
+              ? 'No repositories match the current filters.'
+              : inventoryStatus?.state === 'RUNNING'
+                ? 'Repository discovery is in progress…'
+                : undefined}
+            selectedRepositoryIds={selectedRepositoryIds}
+            onToggleRepository={toggleRepository}
+            onOpenDetails={openRepositoryDetails}
+          />
 
-      <RepositorySelectionBar
-        selection={selectedRepositoryIds}
-        visibleRepositories={sortedRepositories}
-        onSelectVisible={selectVisible}
-        onDeselectVisible={deselectVisible}
-        onClear={clearSelection}
-      />
+          <InventoryRefreshPanel
+            status={inventoryStatus}
+            statusError={statusError}
+            refreshing={refreshing}
+            diagnostics={refreshDiagnostics}
+            onRefresh={refreshRepositories}
+            onFullRefresh={fullRefreshRepositories}
+          />
+        </section>
+      ) : (
+        <section id="insights-workspace" className="insights-section" aria-labelledby="insights-heading">
+          <div className="insights-heading">
+            <p className="eyebrow">Secondary workspace</p>
+            <h2 id="insights-heading">Insights & diagnostics</h2>
+            <p>Portfolio signals, compliance and refresh diagnostics for deeper analysis.</p>
+          </div>
 
-      <RepositoryInventory
-        repositories={sortedRepositories}
-        loading={loading}
-        error={error}
-        emptyMessage={repositories.length > 0
-          ? 'No repositories match the current filters.'
-          : inventoryStatus?.state === 'RUNNING'
-            ? 'Repository discovery is in progress…'
-            : undefined}
-        selectedRepositoryIds={selectedRepositoryIds}
-        onToggleRepository={toggleRepository}
-        onOpenDetails={openRepositoryDetails}
-      />
+          <PortfolioSummaryPanel
+            summary={portfolioSummary}
+            totalPortfolioCount={repositories.length}
+          />
+
+          <ComplianceOverviewPanel
+            summary={complianceSummary}
+            repositories={repositories}
+            loading={complianceLoading}
+            error={complianceError}
+          />
+
+          <RefreshDiagnosticsPanel
+            diagnostics={refreshDiagnostics}
+            loading={refreshDiagnosticsLoading}
+            error={refreshDiagnosticsError}
+          />
+        </section>
+      )}
       </main>
     </>
   )
