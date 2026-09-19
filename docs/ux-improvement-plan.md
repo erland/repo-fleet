@@ -20,8 +20,8 @@ Portfolio analytics, compliance, refresh controls and diagnostics remain availab
 | 4 | Simplify the repository result list | DONE |
 | 5 | Compress refresh into system status | DONE |
 | 6 | Move portfolio/compliance/diagnostics into secondary navigation | DONE |
-| 7 | Refine the repository detail flow | IN PROGRESS |
-| 8 | Responsive and accessibility-focused final pass | NOT STARTED |
+| 7 | Refine the repository detail flow | DONE |
+| 8 | Responsive and accessibility-focused final pass | IN PROGRESS |
 
 ## Step 1 acceptance
 
@@ -115,6 +115,22 @@ Completed and verified by successful CI run #425 on PR #46.
 - The drawer becomes full-width on small screens.
 - Frontend tests pass.
 
-## Next step after Step 7
+## Step 7 verification
 
-Step 8 – Responsive and accessibility-focused final pass.
+Completed and verified by successful CI run #429 on PR #46.
+
+## Step 8 acceptance
+
+- Repository detail drawer traps keyboard focus while open and restores the previous focus target when closed.
+- Escape remains available for closing, and background scrolling is prevented while the drawer is open.
+- Workspace navigation exposes explicit relationships to its content regions.
+- Skip-link wording reflects the whole application rather than only repository inventory.
+- Primary mobile controls meet larger touch-target sizing.
+- Narrow-screen repository cards reduce redundant labels and keep the primary action full-width.
+- Very narrow screens use single-column saved-view shortcuts and tighter page padding.
+- Existing forced-colors and reduced-motion behavior remains intact.
+- Frontend tests pass.
+
+## Completion after Step 8
+
+When Step 8 is verified by CI, the UX improvement series is complete.
