@@ -21,7 +21,7 @@ Portfolio analytics, compliance, refresh controls and diagnostics remain availab
 | 5 | Compress refresh into system status | DONE |
 | 6 | Move portfolio/compliance/diagnostics into secondary navigation | DONE |
 | 7 | Refine the repository detail flow | DONE |
-| 8 | Responsive and accessibility-focused final pass | IN PROGRESS |
+| 8 | Responsive and accessibility-focused final pass | DONE |
 
 ## Step 1 acceptance
 
@@ -131,6 +131,10 @@ Completed and verified by successful CI run #429 on PR #46.
 - Existing forced-colors and reduced-motion behavior remains intact.
 - Frontend tests pass.
 
-## Completion after Step 8
+## Step 8 verification
 
-When Step 8 is verified by CI, the UX improvement series is complete.
+Completed and verified by successful CI run #435 on PR #46.
+
+## Completion
+
+The repository-discovery UX improvement series is complete. Steps 1–8 have been implemented and verified on PR #46.
