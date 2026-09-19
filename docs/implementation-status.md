@@ -86,9 +86,24 @@ The early CI bootstrap has been superseded by the completed Step 24 Quality Gate
 | 33 | Production migration and backup documentation | DONE | Verified on PR #38. Debian 13 covers its local PostgreSQL profile; Coolify uses a separate shared PostgreSQL resource with a dedicated RepoFleet database/role. Guides cover initialization, backup, restore, upgrade, rollback, secrets and troubleshooting. |
 | 34 | Phase 2 completion review | DONE | Completion review is documented in `phase-2-completion-review.md` and verified by green CI #375 on PR #38. Production deployment remains a post-merge release/operations verification task and is not a separate development step. |
 
+## UX Improvement Series
+
+| Step | UX improvement | Status | Notes |
+|---:|---|---|---|
+| 1 | Establish repository finder as primary information architecture | IN PROGRESS | Repository discovery has been moved ahead of portfolio and operations content; awaiting CI verification. |
+| 2 | Separate simple search from advanced filters | NOT STARTED | |
+| 3 | Make saved views first-class navigation | NOT STARTED | |
+| 4 | Simplify repository result list | NOT STARTED | |
+| 5 | Compress refresh into system status | NOT STARTED | |
+| 6 | Move analytics and diagnostics to secondary navigation | NOT STARTED | |
+| 7 | Refine repository detail flow | NOT STARTED | |
+| 8 | Responsive and accessibility final pass | NOT STARTED | |
+
+Detailed plan: `docs/ux-improvement-plan.md`.
+
 ## Current Position
 
-Current step: **Phase 2 complete – all 34 development steps DONE.**
+Current step: **UX improvement Step 1 IN PROGRESS; Phase 2 remains complete.**
 
 Phase 1 completed steps: **26 / 26**  
 Phase 2 completed steps: **34 / 34**
