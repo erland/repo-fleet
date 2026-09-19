@@ -110,12 +110,16 @@ a { color: inherit; }
 .saved-views-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; }
 .saved-views-help { max-width: 52rem; margin: .65rem 0 0; color: #596273; }
 .saved-views-count { color: #596273; font-size: .9rem; white-space: nowrap; }
+.saved-view-shortcuts { display: flex; gap: .55rem; flex-wrap: wrap; margin-top: 1rem; }
+.saved-view-chip { min-height: 2.35rem; border: 1px solid #c7ced7; border-radius: 999px; background: #fff; padding: .45rem .8rem; font: inherit; font-weight: 700; cursor: pointer; }
+.saved-view-chip-active { border-color: #172033; background: #172033; color: #fff; }
+.saved-view-management { margin-top: 1rem; border-top: 1px solid #e6e9ed; padding-top: .9rem; }
+.saved-view-management summary { cursor: pointer; font-weight: 750; }
 .saved-view-create { display: flex; align-items: end; gap: .8rem; margin-top: 1rem; }
 .saved-view-create label { display: grid; flex: 1; gap: .35rem; font-size: .84rem; font-weight: 650; }
 .saved-view-create input { width: 100%; min-height: 2.5rem; border: 1px solid #cfd5dc; border-radius: .55rem; padding: .5rem .65rem; font: inherit; color: inherit; }
 .saved-view-list { display: grid; gap: .55rem; margin: 1rem 0 0; padding: 0; list-style: none; }
 .saved-view-list li { display: flex; align-items: center; justify-content: space-between; gap: .8rem; padding: .65rem .75rem; border: 1px solid #e2e6eb; border-radius: .65rem; background: #fafbfc; }
-.saved-view-list li > div { display: flex; gap: .45rem; }
 .saved-views-empty { margin: 1rem 0 0; color: #596273; }
 .saved-views-warning { margin: 1rem 0 0; padding: .7rem .8rem; border-radius: .65rem; background: #fff7df; }
 
@@ -302,8 +306,8 @@ h2 { margin: 0; font-size: 1.5rem; }
   .refresh-summary, .summary-heading, .detail-heading, .saved-views-heading { align-items: stretch; flex-direction: column; }
   .simple-search-row, .advanced-filters summary { align-items: stretch; flex-direction: column; }
   .saved-view-create, .saved-view-list li { align-items: stretch; flex-direction: column; }
-  .saved-view-list li > div { width: 100%; }
-  .saved-view-list li > div .secondary-button { flex: 1; }
+  .saved-view-shortcuts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .saved-view-chip { width: 100%; }
   .detail-grid { grid-template-columns: 1fr; }
   .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .sort-controls { align-items: stretch; flex-direction: column; }
