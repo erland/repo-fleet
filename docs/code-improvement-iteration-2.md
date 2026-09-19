@@ -29,8 +29,8 @@ Continue improving RepoFleet maintainability and scalability without changing us
 
 | Step | Change | Status |
 |---|---|---|
-| 1 | Index compliance results once and reuse them in repository/rule summaries | IN PROGRESS |
-| 2 | Avoid repeated repository reconstruction during compliance group summaries | NOT STARTED |
+| 1 | Index compliance results once and reuse them in repository/rule summaries | DONE |
+| 2 | Avoid repeated repository reconstruction during compliance group summaries | IN PROGRESS |
 | 3 | Consolidate duplicated refresh-start orchestration in `App.tsx` | NOT STARTED |
 | 4 | Extract saved-view state/persistence from `App.tsx` into a focused hook | NOT STARTED |
 | 5 | Review backend persistence access and implement one justified low-risk boundary improvement | NOT STARTED |
@@ -44,6 +44,18 @@ Continue improving RepoFleet maintainability and scalability without changing us
 - Existing compliance summary tests remain green.
 - Full CI passes.
 
+## Step 1 verification
+
+Completed and verified by successful CI run #484 on PR #49.
+
+## Step 2 acceptance
+
+- Each active repository is reconstructed at most once per compliance summary invocation.
+- Enabled groups reuse the reconstructed repository set for membership evaluation.
+- Group membership semantics and result counts are unchanged.
+- Existing compliance summary tests remain green.
+- Full CI passes.
+
 ## Next step
 
-After Step 1 is verified by CI: Step 2 – avoid repeated repository reconstruction during compliance group summaries.
+After Step 2 is verified by CI: Step 3 – consolidate duplicated refresh-start orchestration in `App.tsx`.
