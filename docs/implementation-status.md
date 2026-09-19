@@ -107,8 +107,8 @@ Detailed plan: `docs/ux-improvement-plan.md`.
 |---:|---|---|---|
 | 1 | Replace finder panels with a compact repository launcher toolbar | DONE | Verified by successful CI run #439 on PR #47. |
 | 2 | Move advanced filters into a dedicated secondary disclosure/drawer | DONE | Verified by successful CI run #444 on PR #47. |
-| 3 | Replace mobile result cards/table with a compact repository list | IN PROGRESS | Mobile results now render as compact repository rows with only present indicators and no repeated field labels. Awaiting CI verification. |
-| 4 | Make repository rows open RepoFleet details; GitHub becomes secondary | NOT STARTED | |
+| 3 | Replace mobile result cards/table with a compact repository list | DONE | Verified by successful CI run #449 on PR #47. |
+| 4 | Make repository rows open RepoFleet details; GitHub becomes secondary | IN PROGRESS | Repository rows and names now open RepoFleet details; GitHub is a secondary link. Awaiting CI verification. |
 | 5 | Compact repository details and add relative recent activity times | NOT STARTED | |
 | 6 | Final mobile density and usability validation | NOT STARTED | |
 
@@ -116,7 +116,7 @@ Detailed plan: `docs/repository-launcher-ux-plan.md`.
 
 ## Current Position
 
-Current step: **Repository Launcher UX Iteration 2 – Step 3 IN PROGRESS; Phase 2 remains complete.**
+Current step: **Repository Launcher UX Iteration 2 – Step 4 IN PROGRESS; Phase 2 remains complete.**
 
 Phase 1 completed steps: **26 / 26**  
 Phase 2 completed steps: **34 / 34**
