@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import type { RepositoryVisibility } from './api'
 import {
   countActiveAdvancedRepositoryFilters,
@@ -52,6 +53,9 @@ export function RepositoryLauncherToolbar({
   totalCount,
   filteredCount,
 }: RepositoryLauncherToolbarProps) {
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const filterDialogRef = useRef<HTMLDivElement>(null)
+  const filterButtonRef = useRef<HTMLButtonElement>(null)
   const advancedFilterCount = countActiveAdvancedRepositoryFilters(filters)
   const resultCountLabel = filteredCount === totalCount
     ? `${totalCount} repositories`
@@ -65,6 +69,28 @@ export function RepositoryLauncherToolbar({
     const [field, direction] = value.split(':') as [RepositorySortField, SortDirection]
     onSortChange({ field, direction })
   }
+
+  useEffect(() => {
+    if (!filtersOpen) return
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    filterDialogRef.current?.focus()
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        setFiltersOpen(false)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      document.body.style.overflow = previousOverflow
+      filterButtonRef.current?.focus()
+    }
+  }, [filtersOpen])
 
   return (
     <section className="repository-launcher" aria-label="Find repositories">
@@ -108,13 +134,46 @@ export function RepositoryLauncherToolbar({
           </select>
         </label>
 
-        <details className="launcher-filters">
-          <summary>
-            Filters{advancedFilterCount > 0 ? ` · ${advancedFilterCount}` : ''}
-          </summary>
-          <div className="launcher-filter-panel">
+        <button
+          ref={filterButtonRef}
+          className="launcher-filter-button"
+          type="button"
+          aria-haspopup="dialog"
+          aria-expanded={filtersOpen}
+          onClick={() => setFiltersOpen(true)}
+        >
+          Filters{advancedFilterCount > 0 ? ` · ${advancedFilterCount}` : ''}
+        </button>
+      </div>
+
+      <div className="launcher-meta" aria-live="polite">{resultCountLabel}</div>
+
+      {filtersOpen && (
+        <div
+          className="launcher-filter-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setFiltersOpen(false)
+          }}
+        >
+          <div
+            ref={filterDialogRef}
+            className="launcher-filter-drawer"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="advanced-filter-heading"
+            tabIndex={-1}
+          >
             <div className="launcher-filter-heading">
-              <strong>Advanced filters</strong>
+              <div>
+                <strong id="advanced-filter-heading">Advanced filters</strong>
+                <p>Filter by repository metadata and maintenance status.</p>
+              </div>
+              <button className="secondary-button" type="button" onClick={() => setFiltersOpen(false)}>
+                Close
+              </button>
+            </div>
+
+            <div className="launcher-filter-actions">
               <button className="secondary-button" type="button" onClick={() => onFiltersChange({
                 ...emptyRepositoryFilters,
                 nameContains: filters.nameContains,
@@ -217,10 +276,8 @@ export function RepositoryLauncherToolbar({
               </label>
             </div>
           </div>
-        </details>
-      </div>
-
-      <div className="launcher-meta" aria-live="polite">{resultCountLabel}</div>
+        </div>
+      )}
     </section>
   )
 }
