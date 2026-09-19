@@ -447,6 +447,10 @@ describe('RepositoryDetailPanel', () => {
 
     expect(html).toContain('Repository details')
     expect(html).toContain('erland/roman-nollpunkten')
+    expect(html).toContain('role="dialog"')
+    expect(html).toContain('aria-modal="true"')
+    expect(html).toContain('Repository overview')
+    expect(html).toContain('Maintenance analysis')
     expect(html).toContain('Default branch')
     expect(html).toContain('publishing')
     expect(html).toContain('MIT License')
@@ -612,7 +616,10 @@ describe('Accessibility and responsive markup', () => {
     )
 
     expect(html).toContain('tabindex="-1"')
+    expect(html).toContain('role="dialog"')
+    expect(html).toContain('aria-modal="true"')
     expect(html).toContain('aria-labelledby="repository-detail-heading"')
+    expect(html).toContain('aria-describedby="repository-detail-description"')
   })
 
   it('gives saved-view actions descriptive accessible names', () => {
