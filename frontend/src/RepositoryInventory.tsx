@@ -14,12 +14,12 @@ function analysisUnavailable(state: string): boolean {
   return state === 'FAILED' || state === 'PARTIAL' || state === 'NOT_ANALYZED'
 }
 
-function activityLabel(repository: RepositorySummary): string {
+function activityLabel(repository: RepositorySummary): string | null {
   const value = repository.activity.pushedAt ?? repository.activity.updatedAt
-  if (!value) return 'Unknown'
+  if (!value) return null
 
   const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'Unknown'
+  if (Number.isNaN(date.getTime())) return null
 
   return date.toLocaleDateString('en-CA')
 }
@@ -118,6 +118,9 @@ export function RepositoryInventory({
           <tbody>
             {repositories.map((repository) => {
               const flags = maintenanceFlags(repository)
+              const activity = activityLabel(repository)
+              const visibleTopics = repository.topics.slice(0, 2)
+              const hiddenTopicCount = Math.max(0, repository.topics.length - visibleTopics.length)
               return (
                 <tr key={repository.id} className={selectedRepositoryIds.has(repository.id) ? 'repository-row-selected' : undefined}>
                   <td className="selection-column" data-label="Select">
@@ -133,11 +136,28 @@ export function RepositoryInventory({
                       <a href={repository.url} target="_blank" rel="noreferrer" className="repository-link">
                         {repository.fullName}
                       </a>
-                      <div className="repository-badges">
+                      <div className="repository-badges repository-badges-desktop">
                         <span className="inline-badge">{repository.visibility.toLowerCase()}</span>
                         {repository.archived && <span className="inline-badge">Archived</span>}
                         {repository.fork && <span className="inline-badge">Fork</span>}
                       </div>
+                      <div className="mobile-repository-signals" aria-label={`Repository indicators for ${repository.fullName}`}>
+                        <span className="repository-signal">{repository.visibility.toLowerCase()}</span>
+                        {repository.primaryLanguage && <span className="repository-signal">{repository.primaryLanguage}</span>}
+                        {activity && <span className="repository-signal">{activity}</span>}
+                        {repository.archived && <span className="repository-signal">archived</span>}
+                        {repository.fork && <span className="repository-signal">fork</span>}
+                        {visibleTopics.map((topic) => <span className="repository-signal repository-signal-topic" key={topic}>{topic}</span>)}
+                        {hiddenTopicCount > 0 && <span className="repository-signal">+{hiddenTopicCount}</span>}
+                        {flags.map((flag) => <span className="repository-signal repository-signal-warning" key={flag}>{flag}</span>)}
+                      </div>
+                      <button
+                        className="mobile-details-button"
+                        type="button"
+                        onClick={() => onOpenDetails(repository.id)}
+                      >
+                        View details
+                      </button>
                     </div>
                   </td>
                   <td data-label="Topics">
@@ -148,7 +168,7 @@ export function RepositoryInventory({
                     ) : '—'}
                   </td>
                   <td data-label="Language">{repository.primaryLanguage ?? '—'}</td>
-                  <td data-label="Last activity">{activityLabel(repository)}</td>
+                  <td data-label="Last activity">{activity ?? '—'}</td>
                   <td data-label="Maintenance">
                     {flags.length === 0 ? (
                       <span className="maintenance-clear">No maintenance flags</span>
