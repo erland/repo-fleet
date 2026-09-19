@@ -520,19 +520,23 @@ describe('SavedViewsPanel', () => {
     const html = renderToString(
       <SavedViewsPanel
         views={[view]}
+        activeViewId="view-1"
         storageAvailable
+        onShowAll={() => undefined}
         onSave={() => undefined}
         onLoad={() => undefined}
         onDelete={() => undefined}
       />,
     )
 
-    expect(html).toContain('Saved views')
+    expect(html).toContain('Quick categories')
+    expect(html).toContain('All repositories')
     expect(html).toContain('Java missing LICENSE')
     expect(html).toContain('1 saved view')
+    expect(html).toContain('Manage views')
     expect(html).toContain('Save current view')
-    expect(html).toContain('Load')
     expect(html).toContain('Delete')
+    expect(html).toContain('aria-pressed="true"')
     expect(html).toContain('Repository selection is not included')
   })
 
@@ -540,7 +544,9 @@ describe('SavedViewsPanel', () => {
     const html = renderToString(
       <SavedViewsPanel
         views={[]}
+        activeViewId={null}
         storageAvailable={false}
+        onShowAll={() => undefined}
         onSave={() => undefined}
         onLoad={() => undefined}
         onDelete={() => undefined}
@@ -594,14 +600,17 @@ describe('Accessibility and responsive markup', () => {
     const html = renderToString(
       <SavedViewsPanel
         views={[view]}
+        activeViewId="view-1"
         storageAvailable
+        onShowAll={() => undefined}
         onSave={() => undefined}
         onLoad={() => undefined}
         onDelete={() => undefined}
       />,
     )
 
-    expect(html).toContain('aria-label="Load saved view Java missing LICENSE"')
+    expect(html).toContain('aria-label="Repository views"')
+    expect(html).toContain('aria-pressed="true"')
     expect(html).toContain('aria-label="Delete saved view Java missing LICENSE"')
     expect(html).toContain('aria-describedby="saved-views-description"')
   })
