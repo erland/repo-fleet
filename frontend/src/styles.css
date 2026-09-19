@@ -415,10 +415,26 @@ h2 { margin: 0; font-size: 1.5rem; }
 .repository-table th { font-size: .78rem; letter-spacing: .04em; text-transform: uppercase; color: #596273; background: #fafbfc; }
 .repository-table tbody tr:last-child td { border-bottom: 0; }
 .repository-link { font-weight: 700; text-decoration-thickness: 1px; text-underline-offset: 2px; overflow-wrap: anywhere; }
+.repository-details-link {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+.repository-row-interactive { cursor: pointer; }
+.repository-row-interactive:focus-visible { outline: 3px solid currentColor; outline-offset: -3px; }
+.repository-github-link { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
 .repository-identity { display: grid; gap: .35rem; }
 .repository-badges { display: flex; flex-wrap: wrap; gap: .3rem; }
 .mobile-repository-signals,
-.mobile-details-button { display: none; }
+.mobile-github-link { display: none; }
 .inline-badge,
 .topic,
 .maintenance-flag { display: inline-block; border-radius: 999px; font-size: .75rem; line-height: 1.4; }
@@ -564,17 +580,12 @@ h2 { margin: 0; font-size: 1.5rem; }
     color: #6b521b;
   }
 
-  .mobile-details-button {
+  .mobile-github-link {
     display: inline;
     width: fit-content;
-    border: 0;
-    background: transparent;
-    padding: 0;
-    color: #465064;
-    font: inherit;
-    font-size: .72rem;
+    color: #596273;
+    font-size: .7rem;
     font-weight: 700;
-    cursor: pointer;
     text-decoration: underline;
     text-underline-offset: 2px;
   }
