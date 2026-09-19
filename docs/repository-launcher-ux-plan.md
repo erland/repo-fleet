@@ -22,8 +22,8 @@ Design principle:
 | 1 | Replace finder panels with a compact repository launcher toolbar | DONE |
 | 2 | Move advanced filters into a dedicated secondary disclosure/drawer | DONE |
 | 3 | Replace mobile result cards/table with a compact repository list | DONE |
-| 4 | Make repository rows open RepoFleet details; GitHub becomes secondary | IN PROGRESS |
-| 5 | Compact repository details and add relative recent activity times | NOT STARTED |
+| 4 | Make repository rows open RepoFleet details; GitHub becomes secondary | DONE |
+| 5 | Compact repository details and add relative recent activity times | IN PROGRESS |
 | 6 | Final mobile density and usability validation | NOT STARTED |
 
 ## Step 1 acceptance
@@ -82,6 +82,22 @@ Completed and verified by successful CI run #449 on PR #47.
 - Mobile and desktop use the same primary interaction model.
 - Frontend tests pass.
 
-## Next step after Step 4
+## Step 4 verification
 
-Step 5 – Compact repository details and add relative recent activity times.
+Completed and verified by successful CI run #454 on PR #47.
+
+## Step 5 acceptance
+
+- Repository overview is reduced to compact summary signals and recent activity.
+- Less frequently needed metadata is moved behind a Repository metadata disclosure.
+- Last push and Last update use relative labels for activity newer than seven days.
+- Recent times use minutes, hours or days as appropriate.
+- Activity older than seven days falls back to a calendar date.
+- Exact timestamp remains available as the element title/tooltip.
+- Maintenance and compliance sections remain available.
+- Small-screen detail spacing is tightened further.
+- Frontend tests pass.
+
+## Next step after Step 5
+
+Step 6 – Final mobile density and usability validation.
