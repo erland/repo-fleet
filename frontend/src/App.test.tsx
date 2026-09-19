@@ -148,8 +148,9 @@ describe('InventoryRefreshPanel', () => {
       <InventoryRefreshPanel status={null} statusError={null} refreshing={false} onRefresh={() => undefined} />,
     )
 
-    expect(html).toContain('Last successful refresh')
-    expect(html).toContain('Never')
+    expect(html).toContain('System status')
+    expect(html).toContain('Not refreshed')
+    expect(html).toContain('Last successful refresh: Never')
     expect(html).toContain('Refresh repositories')
   })
 
@@ -184,8 +185,10 @@ describe('InventoryRefreshPanel', () => {
       />,
     )
 
+    expect(html).toContain('Refreshing')
     expect(html).toContain('3 of 10 repositories processed')
     expect(html).toContain('30%')
+    expect(html).toContain('<details class="refresh-details" open=""')
     expect(html).toContain('erland/repo-fleet')
     expect(html).toContain('Existing repository data remains available')
     expect(html).toContain('Refreshing')
@@ -229,8 +232,9 @@ describe('InventoryRefreshPanel', () => {
       />,
     )
 
-    expect(html).toContain('Refresh complete')
-    expect(html).toContain('2 repositories are up to date')
+    expect(html).toContain('System status')
+    expect(html).toContain('Up to date')
+    expect(html).toContain('Last successful refresh')
   })
 
   it('renders the partial failure warning', () => {
@@ -243,8 +247,10 @@ describe('InventoryRefreshPanel', () => {
       />,
     )
 
+    expect(html).toContain('Needs attention')
     expect(html).toContain('Refresh completed with partial failures')
     expect(html).toContain('1 repository has incomplete or failed analysis')
+    expect(html).toContain('<details class="refresh-details" open=""')
   })
 
   it('renders the failed refresh state', () => {
@@ -264,6 +270,7 @@ describe('InventoryRefreshPanel', () => {
 
     expect(html).toContain('Refresh failed')
     expect(html).toContain('GitHub unavailable')
+    expect(html).toContain('<details class="refresh-details" open=""')
   })
 })
 
