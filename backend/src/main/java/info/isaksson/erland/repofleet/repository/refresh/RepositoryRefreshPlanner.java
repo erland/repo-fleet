@@ -69,6 +69,11 @@ public class RepositoryRefreshPlanner {
 
             RepositoryRefreshAction action;
             RepositorySummary cached = null;
+            var snapshot = snapshotRepository.findByGitHubRepositoryId(summary.id());
+            if (snapshot.isPresent()
+                    && AnalysisState.COMPLETE.name().equals(snapshot.get().enrichmentState)) {
+                cached = snapshotService.reconstruct(identity);
+            }
 
             if (classification == RepositoryChangeClassification.NEW) {
                 action = RepositoryRefreshAction.FULL_ENRICHMENT_NEW;
@@ -79,14 +84,12 @@ public class RepositoryRefreshPlanner {
                 changed++;
                 scheduled++;
             } else {
-                var snapshot = snapshotRepository.findByGitHubRepositoryId(summary.id());
                 if (snapshot.isPresent()
                         && AnalysisState.COMPLETE.name().equals(snapshot.get().enrichmentState)
                         && refreshPolicy.identityFresh(identity, now)
                         && refreshPolicy.enrichmentFresh(snapshot.get(), now)
                         && !refreshPolicy.fullConsistencyDue(snapshot.get(), now)) {
                     action = RepositoryRefreshAction.REUSE_CACHED;
-                    cached = snapshotService.reconstruct(identity);
                     reused++;
                 } else {
                     action = RepositoryRefreshAction.FULL_ENRICHMENT;

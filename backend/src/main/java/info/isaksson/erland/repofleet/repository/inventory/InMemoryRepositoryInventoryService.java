@@ -550,7 +550,8 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
             return planItem.cached();
         }
 
-        RepositorySummary enriched = enrichSafely(repository);
+        RepositorySummary enrichmentBase = enrichmentBase(planItem, repository);
+        RepositorySummary enriched = enrichSafely(enrichmentBase);
         AnalysisState enrichedState = repositoryState(enriched);
         enriched = withFreshness(
                 enriched,
@@ -561,6 +562,34 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
             snapshotService.persistProgressiveResult(enriched, clock.instant());
         }
         return enriched;
+    }
+
+    private RepositorySummary enrichmentBase(
+            RepositoryRefreshPlanItem planItem,
+            RepositorySummary discovered) {
+        if (planItem == null || planItem.cached() == null) {
+            return discovered;
+        }
+
+        RepositorySummary cached = planItem.cached();
+        return new RepositorySummary(
+                discovered.id(),
+                discovered.owner(),
+                discovered.name(),
+                discovered.fullName(),
+                discovered.url(),
+                discovered.visibility(),
+                discovered.archived(),
+                discovered.fork(),
+                discovered.defaultBranch(),
+                cached.topics(),
+                cached.languages(),
+                cached.primaryLanguage(),
+                cached.license(),
+                cached.githubActions(),
+                cached.release(),
+                discovered.activity(),
+                cached.refreshStatus());
     }
 
     private AnalysisState repositoryState(RepositorySummary repository) {

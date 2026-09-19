@@ -70,6 +70,79 @@ class InMemoryRepositoryInventoryServiceTest {
     }
 
     @Test
+    void fullEnrichmentUsesCachedAnalysisAsBaselineWhileKeepingFreshIdentity() {
+        RepositorySummary discovered = repository(1L, "one");
+        RepositorySummary cached = new RepositorySummary(
+                discovered.id(),
+                discovered.owner(),
+                discovered.name(),
+                discovered.fullName(),
+                discovered.url(),
+                info.isaksson.erland.repofleet.repository.api.RepositoryVisibility.PUBLIC,
+                discovered.archived(),
+                discovered.fork(),
+                "old-main",
+                List.of("cached-topic"),
+                List.of("Java"),
+                "Java",
+                new info.isaksson.erland.repofleet.repository.api.LicenseStatus(
+                        info.isaksson.erland.repofleet.repository.api.AnalysisState.COMPLETE,
+                        info.isaksson.erland.repofleet.repository.api.LicensePresence.PRESENT,
+                        true,
+                        "mit",
+                        "MIT License"),
+                new info.isaksson.erland.repofleet.repository.api.GitHubActionsStatus(
+                        info.isaksson.erland.repofleet.repository.api.AnalysisState.COMPLETE,
+                        true,
+                        1),
+                new info.isaksson.erland.repofleet.repository.api.ReleaseStatus(
+                        info.isaksson.erland.repofleet.repository.api.AnalysisState.COMPLETE,
+                        false,
+                        null, null, null, null),
+                discovered.activity(),
+                new info.isaksson.erland.repofleet.repository.api.RepositoryRefreshStatus(
+                        info.isaksson.erland.repofleet.repository.api.AnalysisState.COMPLETE,
+                        "complete"));
+
+        RepositoryRefreshPlanner planner = org.mockito.Mockito.mock(RepositoryRefreshPlanner.class);
+        org.mockito.Mockito.when(planner.plan(List.of(discovered)))
+                .thenReturn(new RepositoryRefreshPlan(
+                        List.of(new RepositoryRefreshPlanItem(
+                                discovered,
+                                RepositoryRefreshAction.FULL_ENRICHMENT,
+                                cached)),
+                        0, 0, 1, 1));
+
+        final RepositorySummary[] received = new RepositorySummary[1];
+        var service = new InMemoryRepositoryInventoryService(
+                () -> List.of(discovered),
+                item -> {
+                    received[0] = item;
+                    return complete(item);
+                },
+                CLOCK,
+                null,
+                null,
+                null,
+                null,
+                null,
+                planner,
+                1);
+
+        service.refresh();
+
+        assertEquals(discovered.visibility(), received[0].visibility());
+        assertEquals(discovered.defaultBranch(), received[0].defaultBranch());
+        assertEquals(List.of("cached-topic"), received[0].topics());
+        assertEquals(
+                info.isaksson.erland.repofleet.repository.api.LicensePresence.PRESENT,
+                received[0].license().presence());
+        assertEquals(
+                info.isaksson.erland.repofleet.repository.api.AnalysisState.COMPLETE,
+                received[0].refreshStatus().state());
+    }
+
+    @Test
     void concurrentEnrichmentNeverExceedsConfiguredWorkerCount() throws Exception {
         List<RepositorySummary> discovered = List.of(
                 repository(1L, "one"),
