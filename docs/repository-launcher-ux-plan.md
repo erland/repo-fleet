@@ -23,8 +23,8 @@ Design principle:
 | 2 | Move advanced filters into a dedicated secondary disclosure/drawer | DONE |
 | 3 | Replace mobile result cards/table with a compact repository list | DONE |
 | 4 | Make repository rows open RepoFleet details; GitHub becomes secondary | DONE |
-| 5 | Compact repository details and add relative recent activity times | IN PROGRESS |
-| 6 | Final mobile density and usability validation | NOT STARTED |
+| 5 | Compact repository details and add relative recent activity times | DONE |
+| 6 | Final mobile density and usability validation | IN PROGRESS |
 
 ## Step 1 acceptance
 
@@ -98,6 +98,22 @@ Completed and verified by successful CI run #454 on PR #47.
 - Small-screen detail spacing is tightened further.
 - Frontend tests pass.
 
-## Next step after Step 5
+## Step 5 verification
 
-Step 6 – Final mobile density and usability validation.
+Completed and verified by successful CI run #458 on PR #47.
+
+## Step 6 acceptance
+
+- Mobile app header is reduced to a compact app bar; descriptive eyebrow/intro text no longer consumes discovery space.
+- Workspace navigation remains easy to tap while using less surrounding whitespace.
+- Launcher and repository finder margins are tightened on small screens.
+- Repository result rows remain compact with only repository name and present indicators.
+- Secondary GitHub navigation is removed from the compact mobile row and remains available in repository details.
+- Primary navigation and launcher controls retain approximately 44 px touch targets.
+- The layout is optimized so several repository results can be visible within a phone viewport without scrolling through secondary UI first.
+- Responsive/source tests protect the compact mobile layout.
+- Full CI passes.
+
+## Completion after Step 6
+
+When Step 6 is verified by CI, Repository Launcher UX Iteration 2 is complete.
