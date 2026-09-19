@@ -97,7 +97,7 @@ class RepositoryRefreshPlannerTest {
 
     @Test
     @Transactional
-    void schedulesApparentlyUnchangedRepositoryWhenSnapshotIsStale() {
+    void reusesApparentlyUnchangedRepositoryEvenWhenSnapshotIsOld() {
         RepositorySummary discovered = repository(1001L, RepositoryVisibility.PUBLIC, "main");
         inventoryPersistence.synchronize(
                 List.of(discovered),
@@ -113,11 +113,11 @@ class RepositoryRefreshPlannerTest {
 
         RepositoryRefreshPlan plan = planner.plan(List.of(discovered));
 
-        assertEquals(RepositoryRefreshAction.FULL_ENRICHMENT, plan.items().getFirst().action());
+        assertEquals(RepositoryRefreshAction.REUSE_CACHED, plan.items().getFirst().action());
         assertEquals(AnalysisState.COMPLETE, plan.items().getFirst().cached().refreshStatus().state());
         assertEquals(LicensePresence.PRESENT, plan.items().getFirst().cached().license().presence());
-        assertEquals(0, plan.reusedCount());
-        assertEquals(1, plan.scheduledCount());
+        assertEquals(1, plan.reusedCount());
+        assertEquals(0, plan.scheduledCount());
     }
 
     @Test

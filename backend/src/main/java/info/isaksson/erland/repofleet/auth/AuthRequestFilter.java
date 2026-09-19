@@ -8,6 +8,7 @@ import jakarta.ws.rs.container.ContainerRequestFilter;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.Provider;
+import info.isaksson.erland.repofleet.repository.refresh.RepositoryUsageRefreshTrigger;
 
 import java.util.Map;
 
@@ -16,11 +17,16 @@ import java.util.Map;
 public class AuthRequestFilter implements ContainerRequestFilter {
     private final AuthConfig config;
     private final AuthSessionTokenService tokenService;
+    private final RepositoryUsageRefreshTrigger usageRefreshTrigger;
 
     @Inject
-    public AuthRequestFilter(AuthConfig config, AuthSessionTokenService tokenService) {
+    public AuthRequestFilter(
+            AuthConfig config,
+            AuthSessionTokenService tokenService,
+            RepositoryUsageRefreshTrigger usageRefreshTrigger) {
         this.config = config;
         this.tokenService = tokenService;
+        this.usageRefreshTrigger = usageRefreshTrigger;
     }
 
     @Override
@@ -32,7 +38,10 @@ public class AuthRequestFilter implements ContainerRequestFilter {
         if (path.equals("api/status") || path.startsWith("api/auth/")) return;
 
         var cookie = requestContext.getCookies().get(AuthResource.SESSION_COOKIE);
-        if (cookie != null && tokenService.parse(cookie.getValue()).isPresent()) return;
+        if (cookie != null && tokenService.parse(cookie.getValue()).isPresent()) {
+            usageRefreshTrigger.onAuthenticatedUse();
+            return;
+        }
 
         requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED)
             .type(MediaType.APPLICATION_JSON_TYPE)

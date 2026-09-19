@@ -165,7 +165,7 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
         if (cachedInventoryService != null) {
             repositories = List.copyOf(cachedInventoryService.loadActiveRepositories());
         }
-        startRefresh("AUTOMATIC");
+        status = InventoryStatus.cached(repositories.size());
     }
 
     @PreDestroy
@@ -211,6 +211,10 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
 
     public InventoryStatus startScheduledConsistencyRefresh() {
         return startRefresh("SCHEDULED_CONSISTENCY");
+    }
+
+    public InventoryStatus startUsageRefresh() {
+        return startRefresh("AUTHENTICATED_USE");
     }
 
     private InventoryStatus startRefresh(String triggerType) {

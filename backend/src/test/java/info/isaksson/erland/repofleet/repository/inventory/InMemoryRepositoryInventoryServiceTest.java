@@ -432,19 +432,10 @@ class InMemoryRepositoryInventoryServiceTest {
 
 
     @Test
-    void initializationPublishesPersistedCacheBeforeGitHubRefreshCompletes() throws Exception {
-        CountDownLatch discoveryStarted = new CountDownLatch(1);
-        CountDownLatch allowDiscoveryToFinish = new CountDownLatch(1);
+    void initializationPublishesPersistedCacheWithoutStartingGitHubRefresh() {
+        AtomicInteger discoveryCalls = new AtomicInteger();
         GitHubRepositoryDiscoveryService discovery = () -> {
-            discoveryStarted.countDown();
-            try {
-                if (!allowDiscoveryToFinish.await(5, TimeUnit.SECONDS)) {
-                    throw new IllegalStateException("timed out waiting for test release");
-                }
-            } catch (InterruptedException exception) {
-                Thread.currentThread().interrupt();
-                throw new IllegalStateException(exception);
-            }
+            discoveryCalls.incrementAndGet();
             return List.of(repository(2L, "fresh"));
         };
 
@@ -455,29 +446,21 @@ class InMemoryRepositoryInventoryServiceTest {
 
         var executor = Executors.newSingleThreadExecutor();
         var service = new InMemoryRepositoryInventoryService(
-                discovery,
-                this::complete,
-                CLOCK,
-                executor,
-                null,
-                cachedInventory,
-                null,
-                null);
+                discovery, this::complete, CLOCK, executor,
+                null, cachedInventory, null, null);
         try {
             service.initialize();
-
-            assertTrue(discoveryStarted.await(1, TimeUnit.SECONDS));
-            assertEquals(InventoryRefreshState.RUNNING, service.getStatus().state());
-            assertEquals(1, service.listRepositories().size());
+            assertEquals(0, discoveryCalls.get());
+            assertEquals(InventoryRefreshState.NOT_STARTED, service.getStatus().state());
+            assertEquals(1, service.getStatus().repositoryCount());
             assertEquals("erland/cached", service.listRepositories().getFirst().fullName());
         } finally {
-            allowDiscoveryToFinish.countDown();
             service.shutdown();
         }
     }
 
     @Test
-    void initializationStartsRefreshAsynchronouslyInsteadOfBlockingFirstApiUse() throws Exception {
+    void usageRefreshStartsAsynchronouslyAfterCacheOnlyInitialization() throws Exception {
         CountDownLatch discoveryStarted = new CountDownLatch(1);
         CountDownLatch allowDiscoveryToFinish = new CountDownLatch(1);
         GitHubRepositoryDiscoveryService discovery = () -> {
@@ -497,10 +480,10 @@ class InMemoryRepositoryInventoryServiceTest {
         var service = new InMemoryRepositoryInventoryService(discovery, this::complete, CLOCK, executor);
         try {
             service.initialize();
-
+            assertEquals(InventoryRefreshState.NOT_STARTED, service.getStatus().state());
+            service.startUsageRefresh();
             assertTrue(discoveryStarted.await(1, TimeUnit.SECONDS));
             assertEquals(InventoryRefreshState.RUNNING, service.getStatus().state());
-            assertTrue(service.listRepositories().isEmpty());
         } finally {
             allowDiscoveryToFinish.countDown();
             service.shutdown();

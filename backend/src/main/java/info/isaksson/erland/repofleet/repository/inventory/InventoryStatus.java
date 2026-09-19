@@ -38,6 +38,15 @@ public record InventoryStatus(
                 null);
     }
 
+    public static InventoryStatus cached(int repositoryCount) {
+        return new InventoryStatus(
+                InventoryRefreshState.NOT_STARTED,
+                null, null, null, null,
+                repositoryCount,
+                0, 0, 0, 0, 0, 0, 0, 0,
+                null);
+    }
+
     public boolean running() {
         return state == InventoryRefreshState.RUNNING;
     }

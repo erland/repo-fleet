@@ -55,5 +55,6 @@ class RepositoryRefreshHistoryServiceTest {
         assertEquals(6, run.reusedCount());
         assertEquals(4, run.scheduledCount());
         assertNotNull(run.failedRepositorySummary());
+        assertEquals(startedAt, history.latestAttemptAt());
     }
 }
