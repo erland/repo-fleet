@@ -19,8 +19,8 @@ Portfolio analytics, compliance, refresh controls and diagnostics remain availab
 | 3 | Make saved views first-class navigation | DONE |
 | 4 | Simplify the repository result list | DONE |
 | 5 | Compress refresh into system status | DONE |
-| 6 | Move portfolio/compliance/diagnostics into secondary navigation | IN PROGRESS |
-| 7 | Refine the repository detail flow | NOT STARTED |
+| 6 | Move portfolio/compliance/diagnostics into secondary navigation | DONE |
+| 7 | Refine the repository detail flow | IN PROGRESS |
 | 8 | Responsive and accessibility-focused final pass | NOT STARTED |
 
 ## Step 1 acceptance
@@ -100,6 +100,21 @@ Completed and verified by successful CI run #421 on PR #46.
 - Navigation is keyboard-accessible and responsive.
 - Frontend tests pass.
 
-## Next step after Step 6
+## Step 6 verification
 
-Step 7 – Refine the repository detail flow.
+Completed and verified by successful CI run #425 on PR #46.
+
+## Step 7 acceptance
+
+- Repository details open as a focused side drawer without replacing the repository result context.
+- The drawer receives focus and behaves as a labelled modal dialog.
+- Escape and backdrop interaction close the drawer.
+- Core repository metadata is immediately visible in a compact overview.
+- Detailed maintenance analysis uses progressive disclosure.
+- Compliance detail remains available in the same repository context.
+- The drawer becomes full-width on small screens.
+- Frontend tests pass.
+
+## Next step after Step 7
+
+Step 8 – Responsive and accessibility-focused final pass.
