@@ -15,8 +15,8 @@ Portfolio analytics, compliance, refresh controls and diagnostics remain availab
 | Step | Change | Status |
 | ---: | --- | --- |
 | 1 | Establish repository finder as the primary information architecture | DONE |
-| 2 | Separate simple search from advanced filters | IN PROGRESS |
-| 3 | Make saved views first-class navigation | NOT STARTED |
+| 2 | Separate simple search from advanced filters | DONE |
+| 3 | Make saved views first-class navigation | IN PROGRESS |
 | 4 | Simplify the repository result list | NOT STARTED |
 | 5 | Compress refresh into system status | NOT STARTED |
 | 6 | Move portfolio/compliance/diagnostics into secondary navigation | NOT STARTED |
@@ -45,6 +45,20 @@ Completed and verified by successful CI run #398 on PR #46.
 - Existing saved views remain compatible with the filter model.
 - Frontend tests pass.
 
-## Next step after Step 2
+## Step 2 verification
 
-Step 3 – Make saved views first-class navigation.
+Completed and verified by successful CI run #405 on PR #46.
+
+## Step 3 acceptance
+
+- Saved views are directly selectable as quick repository categories.
+- "All repositories" is always available as the neutral view.
+- The active saved view is visibly and programmatically indicated.
+- Manual changes to search/filter/sort leave the saved-view selection state.
+- Create/delete actions are available behind secondary "Manage views" disclosure.
+- Existing browser-storage persistence remains unchanged.
+- Frontend tests pass.
+
+## Next step after Step 3
+
+Step 4 – Simplify the repository result list.
