@@ -82,7 +82,9 @@ describe('RepositoryInventory', () => {
     expect(html).toContain('novel')
     expect(html).toContain('Python')
     expect(html).toContain('repository-signal')
-    expect(html).toContain('View details')
+    expect(html).toContain('Open details for erland/roman-nollpunkten')
+    expect(html).toContain('repository-row-interactive')
+    expect(html).toContain('GitHub')
   })
 
   it('renders the loading state', () => {
@@ -524,7 +526,7 @@ describe('RepositoryDetailPanel', () => {
     expect(html).toContain('Failed')
   })
 
-  it('offers a details action for each repository row', () => {
+  it('makes each repository row open RepoFleet details and keeps GitHub secondary', () => {
     const html = renderToString(
       <RepositoryInventory
         repositories={[repository]}
@@ -534,7 +536,9 @@ describe('RepositoryDetailPanel', () => {
       />,
     )
 
-    expect(html).toContain('View details')
+    expect(html).toContain('Open details for erland/roman-nollpunkten')
+    expect(html).toContain('repository-details-link')
+    expect(html).toContain('repository-github-link')
   })
 })
 
