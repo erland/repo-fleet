@@ -32,8 +32,8 @@ Improve maintainability without changing RepoFleet behaviour. Work in small, ver
 |---|---|---|
 | 1 | Remove superseded finder/sort components and their dedicated tests | DONE |
 | 2 | Remove CSS that is proven unused after Step 1 | DONE |
-| 3 | Extract repository-workspace orchestration from `App.tsx` without behaviour changes | IN PROGRESS |
-| 4 | Split monolithic frontend tests and centralize reusable repository fixtures | NOT STARTED |
+| 3 | Extract repository-workspace orchestration from `App.tsx` without behaviour changes | DONE |
+| 4 | Split monolithic frontend tests and centralize reusable repository fixtures | IN PROGRESS |
 | 5 | Perform focused backend service-boundary analysis and implement the highest-value low-risk finding | NOT STARTED |
 | 6 | Final cleanup, documentation and full CI verification | NOT STARTED |
 
@@ -70,6 +70,18 @@ Completed and verified by successful CI run #470 on PR #48.
 - No user-visible behaviour changes.
 - Full CI passes.
 
+## Step 3 verification
+
+Completed and verified by successful CI run #474 on PR #48.
+
+## Step 4 acceptance
+
+- Shared repository and inventory-status fixtures live in a reusable frontend test fixture module.
+- Repository, detail, selection, portfolio-summary and saved-view component tests are moved out of `App.test.tsx`.
+- `App.test.tsx` focuses on app shell, refresh, compliance and diagnostics behaviour.
+- Existing coverage for repository discovery, details, accessibility and saved views is preserved.
+- Full CI passes.
+
 ## Next step
 
-After Step 3 is verified by CI: Step 4 – split monolithic frontend tests and centralize reusable repository fixtures.
+After Step 4 is verified by CI: Step 5 – perform a focused backend service-boundary analysis and implement the highest-value low-risk finding.
