@@ -1,8 +1,7 @@
-import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import appSource from './App.tsx?raw'
-
-const stylesSource = readFileSync(new URL('./styles.css', import.meta.url), 'utf8')
+import inventorySource from './RepositoryInventory.tsx?raw'
+import launcherSource from './RepositoryLauncherToolbar.tsx?raw'
 
 describe('repository finder layout', () => {
   it('keeps the compact repository launcher directly before repository results', () => {
@@ -31,17 +30,21 @@ describe('repository finder layout', () => {
     expect(appSource).toContain('aria-controls="insights-workspace"')
   })
 
-  it('keeps the mobile discovery shell compact without shrinking primary touch targets', () => {
-    expect(stylesSource).toContain('@media (max-width: 720px)')
-    expect(stylesSource).toContain('.app-header .intro')
-    expect(stylesSource).toContain('display: none')
-    expect(stylesSource).toContain('.workspace-tab')
-    expect(stylesSource).toContain('min-height: 2.75rem')
-    expect(stylesSource).toContain('.repository-finder')
-    expect(stylesSource).toContain('margin-bottom: .5rem')
-    expect(stylesSource).toContain('.repository-table tbody')
-    expect(stylesSource).toContain('gap: .35rem')
-    expect(stylesSource).toContain('.repository-table td[data-label="Topics"]')
-    expect(stylesSource).toContain('.mobile-github-link { display: none; }')
+  it('keeps the mobile discovery flow structurally compact and detail-first', () => {
+    expect(appSource).toContain('className="app-header"')
+    expect(appSource).toContain('className="workspace-navigation"')
+    expect(appSource).toContain('<RepositoryLauncherToolbar')
+    expect(appSource).toContain('<RepositoryInventory')
+
+    expect(launcherSource).toContain('className="launcher-primary"')
+    expect(launcherSource).toContain('Search repositories…')
+    expect(launcherSource).toContain('aria-label="Saved view"')
+    expect(launcherSource).toContain('aria-label="Sort repositories"')
+    expect(launcherSource).toContain('className="launcher-filter-button"')
+
+    expect(inventorySource).toContain('mobile-repository-signals')
+    expect(inventorySource).toContain('repository-row-interactive')
+    expect(inventorySource).toContain('onOpenDetails(repository.id)')
+    expect(inventorySource).toContain('mobile-github-link')
   })
 })
