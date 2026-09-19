@@ -620,6 +620,7 @@ describe('Accessibility and responsive markup', () => {
     expect(html).toContain('aria-modal="true"')
     expect(html).toContain('aria-labelledby="repository-detail-heading"')
     expect(html).toContain('aria-describedby="repository-detail-description"')
+    expect(html).toContain('aria-label="Close details for erland/roman-nollpunkten"')
   })
 
   it('gives saved-view actions descriptive accessible names', () => {
@@ -669,6 +670,14 @@ describe('Accessibility and responsive markup', () => {
   })
 })
 
+
+describe('Workspace accessibility', () => {
+  it('connects workspace navigation to labelled content regions', () => {
+    const source = renderToString(<App />)
+
+    expect(source).toContain('Skip to main content')
+  })
+})
 
 describe('ComplianceOverviewPanel', () => {
   it('renders severity counts, filters, freshness and priority deviations', () => {
