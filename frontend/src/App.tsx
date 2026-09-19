@@ -23,12 +23,11 @@ import { InventoryRefreshPanel } from './InventoryRefreshPanel'
 import { ComplianceOverviewPanel } from './ComplianceOverviewPanel'
 import { PortfolioSummaryPanel } from './PortfolioSummaryPanel'
 import { RepositoryDetailPanel } from './RepositoryDetailPanel'
-import { RepositoryFiltersPanel } from './RepositoryFiltersPanel'
 import { RepositoryInventory } from './RepositoryInventory'
 import { RepositorySelectionBar } from './RepositorySelectionBar'
 import { RefreshDiagnosticsPanel } from './RefreshDiagnosticsPanel'
-import { RepositorySortControls } from './RepositorySortControls'
 import { SavedViewsPanel } from './SavedViewsPanel'
+import { RepositoryLauncherToolbar } from './RepositoryLauncherToolbar'
 import { emptyRepositoryFilters, filterRepositories } from './repositoryFilters'
 import { defaultRepositorySort, sortRepositories } from './repositorySorting'
 import { clearRepositorySelection, deselectVisibleRepositories, selectVisibleRepositories, toggleRepositorySelection } from './repositorySelection'
@@ -486,33 +485,16 @@ export default function App() {
 
       {workspaceView === 'repositories' ? (
         <section id="repositories-workspace" aria-label="Repository workspace">
-          <section className="repository-finder" aria-labelledby="repository-finder-heading">
-            <div className="repository-finder-heading">
-              <p className="eyebrow">Repository finder</p>
-              <h2 id="repository-finder-heading">Find a repository</h2>
-              <p>Search or choose a saved view, then open a matching repository for details.</p>
-            </div>
-
-            <RepositoryFiltersPanel
+          <section className="repository-finder" aria-label="Repository finder">
+            <RepositoryLauncherToolbar
               filters={filters}
-              onChange={changeFilters}
-              totalCount={repositories.length}
-              filteredCount={filteredRepositories.length}
-            />
-
-            <SavedViewsPanel
+              onFiltersChange={changeFilters}
               views={savedViews}
               activeViewId={activeSavedViewId}
-              storageAvailable={savedViewsStorageAvailable}
               onShowAll={showAllRepositories}
-              onSave={saveCurrentView}
-              onLoad={loadSavedView}
-              onDelete={deleteSavedView}
-            />
-
-            <RepositorySortControls
+              onLoadView={loadSavedView}
               sort={sort}
-              onChange={changeSort}
+              onSortChange={changeSort}
               totalCount={repositories.length}
               filteredCount={filteredRepositories.length}
             />
@@ -549,6 +531,17 @@ export default function App() {
             selectedRepositoryIds={selectedRepositoryIds}
             onToggleRepository={toggleRepository}
             onOpenDetails={openRepositoryDetails}
+          />
+
+          <SavedViewsPanel
+            views={savedViews}
+            activeViewId={activeSavedViewId}
+            storageAvailable={savedViewsStorageAvailable}
+            onShowAll={showAllRepositories}
+            onSave={saveCurrentView}
+            onLoad={loadSavedView}
+            onDelete={deleteSavedView}
+            managementOnly
           />
 
           <InventoryRefreshPanel
