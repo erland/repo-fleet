@@ -8,6 +8,7 @@ import info.isaksson.erland.repofleet.repository.api.AnalysisState;
 import info.isaksson.erland.repofleet.repository.api.RepositorySummary;
 import info.isaksson.erland.repofleet.repository.persistence.CachedRepositoryInventoryService;
 import info.isaksson.erland.repofleet.repository.persistence.RepositoryEnrichmentSnapshotService;
+import info.isaksson.erland.repofleet.repository.persistence.RepositoryInventoryPersistenceService;
 import info.isaksson.erland.repofleet.repository.refresh.RepositoryRefreshAction;
 import info.isaksson.erland.repofleet.repository.refresh.RepositoryRefreshPlan;
 import info.isaksson.erland.repofleet.repository.refresh.RepositoryRefreshPlanItem;
