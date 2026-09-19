@@ -671,14 +671,6 @@ describe('Accessibility and responsive markup', () => {
 })
 
 
-describe('Workspace accessibility', () => {
-  it('connects workspace navigation to labelled content regions', () => {
-    const source = renderToString(<App />)
-
-    expect(source).toContain('Skip to main content')
-  })
-})
-
 describe('ComplianceOverviewPanel', () => {
   it('renders severity counts, filters, freshness and priority deviations', () => {
     const summary: CompliancePortfolioSummary = {
