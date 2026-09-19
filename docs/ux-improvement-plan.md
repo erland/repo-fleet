@@ -18,8 +18,8 @@ Portfolio analytics, compliance, refresh controls and diagnostics remain availab
 | 2 | Separate simple search from advanced filters | DONE |
 | 3 | Make saved views first-class navigation | DONE |
 | 4 | Simplify the repository result list | DONE |
-| 5 | Compress refresh into system status | IN PROGRESS |
-| 6 | Move portfolio/compliance/diagnostics into secondary navigation | NOT STARTED |
+| 5 | Compress refresh into system status | DONE |
+| 6 | Move portfolio/compliance/diagnostics into secondary navigation | IN PROGRESS |
 | 7 | Refine the repository detail flow | NOT STARTED |
 | 8 | Responsive and accessibility-focused final pass | NOT STARTED |
 
@@ -87,6 +87,19 @@ Completed and verified by successful CI run #416 on PR #46.
 - Last successful refresh remains visible in the compact summary.
 - Frontend tests pass.
 
-## Next step after Step 5
+## Step 5 verification
 
-Step 6 – Move portfolio/compliance/diagnostics into secondary navigation.
+Completed and verified by successful CI run #421 on PR #46.
+
+## Step 6 acceptance
+
+- Repository discovery remains the default workspace.
+- Portfolio summary, compliance overview and refresh diagnostics are removed from the default repository flow.
+- A secondary "Insights & diagnostics" workspace exposes those analytical views without removing functionality.
+- Compact system status remains available in the repository workspace.
+- Navigation is keyboard-accessible and responsive.
+- Frontend tests pass.
+
+## Next step after Step 6
+
+Step 7 – Refine the repository detail flow.
