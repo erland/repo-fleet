@@ -54,6 +54,26 @@ describe('App', () => {
   })
 })
 
+describe('RepositoryFiltersPanel', () => {
+  it('keeps simple search visible and advanced filters collapsed by default', () => {
+    const html = renderToString(
+      <RepositoryFiltersPanel
+        filters={{ ...emptyRepositoryFilters, owner: 'erland', license: 'MISSING' }}
+        onChange={() => undefined}
+        totalCount={20}
+        filteredCount={4}
+      />,
+    )
+
+    expect(html).toContain('Search repositories')
+    expect(html).toContain('Repository name or owner/name')
+    expect(html).toContain('<details')
+    expect(html).toContain('Advanced filters · 2 active')
+    expect(html).toContain('Clear all')
+    expect(html).toContain('4 of 20 repositories match current filters')
+  })
+})
+
 describe('RepositoryInventory', () => {
   it('renders a populated repository table', () => {
     const html = renderToString(<RepositoryInventory repositories={[repository]} loading={false} error={null} />)
