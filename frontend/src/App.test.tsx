@@ -452,8 +452,11 @@ describe('RepositoryDetailPanel', () => {
     expect(html).toContain('role="dialog"')
     expect(html).toContain('aria-modal="true"')
     expect(html).toContain('Repository overview')
+    expect(html).toContain('Repository metadata')
     expect(html).toContain('Maintenance analysis')
     expect(html).toContain('Default branch')
+    expect(html).toContain('Last push')
+    expect(html).toContain('Last update')
     expect(html).toContain('publishing')
     expect(html).toContain('MIT License')
     expect(html).toContain('3 workflows')
@@ -467,6 +470,24 @@ describe('RepositoryDetailPanel', () => {
     expect(html).toContain('MISSING')
     expect(html).toContain('Last evaluated')
     expect(html).toContain('Accept deviation')
+  })
+
+  it('shows recent repository activity as relative time', () => {
+    const now = Date.now()
+    const recent = {
+      ...repository,
+      activity: {
+        pushedAt: new Date(now - 3 * 60 * 60 * 1000).toISOString(),
+        updatedAt: new Date(now - 4 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+    } satisfies RepositorySummary
+
+    const html = renderToString(
+      <RepositoryDetailPanel repository={recent} onClose={() => undefined} />,
+    )
+
+    expect(html).toContain('3 hours ago')
+    expect(html).toContain('4 days ago')
   })
 
   it('renders edit, expire and remove controls for an accepted deviation', () => {
