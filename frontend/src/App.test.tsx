@@ -276,7 +276,8 @@ describe('RepositoryFiltersPanel', () => {
       />,
     )
 
-    expect(html).toContain('Name contains')
+    expect(html).toContain('Search repositories')
+    expect(html).toContain('Advanced filters')
     expect(html).toContain('Name prefix')
     expect(html).toContain('Owner')
     expect(html).toContain('Visibility')
