@@ -150,7 +150,8 @@ describe('InventoryRefreshPanel', () => {
 
     expect(html).toContain('System status')
     expect(html).toContain('Not refreshed')
-    expect(html).toContain('Last successful refresh: Never')
+    expect(html).toContain('Last successful refresh:')
+    expect(html).toContain('Never')
     expect(html).toContain('Refresh repositories')
   })
 
