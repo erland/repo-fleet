@@ -61,6 +61,9 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
         LicenseStatus license = repository.license();
         GitHubActionsStatus githubActions = repository.githubActions();
         ReleaseStatus release = repository.release();
+        LicenseStatus cachedLicense = license;
+        GitHubActionsStatus cachedActions = githubActions;
+        ReleaseStatus cachedRelease = release;
         boolean cachedEnrichmentComplete = repository.refreshStatus() != null
                 && repository.refreshStatus().state() == AnalysisState.COMPLETE;
         boolean cachedLicenseComplete = license != null
@@ -177,7 +180,6 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
             if (conditionalRequests == null) {
                 license = refreshLicenseDirect(repository);
             } else {
-                LicenseStatus cachedLicense = license;
                 var contentsResult = conditionalRequests.execute(
                         repository.id(),
                         "root-contents",
@@ -279,7 +281,6 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
                                 1));
                 githubActions = toActionsStatus(response);
             } else {
-                GitHubActionsStatus cachedActions = githubActions;
                 var result = conditionalRequests.execute(
                         repository.id(),
                         "workflows",
@@ -323,7 +324,6 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
                 GitHubReleaseResponse latest = findLatestPublishedRelease(repository);
                 release = toReleaseStatus(latest);
             } else {
-                ReleaseStatus cachedRelease = release;
                 var result = conditionalRequests.execute(
                         repository.id(),
                         "releases",
