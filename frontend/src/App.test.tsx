@@ -612,7 +612,9 @@ describe('Accessibility and responsive markup', () => {
     expect(html).toContain('data-label="Repository"')
     expect(html).toContain('mobile-repository-signals')
     expect(html).toContain('repository-signal')
-    expect(html).toContain('mobile-details-button')
+    expect(html).toContain('mobile-github-link')
+    expect(html).toContain('repository-row-interactive')
+    expect(html).toContain('aria-label="Open details for erland/roman-nollpunkten"')
   })
 
   it('makes repository details programmatically focusable when opened', () => {
