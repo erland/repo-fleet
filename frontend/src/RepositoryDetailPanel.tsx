@@ -37,6 +37,28 @@ function formatDate(value: string | null): string {
   return date.toLocaleString()
 }
 
+function formatActivityTime(value: string | null, now = new Date()): { label: string; exact: string | null } {
+  if (!value) return { label: 'Unknown', exact: null }
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return { label: 'Unknown', exact: null }
+
+  const ageMs = now.getTime() - date.getTime()
+  const exact = date.toLocaleString()
+  if (ageMs < 0 || ageMs >= 7 * 24 * 60 * 60 * 1000) {
+    return { label: date.toLocaleDateString(), exact }
+  }
+
+  const minutes = Math.max(1, Math.floor(ageMs / (60 * 1000)))
+  if (minutes < 60) return { label: `${minutes} minute${minutes === 1 ? '' : 's'} ago`, exact }
+
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return { label: `${hours} hour${hours === 1 ? '' : 's'} ago`, exact }
+
+  const days = Math.floor(hours / 24)
+  return { label: `${days} day${days === 1 ? '' : 's'} ago`, exact }
+}
+
 function licenseValue(repository: RepositorySummary): string {
   const license = repository.license
   if (license.analysisState !== 'COMPLETE' || license.presence === 'UNKNOWN') return 'Unknown'
@@ -195,11 +217,11 @@ function ExceptionEditor({
   )
 }
 
-function DetailItem({ label, value }: { label: string; value: string }) {
+function DetailItem({ label, value, title }: { label: string; value: string; title?: string | null }) {
   return (
     <div className="detail-item">
       <dt>{label}</dt>
-      <dd>{value}</dd>
+      <dd title={title ?? undefined}>{value}</dd>
     </div>
   )
 }
@@ -268,6 +290,9 @@ export function RepositoryDetailPanel({
 
   if (!repository) return null
 
+  const lastPush = formatActivityTime(repository.activity.pushedAt)
+  const lastUpdate = formatActivityTime(repository.activity.updatedAt)
+
   return (
     <div
       className="detail-backdrop"
@@ -303,8 +328,23 @@ export function RepositoryDetailPanel({
         </a>
       </div>
 
-      <section className="detail-section" aria-labelledby="repository-overview-heading">
+      <section className="detail-section detail-overview" aria-labelledby="repository-overview-heading">
         <h3 id="repository-overview-heading">Repository overview</h3>
+        <div className="detail-summary-signals" aria-label="Repository summary">
+          <span>{repository.visibility.toLowerCase()}</span>
+          {repository.primaryLanguage && <span>{repository.primaryLanguage}</span>}
+          <span>{repository.defaultBranch}</span>
+          {repository.archived && <span>archived</span>}
+          {repository.fork && <span>fork</span>}
+        </div>
+        <dl className="detail-activity-grid">
+          <DetailItem label="Last push" value={lastPush.label} title={lastPush.exact} />
+          <DetailItem label="Last update" value={lastUpdate.label} title={lastUpdate.exact} />
+        </dl>
+      </section>
+
+      <details className="detail-disclosure detail-metadata">
+        <summary>Repository metadata</summary>
         <dl className="detail-grid">
           <DetailItem label="Owner" value={repository.owner} />
           <DetailItem label="Visibility" value={repository.visibility.toLowerCase()} />
@@ -314,10 +354,8 @@ export function RepositoryDetailPanel({
           <DetailItem label="Topics" value={repository.topics.length ? repository.topics.join(', ') : 'None'} />
           <DetailItem label="Archived" value={booleanLabel(repository.archived)} />
           <DetailItem label="Fork" value={booleanLabel(repository.fork)} />
-          <DetailItem label="Last push" value={formatDate(repository.activity.pushedAt)} />
-          <DetailItem label="Last update" value={formatDate(repository.activity.updatedAt)} />
         </dl>
-      </section>
+      </details>
 
       <details className="detail-disclosure">
         <summary>Maintenance analysis</summary>

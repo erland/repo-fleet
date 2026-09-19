@@ -81,8 +81,10 @@ describe('RepositoryInventory', () => {
     expect(html).toContain('erland/roman-nollpunkten')
     expect(html).toContain('novel')
     expect(html).toContain('Python')
-    expect(html).toContain('No maintenance flags')
-    expect(html).toContain('View details')
+    expect(html).toContain('repository-signal')
+    expect(html).toContain('Open details for erland/roman-nollpunkten')
+    expect(html).toContain('repository-row-interactive')
+    expect(html).toContain('GitHub')
   })
 
   it('renders the loading state', () => {
@@ -450,8 +452,11 @@ describe('RepositoryDetailPanel', () => {
     expect(html).toContain('role="dialog"')
     expect(html).toContain('aria-modal="true"')
     expect(html).toContain('Repository overview')
+    expect(html).toContain('Repository metadata')
     expect(html).toContain('Maintenance analysis')
     expect(html).toContain('Default branch')
+    expect(html).toContain('Last push')
+    expect(html).toContain('Last update')
     expect(html).toContain('publishing')
     expect(html).toContain('MIT License')
     expect(html).toContain('3 workflows')
@@ -465,6 +470,24 @@ describe('RepositoryDetailPanel', () => {
     expect(html).toContain('MISSING')
     expect(html).toContain('Last evaluated')
     expect(html).toContain('Accept deviation')
+  })
+
+  it('shows recent repository activity as relative time', () => {
+    const now = Date.now()
+    const recent = {
+      ...repository,
+      activity: {
+        pushedAt: new Date(now - 3 * 60 * 60 * 1000).toISOString(),
+        updatedAt: new Date(now - 4 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+    } satisfies RepositorySummary
+
+    const html = renderToString(
+      <RepositoryDetailPanel repository={recent} onClose={() => undefined} />,
+    )
+
+    expect(html).toContain('3 hours ago')
+    expect(html).toContain('4 days ago')
   })
 
   it('renders edit, expire and remove controls for an accepted deviation', () => {
@@ -524,7 +547,7 @@ describe('RepositoryDetailPanel', () => {
     expect(html).toContain('Failed')
   })
 
-  it('offers a details action for each repository row', () => {
+  it('makes each repository row open RepoFleet details and keeps GitHub secondary', () => {
     const html = renderToString(
       <RepositoryInventory
         repositories={[repository]}
@@ -534,7 +557,9 @@ describe('RepositoryDetailPanel', () => {
       />,
     )
 
-    expect(html).toContain('View details')
+    expect(html).toContain('Open details for erland/roman-nollpunkten')
+    expect(html).toContain('repository-details-link')
+    expect(html).toContain('repository-github-link')
   })
 })
 
@@ -606,8 +631,11 @@ describe('Accessibility and responsive markup', () => {
     expect(html).toContain('tabindex="0"')
     expect(html).toContain('Repository results with discovery information and maintenance flags')
     expect(html).toContain('data-label="Repository"')
-    expect(html).toContain('data-label="Maintenance"')
-    expect(html).toContain('data-label="Details"')
+    expect(html).toContain('mobile-repository-signals')
+    expect(html).toContain('repository-signal')
+    expect(html).toContain('mobile-github-link')
+    expect(html).toContain('repository-row-interactive')
+    expect(html).toContain('aria-label="Open details for erland/roman-nollpunkten"')
   })
 
   it('makes repository details programmatically focusable when opened', () => {
