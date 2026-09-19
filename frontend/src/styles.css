@@ -656,16 +656,6 @@ h2 { margin: 0; font-size: 1.5rem; }
     color: #6b521b;
   }
 
-  .mobile-github-link {
-    display: inline;
-    width: fit-content;
-    color: #596273;
-    font-size: .7rem;
-    font-weight: 700;
-    text-decoration: underline;
-    text-underline-offset: 2px;
-  }
-
   .topic-list {
     min-width: 0;
   }
