@@ -190,10 +190,44 @@ a { color: inherit; }
 .repository-row-selected td { background: #f5f8fc; }
 
 
-.detail-panel { margin-bottom: 1rem; padding: 1.25rem 1.5rem; border: 1px solid #cfd8e4; border-radius: 1rem; background: #fff; box-shadow: 0 1rem 3rem rgb(23 32 51 / 9%); }
-.detail-heading { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
-.detail-actions { margin-top: .8rem; }
-.detail-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .8rem; margin: 1rem 0 0; }
+.detail-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  display: flex;
+  justify-content: flex-end;
+  background: rgb(23 32 51 / 28%);
+}
+
+.detail-panel {
+  width: min(46rem, 100%);
+  height: 100%;
+  overflow-y: auto;
+  border-left: 1px solid #cfd8e4;
+  background: #fff;
+  box-shadow: -1rem 0 3rem rgb(23 32 51 / 18%);
+}
+
+.detail-heading {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #e6e9ed;
+  background: #fff;
+}
+
+.detail-description { max-width: 38rem; margin: .45rem 0 0; color: #596273; }
+.detail-actions { padding: 1rem 1.5rem 0; }
+.detail-section { padding: 1rem 1.5rem 0; }
+.detail-section h3 { margin: 0; }
+.detail-disclosure { margin: 1rem 1.5rem 0; border-top: 1px solid #e6e9ed; padding-top: 1rem; }
+.detail-disclosure summary { cursor: pointer; font-weight: 750; }
+.detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; margin: 1rem 0 0; }
 .detail-item { min-width: 0; padding: .75rem; border: 1px solid #e5e8ec; border-radius: .65rem; background: #fafbfc; }
 .detail-item dt { margin: 0 0 .25rem; color: #596273; font-size: .75rem; font-weight: 750; text-transform: uppercase; letter-spacing: .03em; }
 .detail-item dd { margin: 0; overflow-wrap: anywhere; }
@@ -522,4 +556,11 @@ h2 { margin: 0; font-size: 1.5rem; }
 @media (max-width: 600px) {
   .workspace-navigation { display: grid; grid-template-columns: 1fr; }
   .workspace-tab { width: 100%; text-align: left; }
+}
+
+@media (max-width: 720px) {
+  .detail-panel { width: 100%; border-left: 0; }
+  .detail-heading { align-items: stretch; flex-direction: column; }
+  .detail-heading .secondary-button { width: 100%; }
+  .detail-grid { grid-template-columns: 1fr; }
 }
