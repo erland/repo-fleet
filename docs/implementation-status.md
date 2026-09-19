@@ -96,14 +96,14 @@ The early CI bootstrap has been superseded by the completed Step 24 Quality Gate
 | 4 | Simplify repository result list | DONE | Verified by successful CI run #416 on PR #46. |
 | 5 | Compress refresh into system status | DONE | Verified by successful CI run #421 on PR #46. |
 | 6 | Move analytics and diagnostics to secondary navigation | DONE | Verified by successful CI run #425 on PR #46. |
-| 7 | Refine repository detail flow | IN PROGRESS | Repository details now open in a focused drawer with grouped overview, progressive maintenance disclosure and retained compliance context. Awaiting CI verification. |
-| 8 | Responsive and accessibility final pass | NOT STARTED | |
+| 7 | Refine repository detail flow | DONE | Verified by successful CI run #429 on PR #46. |
+| 8 | Responsive and accessibility final pass | IN PROGRESS | Focus containment/restoration, workspace relationships, larger touch targets and narrow-screen refinements implemented. Awaiting CI verification. |
 
 Detailed plan: `docs/ux-improvement-plan.md`.
 
 ## Current Position
 
-Current step: **UX improvement Step 7 IN PROGRESS; Phase 2 remains complete.**
+Current step: **UX improvement Step 8 IN PROGRESS; Phase 2 remains complete.**
 
 Phase 1 completed steps: **26 / 26**  
 Phase 2 completed steps: **34 / 34**
