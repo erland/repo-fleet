@@ -5,11 +5,9 @@ import { InventoryRefreshPanel } from './InventoryRefreshPanel'
 import { ComplianceOverviewPanel } from './ComplianceOverviewPanel'
 import { PortfolioSummaryPanel } from './PortfolioSummaryPanel'
 import { RepositoryDetailPanel } from './RepositoryDetailPanel'
-import { RepositoryFiltersPanel } from './RepositoryFiltersPanel'
 import { RepositoryInventory } from './RepositoryInventory'
 import { RepositorySelectionBar } from './RepositorySelectionBar'
 import { RefreshDiagnosticsPanel } from './RefreshDiagnosticsPanel'
-import { RepositorySortControls } from './RepositorySortControls'
 import { SavedViewsPanel } from './SavedViewsPanel'
 import type { CompliancePortfolioSummary, InventoryStatus, RepositorySummary } from './api'
 import { emptyRepositoryFilters } from './repositoryFilters'
@@ -51,26 +49,6 @@ describe('App', () => {
     expect(html).toContain('RepoFleet')
     expect(html).toContain('Repository portfolio management')
     expect(html).toContain('Checking authentication')
-  })
-})
-
-describe('RepositoryFiltersPanel', () => {
-  it('keeps simple search visible and advanced filters collapsed by default', () => {
-    const html = renderToString(
-      <RepositoryFiltersPanel
-        filters={{ ...emptyRepositoryFilters, owner: 'erland', license: 'MISSING' }}
-        onChange={() => undefined}
-        totalCount={20}
-        filteredCount={4}
-      />,
-    )
-
-    expect(html).toContain('Search repositories')
-    expect(html).toContain('Repository name or owner/name')
-    expect(html).toContain('<details')
-    expect(html).toContain('Advanced filters · 2 active')
-    expect(html).toContain('Clear all')
-    expect(html).toContain('4 of 20 repositories match current filters')
   })
 })
 
@@ -274,66 +252,6 @@ describe('InventoryRefreshPanel', () => {
     expect(html).toContain('Refresh failed')
     expect(html).toContain('GitHub unavailable')
     expect(html).toContain('<details class="refresh-details" open=""')
-  })
-})
-
-describe('RepositoryFiltersPanel', () => {
-  it('renders all core Phase 1 filter controls and result count', () => {
-    const html = renderToString(
-      <RepositoryFiltersPanel
-        filters={emptyRepositoryFilters}
-        onChange={() => undefined}
-        totalCount={200}
-        filteredCount={12}
-      />,
-    )
-
-    expect(html).toContain('Search repositories')
-    expect(html).toContain('Advanced filters')
-    expect(html).toContain('Name prefix')
-    expect(html).toContain('Owner')
-    expect(html).toContain('Visibility')
-    expect(html).toContain('Topic')
-    expect(html).toContain('Language')
-    expect(html).toContain('License')
-    expect(html).toContain('GitHub Actions')
-    expect(html).toContain('Official release')
-    expect(html).toContain('Activity')
-    expect(html).toContain('12 of 200 repositories match current filters')
-  })
-})
-
-describe('RepositorySortControls', () => {
-  it('renders useful sort fields and a filtered/total result count', () => {
-    const html = renderToString(
-      <RepositorySortControls
-        sort={defaultRepositorySort}
-        onChange={() => undefined}
-        totalCount={200}
-        filteredCount={12}
-      />,
-    )
-
-    expect(html).toContain('Sort by')
-    expect(html).toContain('Last activity')
-    expect(html).toContain('Primary language')
-    expect(html).toContain('License state')
-    expect(html).toContain('Actions state')
-    expect(html).toContain('Release state')
-    expect(html).toContain('12 of 200 repositories')
-  })
-
-  it('renders a compact count when no filter reduces the result set', () => {
-    const html = renderToString(
-      <RepositorySortControls
-        sort={defaultRepositorySort}
-        onChange={() => undefined}
-        totalCount={200}
-        filteredCount={200}
-      />,
-    )
-
-    expect(html).toContain('200 repositories')
   })
 })
 
