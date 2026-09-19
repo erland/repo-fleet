@@ -81,7 +81,7 @@ describe('RepositoryInventory', () => {
     expect(html).toContain('erland/roman-nollpunkten')
     expect(html).toContain('novel')
     expect(html).toContain('Python')
-    expect(html).toContain('No maintenance flags')
+    expect(html).toContain('repository-signal')
     expect(html).toContain('View details')
   })
 
@@ -606,8 +606,9 @@ describe('Accessibility and responsive markup', () => {
     expect(html).toContain('tabindex="0"')
     expect(html).toContain('Repository results with discovery information and maintenance flags')
     expect(html).toContain('data-label="Repository"')
-    expect(html).toContain('data-label="Maintenance"')
-    expect(html).toContain('data-label="Details"')
+    expect(html).toContain('mobile-repository-signals')
+    expect(html).toContain('repository-signal')
+    expect(html).toContain('mobile-details-button')
   })
 
   it('makes repository details programmatically focusable when opened', () => {
