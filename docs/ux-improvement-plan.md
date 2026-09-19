@@ -16,8 +16,8 @@ Portfolio analytics, compliance, refresh controls and diagnostics remain availab
 | ---: | --- | --- |
 | 1 | Establish repository finder as the primary information architecture | DONE |
 | 2 | Separate simple search from advanced filters | DONE |
-| 3 | Make saved views first-class navigation | IN PROGRESS |
-| 4 | Simplify the repository result list | NOT STARTED |
+| 3 | Make saved views first-class navigation | DONE |
+| 4 | Simplify the repository result list | IN PROGRESS |
 | 5 | Compress refresh into system status | NOT STARTED |
 | 6 | Move portfolio/compliance/diagnostics into secondary navigation | NOT STARTED |
 | 7 | Refine the repository detail flow | NOT STARTED |
@@ -59,6 +59,20 @@ Completed and verified by successful CI run #405 on PR #46.
 - Existing browser-storage persistence remains unchanged.
 - Frontend tests pass.
 
-## Next step after Step 3
+## Step 3 verification
 
-Step 4 – Simplify the repository result list.
+Completed and verified by successful CI run #410 on PR #46.
+
+## Step 4 acceptance
+
+- Repository results prioritize full repository name, topics, primary language and recent activity.
+- Owner and visibility are not separate high-cost columns; visibility remains available as a compact badge.
+- Detailed license, Actions and release values move out of the discovery list and remain available in repository details.
+- Only maintenance exceptions/unknown states appear as compact flags in the list.
+- Repository selection controls stay out of the main flow until a selection exists.
+- Mobile result cards contain substantially fewer labelled rows.
+- Frontend tests pass.
+
+## Next step after Step 4
+
+Step 5 – Compress refresh into system status.
