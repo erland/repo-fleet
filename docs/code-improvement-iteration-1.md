@@ -34,8 +34,8 @@ Improve maintainability without changing RepoFleet behaviour. Work in small, ver
 | 2 | Remove CSS that is proven unused after Step 1 | DONE |
 | 3 | Extract repository-workspace orchestration from `App.tsx` without behaviour changes | DONE |
 | 4 | Split monolithic frontend tests and centralize reusable repository fixtures | DONE |
-| 5 | Perform focused backend service-boundary analysis and implement the highest-value low-risk finding | IN PROGRESS |
-| 6 | Final cleanup, documentation and full CI verification | NOT STARTED |
+| 5 | Perform focused backend service-boundary analysis and implement the highest-value low-risk finding | DONE |
+| 6 | Final cleanup, documentation and full CI verification | DONE |
 
 ## Step 1 acceptance
 
@@ -100,6 +100,25 @@ The improvement keeps deduplication in one private helper and only increments th
 - No queue state-machine semantics are changed.
 - Full CI passes.
 
-## Next step
+## Step 5 verification
 
-After Step 5 is verified by CI: Step 6 – final cleanup, documentation and full CI verification.
+Completed and verified by successful CI run #481 on PR #48.
+
+## Step 6 completion
+
+Final cleanup is documentation-only. No further functional changes are introduced after the backend queue fix.
+
+### Iteration outcome
+
+- Removed superseded repository finder/sort components and their obsolete CSS.
+- Extracted repository workspace composition from `App.tsx`.
+- Split repository component tests from `App.test.tsx` and added reusable frontend fixtures.
+- Fixed stale refresh queue counting so diagnostics reflect jobs actually created.
+- Added regression coverage for queue deduplication/counting behaviour.
+- Preserved current user-visible behaviour throughout the iteration.
+
+## Completion
+
+Code Improvement Iteration 1 is complete.
+
+The implementation was verified incrementally by CI runs #468, #470, #474, #478 and #481 on PR #48.
