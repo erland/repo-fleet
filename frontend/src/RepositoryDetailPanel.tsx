@@ -215,16 +215,55 @@ export function RepositoryDetailPanel({
   onClose,
 }: RepositoryDetailPanelProps) {
   const panelRef = useRef<HTMLElement>(null)
+  const previousFocusRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
     if (!repository) return
 
+    previousFocusRef.current = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
     panelRef.current?.focus()
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        onClose()
+        return
+      }
+
+      if (event.key !== 'Tab' || !panelRef.current) return
+
+      const focusable = Array.from(panelRef.current.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ))
+      if (focusable.length === 0) {
+        event.preventDefault()
+        panelRef.current.focus()
+        return
+      }
+
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      const active = document.activeElement
+
+      if (event.shiftKey && (active === first || active === panelRef.current)) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault()
+        first.focus()
+      }
     }
-    window.addEventListener('keydown', closeOnEscape)
-    return () => window.removeEventListener('keydown', closeOnEscape)
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      document.body.style.overflow = previousOverflow
+      previousFocusRef.current?.focus()
+    }
   }, [repository, onClose])
 
   if (!repository) return null
@@ -237,14 +276,14 @@ export function RepositoryDetailPanel({
       }}
     >
       <aside
-      ref={panelRef}
-      className="detail-panel"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="repository-detail-heading"
-      aria-describedby="repository-detail-description"
-      tabIndex={-1}
-    >
+        ref={panelRef}
+        className="detail-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="repository-detail-heading"
+        aria-describedby="repository-detail-description"
+        tabIndex={-1}
+      >
       <div className="detail-heading">
         <div>
           <p className="eyebrow">Repository details</p>
