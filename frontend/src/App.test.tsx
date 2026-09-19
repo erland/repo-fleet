@@ -362,6 +362,22 @@ describe('RepositorySelectionBar', () => {
   })
 })
 
+describe('RepositorySelectionBar visibility', () => {
+  it('keeps repository selection controls out of the discovery flow until needed', () => {
+    const html = renderToString(
+      <RepositorySelectionBar
+        selection={new Set()}
+        visibleRepositories={[repository]}
+        onSelectVisible={() => undefined}
+        onDeselectVisible={() => undefined}
+        onClear={() => undefined}
+      />,
+    )
+
+    expect(html).toBe('')
+  })
+})
+
 describe('PortfolioSummaryPanel', () => {
   it('renders core portfolio signals for the filtered scope', () => {
     const summary = summarizePortfolio([repository])
