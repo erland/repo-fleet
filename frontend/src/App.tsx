@@ -342,14 +342,17 @@ export default function App() {
     setSelectedRepositoryIds(clearRepositorySelection())
   }, [])
 
-  const refreshRepositories = useCallback(async () => {
+  const startRefresh = useCallback(async (
+    starter: () => Promise<InventoryStatus>,
+    failureMessage: string,
+  ) => {
     if (refreshing || inventoryStatus?.state === 'RUNNING') return
 
     setRefreshing(true)
     setStatusError(null)
 
     try {
-      const started = await startInventoryRefresh()
+      const started = await starter()
       if (!mountedRef.current) return
       setInventoryStatus(started)
 
@@ -360,31 +363,19 @@ export default function App() {
     } catch {
       if (!mountedRef.current) return
       setRefreshing(false)
-      setStatusError('Repository refresh could not be started.')
+      setStatusError(failureMessage)
     }
   }, [inventoryStatus?.state, loadRepositories, refreshing])
 
-  const fullRefreshRepositories = useCallback(async () => {
-    if (refreshing || inventoryStatus?.state === 'RUNNING') return
+  const refreshRepositories = useCallback(
+    () => startRefresh(startInventoryRefresh, 'Repository refresh could not be started.'),
+    [startRefresh],
+  )
 
-    setRefreshing(true)
-    setStatusError(null)
-
-    try {
-      const started = await startFullInventoryRefresh()
-      if (!mountedRef.current) return
-      setInventoryStatus(started)
-
-      if (started.state !== 'RUNNING') {
-        setRefreshing(false)
-        await loadRepositories(false)
-      }
-    } catch {
-      if (!mountedRef.current) return
-      setRefreshing(false)
-      setStatusError('Full repository refresh could not be started.')
-    }
-  }, [inventoryStatus?.state, loadRepositories, refreshing])
+  const fullRefreshRepositories = useCallback(
+    () => startRefresh(startFullInventoryRefresh, 'Full repository refresh could not be started.'),
+    [startRefresh],
+  )
 
   const signOut = useCallback(async () => {
     try {
