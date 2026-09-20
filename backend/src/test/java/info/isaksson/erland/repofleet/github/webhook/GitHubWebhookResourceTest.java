@@ -3,6 +3,8 @@ package info.isaksson.erland.repofleet.github.webhook;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
@@ -107,6 +109,24 @@ class GitHubWebhookResourceTest {
     }
 
     @Test
+    void processingFailureRollsBackClaimSoDeliveryCanBeRetried() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> deliveries.record(
+                        "delivery-retry",
+                        "repository",
+                        "not-json"));
+
+        assertEquals(0L, GitHubWebhookDelivery.count());
+
+        GitHubWebhookReceipt retry =
+                deliveries.record("delivery-retry", "issues", "{}");
+
+        assertFalse(retry.duplicate());
+        assertEquals(1L, GitHubWebhookDelivery.count());
+    }
+
+    @Test
     void rejectsInvalidSignature() {
         given()
                 .header("X-Hub-Signature-256", "sha256=deadbeef")
@@ -117,6 +137,8 @@ class GitHubWebhookResourceTest {
                 .when().post("/api/github/webhook")
                 .then()
                 .statusCode(401);
+
+        assertEquals(0L, GitHubWebhookDelivery.count());
     }
 
     @Test
