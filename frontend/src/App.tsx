@@ -27,7 +27,7 @@ import { emptyRepositoryFilters, filterRepositories } from './repositoryFilters'
 import { defaultRepositorySort, sortRepositories } from './repositorySorting'
 import { clearRepositorySelection, deselectVisibleRepositories, selectVisibleRepositories, toggleRepositorySelection } from './repositorySelection'
 import { summarizePortfolio } from './portfolioSummary'
-import { createSavedView, loadSavedViews, persistSavedViews, removeSavedView, type SavedRepositoryView } from './savedViews'
+import { useSavedRepositoryViews } from './useSavedRepositoryViews'
 
 const REFRESH_POLL_INTERVAL_MS = 1000
 
@@ -54,10 +54,15 @@ export default function App() {
   const [detailComplianceLoading, setDetailComplianceLoading] = useState(false)
   const [detailComplianceError, setDetailComplianceError] = useState<string | null>(null)
   const [workspaceView, setWorkspaceView] = useState<'repositories' | 'insights'>('repositories')
-  const [savedViews, setSavedViews] = useState<SavedRepositoryView[]>([])
-  const [activeSavedViewId, setActiveSavedViewId] = useState<string | null>(null)
-  const [savedViewsInitialized, setSavedViewsInitialized] = useState(false)
-  const [savedViewsStorageAvailable, setSavedViewsStorageAvailable] = useState(true)
+  const {
+    views: savedViews,
+    activeViewId: activeSavedViewId,
+    storageAvailable: savedViewsStorageAvailable,
+    saveView,
+    activateView,
+    clearActiveView,
+    deleteView,
+  } = useSavedRepositoryViews()
   const mountedRef = useRef(true)
 
   const loadRepositories = useCallback(async (showInitialLoading = false) => {
@@ -137,28 +142,6 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    try {
-      setSavedViews(loadSavedViews(window.localStorage))
-    } catch {
-      setSavedViewsStorageAvailable(false)
-    } finally {
-      setSavedViewsInitialized(true)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!savedViewsInitialized) return
-
-    const persisted = persistSavedViews(
-      savedViewsStorageAvailable ? window.localStorage : null,
-      savedViews,
-    )
-    if (savedViewsStorageAvailable && !persisted) {
-      setSavedViewsStorageAvailable(false)
-    }
-  }, [savedViews, savedViewsInitialized, savedViewsStorageAvailable])
-
-  useEffect(() => {
     if (!authSession || (authSession.authEnabled && !authSession.authenticated)) return
     mountedRef.current = true
     void loadRepositories(true)
@@ -221,46 +204,36 @@ export default function App() {
 
 
   const saveCurrentView = useCallback((name: string) => {
-    setSavedViews((current) => [
-      ...current,
-      createSavedView(
-        name,
-        filters,
-        sort,
-        globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${current.length}`,
-      ),
-    ])
-  }, [filters, sort])
+    saveView(name, filters, sort)
+  }, [filters, saveView, sort])
 
   const loadSavedView = useCallback((viewId: string) => {
-    const view = savedViews.find((candidate) => candidate.id === viewId)
+    const view = activateView(viewId)
     if (!view) return
 
     setFilters({ ...view.filters })
     setSort({ ...view.sort })
-    setActiveSavedViewId(viewId)
-  }, [savedViews])
+  }, [activateView])
 
   const showAllRepositories = useCallback(() => {
     setFilters(emptyRepositoryFilters)
     setSort(defaultRepositorySort)
-    setActiveSavedViewId(null)
-  }, [])
+    clearActiveView()
+  }, [clearActiveView])
 
   const changeFilters = useCallback((nextFilters: typeof filters) => {
     setFilters(nextFilters)
-    setActiveSavedViewId(null)
-  }, [])
+    clearActiveView()
+  }, [clearActiveView])
 
   const changeSort = useCallback((nextSort: typeof sort) => {
     setSort(nextSort)
-    setActiveSavedViewId(null)
-  }, [])
+    clearActiveView()
+  }, [clearActiveView])
 
   const deleteSavedView = useCallback((viewId: string) => {
-    setSavedViews((current) => removeSavedView(current, viewId))
-    setActiveSavedViewId((current) => current === viewId ? null : current)
-  }, [])
+    deleteView(viewId)
+  }, [deleteView])
 
   const reloadRepositoryCompliance = useCallback(async (repositoryId: number) => {
     setDetailComplianceLoading(true)
@@ -342,14 +315,17 @@ export default function App() {
     setSelectedRepositoryIds(clearRepositorySelection())
   }, [])
 
-  const refreshRepositories = useCallback(async () => {
+  const startRefresh = useCallback(async (
+    starter: () => Promise<InventoryStatus>,
+    failureMessage: string,
+  ) => {
     if (refreshing || inventoryStatus?.state === 'RUNNING') return
 
     setRefreshing(true)
     setStatusError(null)
 
     try {
-      const started = await startInventoryRefresh()
+      const started = await starter()
       if (!mountedRef.current) return
       setInventoryStatus(started)
 
@@ -360,31 +336,19 @@ export default function App() {
     } catch {
       if (!mountedRef.current) return
       setRefreshing(false)
-      setStatusError('Repository refresh could not be started.')
+      setStatusError(failureMessage)
     }
   }, [inventoryStatus?.state, loadRepositories, refreshing])
 
-  const fullRefreshRepositories = useCallback(async () => {
-    if (refreshing || inventoryStatus?.state === 'RUNNING') return
+  const refreshRepositories = useCallback(
+    () => startRefresh(startInventoryRefresh, 'Repository refresh could not be started.'),
+    [startRefresh],
+  )
 
-    setRefreshing(true)
-    setStatusError(null)
-
-    try {
-      const started = await startFullInventoryRefresh()
-      if (!mountedRef.current) return
-      setInventoryStatus(started)
-
-      if (started.state !== 'RUNNING') {
-        setRefreshing(false)
-        await loadRepositories(false)
-      }
-    } catch {
-      if (!mountedRef.current) return
-      setRefreshing(false)
-      setStatusError('Full repository refresh could not be started.')
-    }
-  }, [inventoryStatus?.state, loadRepositories, refreshing])
+  const fullRefreshRepositories = useCallback(
+    () => startRefresh(startFullInventoryRefresh, 'Full repository refresh could not be started.'),
+    [startRefresh],
+  )
 
   const signOut = useCallback(async () => {
     try {
