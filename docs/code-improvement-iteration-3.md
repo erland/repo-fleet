@@ -23,8 +23,8 @@ Perform one final, deliberately small maintainability pass. Prefer testability a
 
 | Step | Change | Status |
 |---|---|---|
-| 1 | Make saved-view hook logic directly testable with pure helpers and focused tests | IN PROGRESS |
-| 2 | Review/extract repository compliance detail state from `App.tsx` if clearly beneficial | NOT STARTED |
+| 1 | Make saved-view hook logic directly testable with pure helpers and focused tests | DONE |
+| 2 | Review/extract repository compliance detail state from `App.tsx` if clearly beneficial | IN PROGRESS |
 | 3 | Review app data-loading/polling lifecycle; implement only a justified low-risk extraction | NOT STARTED |
 | 4 | Final dead-code/duplication review and stop/go decision | NOT STARTED |
 | 5 | Final cleanup, documentation and full CI verification | NOT STARTED |
@@ -37,6 +37,24 @@ Perform one final, deliberately small maintainability pass. Prefer testability a
 - No new test dependencies are introduced.
 - Full CI passes.
 
+## Step 1 verification
+
+Completed and verified by successful CI run #499 on PR #50.
+
+## Step 2 finding
+
+Repository compliance detail handling in `App.tsx` is a coherent responsibility: selected repository id, detail loading/error state, detail reload, and exception save/expire/remove operations all move together.
+
+The extraction is justified because it removes a complete concern from `App.tsx` rather than merely moving individual callbacks.
+
+## Step 2 acceptance
+
+- Repository compliance detail state is owned by a focused hook.
+- Open/close/reload and exception mutation flows move together.
+- `App.tsx` only consumes the hook contract and still refreshes portfolio compliance after mutations.
+- User-visible repository detail behaviour is unchanged.
+- Full frontend checks and CI pass.
+
 ## Next step
 
-After Step 1 is verified by CI: Step 2 – review repository compliance detail state in `App.tsx` and extract it only if the boundary is clearly beneficial.
+After Step 2 is verified by CI: Step 3 – review the remaining app data-loading/polling lifecycle and implement an extraction only if it materially reduces responsibility rather than reshuffling complexity.
