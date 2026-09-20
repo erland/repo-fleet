@@ -25,8 +25,8 @@ Perform one final, deliberately small maintainability pass. Prefer testability a
 |---|---|---|
 | 1 | Make saved-view hook logic directly testable with pure helpers and focused tests | DONE |
 | 2 | Review/extract repository compliance detail state from `App.tsx` if clearly beneficial | DONE |
-| 3 | Review app data-loading/polling lifecycle; implement only a justified low-risk extraction | IN PROGRESS |
-| 4 | Final dead-code/duplication review and stop/go decision | NOT STARTED |
+| 3 | Review app data-loading/polling lifecycle; implement only a justified low-risk extraction | DONE |
+| 4 | Final dead-code/duplication review and stop/go decision | DONE – STOP |
 | 5 | Final cleanup, documentation and full CI verification | NOT STARTED |
 
 ## Step 1 acceptance
@@ -74,6 +74,24 @@ Moving these together materially reduces `App.tsx` responsibility instead of sim
 - Existing user-visible loading, polling and refresh behaviour is unchanged.
 - Full frontend checks and CI pass.
 
+## Step 3 verification
+
+Completed and verified by successful CI run #505 on PR #50.
+
+## Step 4 review and stop/go decision
+
+The final review did not identify another refactoring target with the same clear benefit/risk profile as Steps 1–3.
+
+Findings:
+- `InventoryRefreshPanel` remains active production code through `RepositoryWorkspace`; it is not dead code.
+- The new saved-view, compliance-detail and portfolio-data hooks each represent coherent responsibilities rather than duplicated abstractions.
+- `App.tsx` is now primarily composition/auth/filtering/selection logic and has been reduced substantially.
+- Remaining opportunities in the compliance summary and frontend composition are mostly stylistic or would introduce broader abstractions with limited concrete benefit.
+
+**Decision: STOP further structural refactoring in this iteration.**
+
+The codebase has reached the intended point where additional refactoring would risk becoming preference-driven rather than finding-driven.
+
 ## Next step
 
-After Step 3 is verified by CI: Step 4 – perform the final dead-code/duplication review and make a stop/go decision for further refactoring.
+Step 5 – final cleanup, documentation and full CI verification. No additional functional refactoring is planned.
