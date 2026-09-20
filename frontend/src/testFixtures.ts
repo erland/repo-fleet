@@ -38,7 +38,10 @@ export const inventoryStatusFixture = (overrides: Partial<InventoryStatus> = {})
   processedCount: 2,
   successfulCount: 2,
   errorCount: 0,
+  reusedCount: 0,
+  newCount: 0,
+  changedCount: 0,
+  scheduledCount: 0,
   currentRepository: null,
-  running: false,
   ...overrides,
 })

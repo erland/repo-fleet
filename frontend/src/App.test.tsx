@@ -60,7 +60,6 @@ describe('InventoryRefreshPanel', () => {
           totalCount: 10,
           successfulCount: 3,
           currentRepository: 'erland/repo-fleet',
-          running: true,
         })}
         statusError={null}
         refreshing
@@ -79,7 +78,7 @@ describe('InventoryRefreshPanel', () => {
   it('shows a temporary GitHub rate-limit pause and resume time', () => {
     const html = renderToString(
       <InventoryRefreshPanel
-        status={inventoryStatus({ state: 'RUNNING', totalCount: 10, processedCount: 4, running: true })}
+        status={inventoryStatus({ state: 'RUNNING', totalCount: 10, processedCount: 4 })}
         statusError={null}
         refreshing
         diagnostics={{
@@ -146,7 +145,6 @@ describe('InventoryRefreshPanel', () => {
           totalCount: 10,
           processedCount: 2,
           currentRepository: 'erland/repo-fleet',
-          running: true,
         })}
         statusError={null}
         refreshing
