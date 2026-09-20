@@ -31,8 +31,8 @@ Continue improving RepoFleet maintainability and scalability without changing us
 |---|---|---|
 | 1 | Index compliance results once and reuse them in repository/rule summaries | DONE |
 | 2 | Avoid repeated repository reconstruction during compliance group summaries | DONE |
-| 3 | Consolidate duplicated refresh-start orchestration in `App.tsx` | IN PROGRESS |
-| 4 | Extract saved-view state/persistence from `App.tsx` into a focused hook | NOT STARTED |
+| 3 | Consolidate duplicated refresh-start orchestration in `App.tsx` | DONE |
+| 4 | Extract saved-view state/persistence from `App.tsx` into a focused hook | IN PROGRESS |
 | 5 | Review backend persistence access and implement one justified low-risk boundary improvement | NOT STARTED |
 | 6 | Final cleanup, documentation and full CI verification | NOT STARTED |
 
@@ -68,6 +68,19 @@ Completed and verified by successful CI run #486 on PR #49.
 - Full frontend tests and type checks pass.
 - Full CI passes.
 
+## Step 3 verification
+
+Completed and verified by successful CI run #488 on PR #49.
+
+## Step 4 acceptance
+
+- Saved-view collection, active-view id and storage availability are owned by a focused hook.
+- Loading and persistence to browser storage are removed from `App.tsx`.
+- `App.tsx` continues to own current repository filters and sorting.
+- Applying, clearing, saving and deleting views preserve current behaviour.
+- Existing saved-view tests and full frontend checks pass.
+- Full CI passes.
+
 ## Next step
 
-After Step 3 is verified by CI: Step 4 – extract saved-view state/persistence from `App.tsx` into a focused hook.
+After Step 4 is verified by CI: Step 5 – review backend persistence access and implement one justified low-risk boundary improvement.
