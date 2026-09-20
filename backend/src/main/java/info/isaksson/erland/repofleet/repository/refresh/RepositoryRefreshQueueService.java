@@ -53,6 +53,15 @@ public class RepositoryRefreshQueueService {
         return toView(job);
     }
 
+    /**
+     * Claims the next due targeted-refresh job.
+     *
+     * <p>The supported runtime topology currently has one backend application instance. This
+     * read-then-mutate claim is therefore safe for the supported deployment. Before backend
+     * horizontal scaling is enabled, replace this with an atomic multi-consumer database claim
+     * (for example PostgreSQL FOR UPDATE SKIP LOCKED or an equivalent conditional update) and
+     * add concurrency tests proving that one job cannot be claimed twice.
+     */
     @Transactional
     public RepositoryRefreshJobView claimNext(Instant now) {
         RepositoryRefreshJob job = RepositoryRefreshJob.find(

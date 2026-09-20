@@ -128,6 +128,14 @@ The GitHub Actions CI workflow validates repository policy, frontend, backend an
 
 See `docs/ci-quality-gate.md`.
 
+## Runtime topology and queue concurrency
+
+The supported RepoFleet runtime currently uses **one backend application instance**. The PostgreSQL-backed targeted refresh queue is persistent and restart-safe, but its current claim operation is designed for that single-backend topology.
+
+Do not horizontally scale the backend service without first hardening queue claiming for multiple consumers. Before multi-instance deployment is supported, `RepositoryRefreshQueueService.claimNext()` must use an atomic database claim (for example `FOR UPDATE SKIP LOCKED` or an equivalent conditional update) and have concurrency coverage proving that one job can be claimed only once.
+
+This restriction applies to the stock Docker Compose, Debian production and Coolify deployment profiles.
+
 ## Refresh behavior
 
 The backend performs repository discovery/enrichment into an in-memory snapshot.
@@ -250,6 +258,7 @@ The completion review lists the delivered requirements, intentional deviations f
 - `docs/docker-images.md` – individual production images
 - `docs/docker-compose-runtime.md` – complete Docker runtime
 - `docs/ci-quality-gate.md` – pull-request validation
+- `docs/queue-concurrency.md` – supported backend topology and targeted queue scaling gate
 - `docs/release-publishing.md` – versioned GHCR/GitHub Releases
 - `docs/phase-1-acceptance-validation.md` – deterministic acceptance coverage
 - `docs/phase-1-completion-review.md` – final Phase 1 assessment

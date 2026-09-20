@@ -31,6 +31,13 @@ repo-fleet-frontend:8080 (nginx)
 
 Only the frontend is public. The backend and PostgreSQL remain internal.
 
+### Backend instance count
+
+The supported Coolify topology uses **one `repo-fleet-backend` instance**. Do not configure multiple backend replicas for RepoFleet yet. The targeted refresh queue is PostgreSQL-backed and durable, but its current claim operation assumes a single backend consumer.
+
+Before horizontally scaling the backend, implement an atomic multi-consumer queue claim (for example `FOR UPDATE SKIP LOCKED` or an equivalent conditional update) and add concurrency tests proving that a refresh job cannot be claimed twice.
+
+
 ## 1. Create the application from Git
 
 Create a Docker Compose application from:
