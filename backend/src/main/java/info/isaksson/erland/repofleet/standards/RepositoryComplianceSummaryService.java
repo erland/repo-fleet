@@ -49,21 +49,21 @@ public class RepositoryComplianceSummaryService {
 
         List<StoredRepositoryComplianceResult> results =
                 complianceResults.listAll().stream()
-                        .filter(result -> activeRepositoryIds.contains(result.githubRepositoryId()()))
+                        .filter(result -> activeRepositoryIds.contains(result.githubRepositoryId()))
                         .toList();
 
         Set<String> activeExceptionKeys = exceptions.activeKeys();
         java.util.function.Predicate<StoredRepositoryComplianceResult> acceptedDeviation =
                 result -> result.evaluation().result() == RepositoryRuleEvaluationResult.FAIL
                         && activeExceptionKeys.contains(exceptions.key(
-                                result.githubRepositoryId()(),
+                                result.githubRepositoryId(),
                                 result.evaluation().ruleKey()));
         List<StoredRepositoryComplianceResult> actionableResults = results.stream()
                 .filter(result -> !acceptedDeviation.test(result))
                 .toList();
         Map<Long, List<StoredRepositoryComplianceResult>> actionableResultsByRepositoryId =
                 actionableResults.stream()
-                        .collect(Collectors.groupingBy(result -> result.githubRepositoryId()()));
+                        .collect(Collectors.groupingBy(result -> result.githubRepositoryId()));
         Map<String, List<StoredRepositoryComplianceResult>> actionableResultsByRuleKey =
                 actionableResults.stream()
                         .collect(Collectors.groupingBy(result -> result.evaluation().ruleKey()));
@@ -104,7 +104,7 @@ public class RepositoryComplianceSummaryService {
                                         .filter(result -> result.evaluation().result() == RepositoryRuleEvaluationResult.FAIL)
                                         .filter(result -> {
                                             RepositoryStandardRuleDefinition rule = rulesByKey.get(result.evaluation().ruleKey());
-                                            return rule != null && rule.severity == RepositoryRuleSeverity.REQUIRED;
+                                            return rule != null && rule.severity() == RepositoryRuleSeverity.REQUIRED;
                                         })
                                         .count()))
                         .filter(summary -> summary.requiredFailureCount() > 0)
