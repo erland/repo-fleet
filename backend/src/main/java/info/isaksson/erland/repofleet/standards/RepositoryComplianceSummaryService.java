@@ -21,17 +21,23 @@ public class RepositoryComplianceSummaryService {
     private final RepositoryEnrichmentSnapshotService snapshots;
     private final RepositoryGroupService groups;
     private final RepositoryComplianceExceptionService exceptions;
+    private final StoredRepositoryComplianceResultService complianceResults;
+    private final RepositoryStandardRuleService standardRules;
 
     @Inject
     public RepositoryComplianceSummaryService(
             RepositoryIdentityRepository identities,
             RepositoryEnrichmentSnapshotService snapshots,
             RepositoryGroupService groups,
-            RepositoryComplianceExceptionService exceptions) {
+            RepositoryComplianceExceptionService exceptions,
+            StoredRepositoryComplianceResultService complianceResults,
+            RepositoryStandardRuleService standardRules) {
         this.identities = identities;
         this.snapshots = snapshots;
         this.groups = groups;
         this.exceptions = exceptions;
+        this.complianceResults = complianceResults;
+        this.standardRules = standardRules;
     }
 
     @Transactional
@@ -41,49 +47,49 @@ public class RepositoryComplianceSummaryService {
                         .collect(Collectors.toMap(identity -> identity.githubRepositoryId, Function.identity()));
         Set<Long> activeRepositoryIds = repositoriesById.keySet();
 
-        List<RepositoryComplianceResult> results =
-                RepositoryComplianceResult.listAll().stream()
-                        .map(RepositoryComplianceResult.class::cast)
-                        .filter(result -> activeRepositoryIds.contains(result.githubRepositoryId))
+        List<StoredStoredRepositoryComplianceResult> results =
+                complianceResults.listAll().stream()
+                        .filter(result -> activeRepositoryIds.contains(result.githubRepositoryId()))
                         .toList();
 
         Set<String> activeExceptionKeys = exceptions.activeKeys();
-        java.util.function.Predicate<RepositoryComplianceResult> acceptedDeviation =
-                result -> result.result == RepositoryRuleEvaluationResult.FAIL
+        java.util.function.Predicate<StoredStoredRepositoryComplianceResult> acceptedDeviation =
+                result -> result.evaluation().result() == RepositoryRuleEvaluationResult.FAIL
                         && activeExceptionKeys.contains(exceptions.key(
-                                result.githubRepositoryId,
-                                result.ruleKey));
-        List<RepositoryComplianceResult> actionableResults = results.stream()
+                                result.githubRepositoryId(),
+                                result.evaluation().ruleKey()));
+        List<StoredRepositoryComplianceResult> actionableResults = results.stream()
                 .filter(result -> !acceptedDeviation.test(result))
                 .toList();
-        Map<Long, List<RepositoryComplianceResult>> actionableResultsByRepositoryId =
+        Map<Long, List<StoredRepositoryComplianceResult>> actionableResultsByRepositoryId =
                 actionableResults.stream()
                         .collect(Collectors.groupingBy(result -> result.githubRepositoryId));
-        Map<String, List<RepositoryComplianceResult>> actionableResultsByRuleKey =
+        Map<String, List<StoredRepositoryComplianceResult>> actionableResultsByRuleKey =
                 actionableResults.stream()
                         .collect(Collectors.groupingBy(result -> result.ruleKey));
-        Map<String, List<RepositoryComplianceResult>> resultsByRuleKey =
+        Map<String, List<StoredRepositoryComplianceResult>> resultsByRuleKey =
                 results.stream()
                         .collect(Collectors.groupingBy(result -> result.ruleKey));
         long acceptedDeviationCount = results.stream()
                 .filter(acceptedDeviation)
                 .count();
 
-        Map<String, RepositoryStandardRule> rulesByKey =
-                RepositoryStandardRule.listAll().stream()
-                        .map(RepositoryStandardRule.class::cast)
-                        .collect(Collectors.toMap(rule -> rule.ruleKey, Function.identity()));
+        Map<String, RepositoryStandardRuleDefinition> rulesByKey =
+                standardRules.list().stream()
+                        .collect(Collectors.toMap(
+                                RepositoryStandardRuleDefinition::ruleKey,
+                                Function.identity()));
 
         Map<RepositoryRuleEvaluationResult, Long> resultCounts =
                 emptyResultCounts();
         Map<RepositoryRuleSeverity, Map<RepositoryRuleEvaluationResult, Long>> severityResultCounts =
                 emptySeverityResultCounts();
 
-        for (RepositoryComplianceResult result : actionableResults) {
+        for (StoredRepositoryComplianceResult result : actionableResults) {
             increment(resultCounts, result.result);
             RepositoryStandardRule rule = rulesByKey.get(result.ruleKey);
             if (rule != null) {
-                increment(severityResultCounts.get(rule.severity), result.result);
+                increment(severityResultCounts.get(rule.severity()), result.result);
             }
         }
 
@@ -109,8 +115,8 @@ public class RepositoryComplianceSummaryService {
                         .toList();
 
         List<ComplianceRuleSummary> ruleSummaries = rulesByKey.values().stream()
-                .filter(rule -> rule.enabled)
-                .sorted(java.util.Comparator.comparing(rule -> rule.ruleKey))
+                .filter(rule -> rule.enabled())
+                .sorted(java.util.Comparator.comparing(rule -> rule.ruleKey()))
                 .map(rule -> {
                     Map<RepositoryRuleEvaluationResult, Long> counts = emptyResultCounts();
                     actionableResultsByRuleKey
@@ -123,7 +129,7 @@ public class RepositoryComplianceSummaryService {
                             .count();
                     return new ComplianceRuleSummary(
                             rule.ruleKey,
-                            rule.name,
+                            rule.name(),
                             rule.severity,
                             ruleAcceptedDeviations,
                             counts);
