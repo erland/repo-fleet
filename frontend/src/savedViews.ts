@@ -77,3 +77,18 @@ export function removeSavedView(
 ): SavedRepositoryView[] {
   return views.filter((view) => view.id !== viewId)
 }
+
+
+export function findSavedView(
+  views: SavedRepositoryView[],
+  viewId: string,
+): SavedRepositoryView | null {
+  return views.find((view) => view.id === viewId) ?? null
+}
+
+export function activeViewAfterRemoval(
+  activeViewId: string | null,
+  removedViewId: string,
+): string | null {
+  return activeViewId === removedViewId ? null : activeViewId
+}
