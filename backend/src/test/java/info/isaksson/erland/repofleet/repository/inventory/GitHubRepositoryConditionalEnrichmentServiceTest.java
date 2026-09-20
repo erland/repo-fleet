@@ -227,13 +227,11 @@ class GitHubRepositoryConditionalEnrichmentServiceTest {
     private GitHubRepositoryClassificationEnrichmentService serviceWithConditionalRequests() {
         GitHubApiCallExecutor apiCalls = new GitHubApiCallExecutor(tokenService);
         return new GitHubRepositoryClassificationEnrichmentService(
-                tokenService,
-                client,
-                apiCalls,
-                conditionalRequests,
                 new GitHubTopicsEnrichmentComponent(client, apiCalls, conditionalRequests),
                 new GitHubLanguagesEnrichmentComponent(client, apiCalls, conditionalRequests),
-                new GitHubLicenseEnrichmentComponent(client, apiCalls, conditionalRequests));
+                new GitHubLicenseEnrichmentComponent(client, apiCalls, conditionalRequests),
+                new GitHubActionsEnrichmentComponent(client, apiCalls, conditionalRequests),
+                new GitHubReleaseEnrichmentComponent(client, apiCalls, conditionalRequests));
     }
 
     private RepositorySummary cachedRepository() {
