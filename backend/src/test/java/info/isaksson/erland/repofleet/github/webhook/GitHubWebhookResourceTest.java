@@ -5,9 +5,14 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.nio.charset.StandardCharsets;
 import java.util.HexFormat;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -19,6 +24,9 @@ class GitHubWebhookResourceTest {
 
     @ConfigProperty(name = "repofleet.github.webhook-secret")
     String secret;
+
+    @Inject
+    GitHubWebhookDeliveryService deliveries;
 
     @BeforeEach
     @Transactional
@@ -71,6 +79,31 @@ class GitHubWebhookResourceTest {
                 .body("duplicate", equalTo(true));
 
         assertEquals(1L, GitHubWebhookDelivery.count());
+    }
+
+    @Test
+    void concurrentDuplicateDeliveryIsClaimedExactlyOnce() throws Exception {
+        var executor = Executors.newFixedThreadPool(2);
+        try {
+            Callable<GitHubWebhookReceipt> call =
+                    () -> deliveries.record("delivery-concurrent", "issues", "{}");
+
+            List<Future<GitHubWebhookReceipt>> futures =
+                    executor.invokeAll(List.of(call, call));
+
+            GitHubWebhookReceipt first = futures.get(0).get();
+            GitHubWebhookReceipt second = futures.get(1).get();
+
+            assertEquals(1, java.util.stream.Stream.of(first, second)
+                    .filter(receipt -> !receipt.duplicate())
+                    .count());
+            assertEquals(1, java.util.stream.Stream.of(first, second)
+                    .filter(GitHubWebhookReceipt::duplicate)
+                    .count());
+            assertEquals(1L, GitHubWebhookDelivery.count());
+        } finally {
+            executor.shutdownNow();
+        }
     }
 
     @Test
