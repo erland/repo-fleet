@@ -80,16 +80,12 @@ class GitHubRepositoryConditionalEnrichmentServiceTest {
                 any(),
                 any()))
                 .thenReturn(GitHubConditionalResult.notModified(
-                        new GitHubRepositoryClassificationEnrichmentService.LanguageMetadata(
+                        new RepositoryLanguageMetadata(
                                 List.of("Java", "TypeScript"),
                                 "Java"),
                         "\"languages-etag\""));
 
-        var service = new GitHubRepositoryClassificationEnrichmentService(
-                tokenService,
-                client,
-                new GitHubApiCallExecutor(tokenService),
-                conditionalRequests);
+        var service = serviceWithConditionalRequests();
 
         RepositorySummary enriched = service.enrich(cached);
 
@@ -123,11 +119,7 @@ class GitHubRepositoryConditionalEnrichmentServiceTest {
                 any()))
                 .thenThrow(new IllegalStateException("languages temporarily unavailable"));
 
-        var service = new GitHubRepositoryClassificationEnrichmentService(
-                tokenService,
-                client,
-                new GitHubApiCallExecutor(tokenService),
-                conditionalRequests);
+        var service = serviceWithConditionalRequests();
 
         RepositorySummary enriched = service.enrich(cached);
 
@@ -178,11 +170,7 @@ class GitHubRepositoryConditionalEnrichmentServiceTest {
                         null,
                         "\"releases-etag\""));
 
-        var service = new GitHubRepositoryClassificationEnrichmentService(
-                tokenService,
-                client,
-                new GitHubApiCallExecutor(tokenService),
-                conditionalRequests);
+        var service = serviceWithConditionalRequests();
 
         RepositorySummary enriched = service.enrich(cached);
 
@@ -226,11 +214,7 @@ class GitHubRepositoryConditionalEnrichmentServiceTest {
                 any()))
                 .thenThrow(new IllegalStateException("releases temporarily unavailable"));
 
-        var service = new GitHubRepositoryClassificationEnrichmentService(
-                tokenService,
-                client,
-                new GitHubApiCallExecutor(tokenService),
-                conditionalRequests);
+        var service = serviceWithConditionalRequests();
 
         RepositorySummary enriched = service.enrich(cached);
 
@@ -238,6 +222,17 @@ class GitHubRepositoryConditionalEnrichmentServiceTest {
         assertEquals(cached.githubActions(), enriched.githubActions());
         assertEquals(cached.release(), enriched.release());
         assertEquals(AnalysisState.COMPLETE, enriched.refreshStatus().state());
+    }
+
+    private GitHubRepositoryClassificationEnrichmentService serviceWithConditionalRequests() {
+        GitHubApiCallExecutor apiCalls = new GitHubApiCallExecutor(tokenService);
+        return new GitHubRepositoryClassificationEnrichmentService(
+                tokenService,
+                client,
+                apiCalls,
+                conditionalRequests,
+                new GitHubTopicsEnrichmentComponent(client, apiCalls, conditionalRequests),
+                new GitHubLanguagesEnrichmentComponent(client, apiCalls, conditionalRequests));
     }
 
     private RepositorySummary cachedRepository() {

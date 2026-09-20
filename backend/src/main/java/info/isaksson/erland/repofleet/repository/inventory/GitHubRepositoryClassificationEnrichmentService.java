@@ -8,7 +8,6 @@ import info.isaksson.erland.repofleet.github.client.GitHubContentItemResponse;
 import info.isaksson.erland.repofleet.github.client.GitHubLicenseResponse;
 import info.isaksson.erland.repofleet.github.client.GitHubReleaseResponse;
 import info.isaksson.erland.repofleet.github.client.GitHubRepositoryMetadataClient;
-import info.isaksson.erland.repofleet.github.client.GitHubTopicsResponse;
 import info.isaksson.erland.repofleet.github.client.GitHubWorkflowsResponse;
 import info.isaksson.erland.repofleet.github.conditional.GitHubConditionalRequestExecutor;
 import info.isaksson.erland.repofleet.repository.api.AnalysisState;
@@ -25,7 +24,6 @@ import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import jakarta.ws.rs.core.GenericType;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 
@@ -36,23 +34,39 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
     private final GitHubRepositoryMetadataClient client;
     private final GitHubApiCallExecutor apiCalls;
     private final GitHubConditionalRequestExecutor conditionalRequests;
+    private final GitHubTopicsEnrichmentComponent topicsEnrichment;
+    private final GitHubLanguagesEnrichmentComponent languagesEnrichment;
 
     @Inject
     public GitHubRepositoryClassificationEnrichmentService(
             GitHubInstallationTokenService tokenService,
             @RestClient GitHubRepositoryMetadataClient client,
             GitHubApiCallExecutor apiCalls,
-            GitHubConditionalRequestExecutor conditionalRequests) {
+            GitHubConditionalRequestExecutor conditionalRequests,
+            GitHubTopicsEnrichmentComponent topicsEnrichment,
+            GitHubLanguagesEnrichmentComponent languagesEnrichment) {
         this.tokenService = tokenService;
         this.client = client;
         this.apiCalls = apiCalls;
         this.conditionalRequests = conditionalRequests;
+        this.topicsEnrichment = topicsEnrichment;
+        this.languagesEnrichment = languagesEnrichment;
     }
 
     GitHubRepositoryClassificationEnrichmentService(
             GitHubInstallationTokenService tokenService,
             GitHubRepositoryMetadataClient client) {
-        this(tokenService, client, new GitHubApiCallExecutor(tokenService), null);
+        this(
+                tokenService,
+                client,
+                new GitHubApiCallExecutor(tokenService),
+                null,
+                new GitHubTopicsEnrichmentComponent(
+                        client,
+                        new GitHubApiCallExecutor(tokenService)),
+                new GitHubLanguagesEnrichmentComponent(
+                        client,
+                        new GitHubApiCallExecutor(tokenService)));
     }
 
     @Override
@@ -82,102 +96,25 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
         boolean releaseComplete = false;
         List<String> errors = new ArrayList<>();
 
-        try {
-            if (conditionalRequests == null) {
-                GitHubTopicsResponse response = apiCalls.execute(
-                        "topics for " + repository.fullName(),
-                        authorization -> client.getTopics(
-                                repository.owner(),
-                                repository.name(),
-                                authorization,
-                                GitHubInstallationTokenService.ACCEPT,
-                                GitHubInstallationTokenService.API_VERSION));
-                topics = response == null ? List.of() : response.names().stream()
-                        .sorted(String.CASE_INSENSITIVE_ORDER)
-                        .toList();
-            } else {
-                List<String> cachedTopics = topics;
-                var result = conditionalRequests.execute(
-                        repository.id(),
-                        "topics",
-                        "topics for " + repository.fullName(),
-                        java.time.Instant.now(),
-                        (authorization, etag) -> client.getTopicsConditional(
-                                repository.owner(),
-                                repository.name(),
-                                authorization,
-                                GitHubInstallationTokenService.ACCEPT,
-                                GitHubInstallationTokenService.API_VERSION,
-                                etag),
-                        response -> {
-                            GitHubTopicsResponse body = response.readEntity(GitHubTopicsResponse.class);
-                            return body == null ? List.<String>of() : body.names().stream()
-                                    .sorted(String.CASE_INSENSITIVE_ORDER)
-                                    .toList();
-                        },
-                        () -> cachedTopics);
-                topics = result.value();
-            }
-            topicsComplete = true;
-        } catch (GitHubApiException exception) {
-            if (exception.kind() == GitHubApiFailureKind.NOT_FOUND) {
-                return unavailableRepository(repository, exception);
-            }
-            if (cachedEnrichmentComplete) {
-                topicsComplete = true;
-                errors.add("topics: " + safeMessage(exception));
-            } else {
-                errors.add("topics: " + safeMessage(exception));
-            }
-        } catch (RuntimeException exception) {
-            if (cachedEnrichmentComplete) {
-                topicsComplete = true;
-                errors.add("topics: " + safeMessage(exception));
-            } else {
-                errors.add("topics: " + safeMessage(exception));
-            }
+        RepositoryMetadataResult<List<String>> topicsResult =
+                topicsEnrichment.enrich(repository, cachedEnrichmentComplete, true);
+        if (topicsResult.unavailable()) {
+            return unavailableRepository(repository, topicsResult.error());
+        }
+        topics = topicsResult.value();
+        topicsComplete = topicsResult.complete();
+        if (topicsResult.degraded() && topicsResult.error() != null) {
+            errors.add(topicsResult.error());
         }
 
-        try {
-            if (conditionalRequests == null) {
-                Map<String, Long> response = apiCalls.execute(
-                        "languages for " + repository.fullName(),
-                        authorization -> client.getLanguages(
-                                repository.owner(),
-                                repository.name(),
-                                authorization,
-                                GitHubInstallationTokenService.ACCEPT,
-                                GitHubInstallationTokenService.API_VERSION));
-                LanguageMetadata metadata = languageMetadata(response);
-                languages = metadata.languages();
-                primaryLanguage = metadata.primaryLanguage();
-            } else {
-                LanguageMetadata cachedLanguages = new LanguageMetadata(languages, primaryLanguage);
-                var result = conditionalRequests.execute(
-                        repository.id(),
-                        "languages",
-                        "languages for " + repository.fullName(),
-                        java.time.Instant.now(),
-                        (authorization, etag) -> client.getLanguagesConditional(
-                                repository.owner(),
-                                repository.name(),
-                                authorization,
-                                GitHubInstallationTokenService.ACCEPT,
-                                GitHubInstallationTokenService.API_VERSION,
-                                etag),
-                        response -> languageMetadata(response.readEntity(new GenericType<Map<String, Long>>() {})),
-                        () -> cachedLanguages);
-                languages = result.value().languages();
-                primaryLanguage = result.value().primaryLanguage();
-            }
-            languagesComplete = true;
-        } catch (RuntimeException exception) {
-            if (cachedEnrichmentComplete) {
-                languagesComplete = true;
-                errors.add("languages: " + safeMessage(exception));
-            } else {
-                errors.add("languages: " + safeMessage(exception));
-            }
+        RepositoryMetadataResult<RepositoryLanguageMetadata> languagesResult =
+                languagesEnrichment.enrich(repository, cachedEnrichmentComplete, true);
+        RepositoryLanguageMetadata languageMetadata = languagesResult.value();
+        languages = languageMetadata.languages();
+        primaryLanguage = languageMetadata.primaryLanguage();
+        languagesComplete = languagesResult.complete();
+        if (languagesResult.degraded() && languagesResult.error() != null) {
+            errors.add(languagesResult.error());
         }
 
 
@@ -429,50 +366,15 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
         boolean topicsComplete = false;
         boolean releaseComplete = false;
 
-        try {
-            if (conditionalRequests == null) {
-                GitHubTopicsResponse response = apiCalls.execute(
-                        "topics for " + repository.fullName(),
-                        authorization -> client.getTopics(
-                                repository.owner(),
-                                repository.name(),
-                                authorization,
-                                GitHubInstallationTokenService.ACCEPT,
-                                GitHubInstallationTokenService.API_VERSION));
-                topics = response == null ? List.of() : response.names().stream()
-                        .sorted(String.CASE_INSENSITIVE_ORDER)
-                        .toList();
-            } else {
-                List<String> cachedTopics = topics;
-                var result = conditionalRequests.execute(
-                        repository.id(),
-                        "topics",
-                        "topics for " + repository.fullName(),
-                        java.time.Instant.now(),
-                        (authorization, etag) -> client.getTopicsConditional(
-                                repository.owner(),
-                                repository.name(),
-                                authorization,
-                                GitHubInstallationTokenService.ACCEPT,
-                                GitHubInstallationTokenService.API_VERSION,
-                                etag),
-                        response -> {
-                            GitHubTopicsResponse body = response.readEntity(GitHubTopicsResponse.class);
-                            return body == null ? List.<String>of() : body.names().stream()
-                                    .sorted(String.CASE_INSENSITIVE_ORDER)
-                                    .toList();
-                        },
-                        () -> cachedTopics);
-                topics = result.value();
-            }
-            topicsComplete = true;
-        } catch (GitHubApiException exception) {
-            if (exception.kind() == GitHubApiFailureKind.NOT_FOUND) {
-                return unavailableRepository(repository, exception);
-            }
-            errors.add("topics: " + safeMessage(exception));
-        } catch (RuntimeException exception) {
-            errors.add("topics: " + safeMessage(exception));
+        RepositoryMetadataResult<List<String>> topicsResult =
+                topicsEnrichment.enrich(repository, false, false);
+        if (topicsResult.unavailable()) {
+            return unavailableRepository(repository, topicsResult.error());
+        }
+        topics = topicsResult.value();
+        topicsComplete = topicsResult.complete();
+        if (topicsResult.degraded() && topicsResult.error() != null) {
+            errors.add(topicsResult.error());
         }
 
         try {
@@ -542,7 +444,7 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
 
     private RepositorySummary unavailableRepository(
             RepositorySummary repository,
-            GitHubApiException exception) {
+            String error) {
         return new RepositorySummary(
                 repository.id(),
                 repository.owner(),
@@ -562,7 +464,7 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
                 repository.activity(),
                 new RepositoryRefreshStatus(
                         AnalysisState.FAILED,
-                        "Repository became unavailable during refresh: " + safeMessage(exception),
+                        "Repository became unavailable during refresh: " + error,
                         CacheFreshness.STALE,
                         RepositoryRefreshOutcome.FAILED));
     }
@@ -741,23 +643,6 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
         return findLatestPublishedRelease(repository, response);
     }
 
-
-    private LanguageMetadata languageMetadata(Map<String, Long> response) {
-        Map<String, Long> languageBytes = response == null ? Map.of() : response;
-        List<String> languageNames = languageBytes.keySet().stream()
-                .sorted(String.CASE_INSENSITIVE_ORDER)
-                .toList();
-        String primary = languageBytes.entrySet().stream()
-                .max(Comparator.<Map.Entry<String, Long>>comparingLong(
-                        entry -> entry.getValue() == null ? 0L : entry.getValue())
-                        .thenComparing(Map.Entry::getKey, String.CASE_INSENSITIVE_ORDER))
-                .map(Map.Entry::getKey)
-                .orElse(null);
-        return new LanguageMetadata(languageNames, primary);
-    }
-
-    record LanguageMetadata(List<String> languages, String primaryLanguage) {
-    }
 
     private String safeMessage(RuntimeException exception) {
         String message = exception.getMessage();
