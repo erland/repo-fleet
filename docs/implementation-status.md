@@ -132,11 +132,11 @@ Detailed plan: `docs/repository-launcher-ux-plan.md`.
 | IP-012 | Make webhook idempotency claim-first | DONE | Atomic delivery claim occurs before processing in the same transaction. |
 | IP-013 | Establish supported queue topology | DONE | Supported runtime is explicitly single-backend. |
 | IP-014 | Multi-instance atomic queue claim | DEFERRED | Required only before horizontal backend scaling is introduced; see `docs/queue-concurrency.md`. |
-| IP-015 | Precompute compliance membership and final closure | IN PROGRESS | Membership is now precomputed once per summary; final CI/regression verification pending. |
+| IP-015 | Precompute compliance membership and final closure | DONE | Membership is precomputed once per summary and verified by successful CI #543 on PR #62. |
 
 ## Current Position
 
-Current step: **Design Review Remediation IP-015 IN PROGRESS; final CI/regression verification pending.**
+Current step: **Design Review Remediation COMPLETE. IP-014 remains intentionally deferred until horizontal backend scaling is introduced.**
 
 Phase 1 completed steps: **26 / 26**  
 Phase 2 completed steps: **34 / 34**
