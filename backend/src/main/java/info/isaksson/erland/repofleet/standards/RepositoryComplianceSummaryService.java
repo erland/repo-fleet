@@ -143,15 +143,23 @@ public class RepositoryComplianceSummaryService {
                                 repository -> repository.id(),
                                 Function.identity()));
 
-        List<ComplianceGroupSummary> groupSummaries = new ArrayList<>();
-        for (RepositoryGroupDefinition group : groups.list().stream()
+        List<RepositoryGroupDefinition> enabledGroups = groups.list().stream()
                 .filter(RepositoryGroupDefinition::enabled)
-                .toList()) {
-            Set<Long> memberIds = reconstructedRepositoriesById.values().stream()
-                    .filter(repository -> groups.matchingGroups(repository).stream()
-                            .anyMatch(match -> match.groupKey().equals(group.groupKey())))
-                    .map(repository -> repository.id())
-                    .collect(Collectors.toSet());
+                .toList();
+        Map<String, Set<Long>> memberIdsByGroupKey = enabledGroups.stream()
+                .collect(Collectors.toMap(
+                        RepositoryGroupDefinition::groupKey,
+                        ignored -> new java.util.HashSet<>()));
+
+        for (var repository : reconstructedRepositoriesById.values()) {
+            for (RepositoryGroupDefinition group : groups.matchingGroups(repository, enabledGroups)) {
+                memberIdsByGroupKey.get(group.groupKey()).add(repository.id());
+            }
+        }
+
+        List<ComplianceGroupSummary> groupSummaries = new ArrayList<>();
+        for (RepositoryGroupDefinition group : enabledGroups) {
+            Set<Long> memberIds = memberIdsByGroupKey.getOrDefault(group.groupKey(), Set.of());
 
             Map<RepositoryRuleEvaluationResult, Long> counts = emptyResultCounts();
             actionableResults.stream()
