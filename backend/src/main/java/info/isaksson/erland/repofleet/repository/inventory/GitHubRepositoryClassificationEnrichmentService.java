@@ -3,7 +3,6 @@ package info.isaksson.erland.repofleet.repository.inventory;
 import info.isaksson.erland.repofleet.github.api.GitHubApiCallExecutor;
 import info.isaksson.erland.repofleet.github.auth.GitHubInstallationTokenService;
 import info.isaksson.erland.repofleet.github.client.GitHubRepositoryMetadataClient;
-import info.isaksson.erland.repofleet.github.conditional.GitHubConditionalRequestExecutor;
 import info.isaksson.erland.repofleet.repository.api.AnalysisState;
 import info.isaksson.erland.repofleet.repository.api.CacheFreshness;
 import info.isaksson.erland.repofleet.repository.api.GitHubActionsStatus;
@@ -16,15 +15,10 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
-import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 @ApplicationScoped
 public class GitHubRepositoryClassificationEnrichmentService implements RepositoryEnrichmentService {
 
-    private final GitHubInstallationTokenService tokenService;
-    private final GitHubRepositoryMetadataClient client;
-    private final GitHubApiCallExecutor apiCalls;
-    private final GitHubConditionalRequestExecutor conditionalRequests;
     private final GitHubTopicsEnrichmentComponent topicsEnrichment;
     private final GitHubLanguagesEnrichmentComponent languagesEnrichment;
     private final GitHubLicenseEnrichmentComponent licenseEnrichment;
@@ -33,19 +27,11 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
 
     @Inject
     public GitHubRepositoryClassificationEnrichmentService(
-            GitHubInstallationTokenService tokenService,
-            @RestClient GitHubRepositoryMetadataClient client,
-            GitHubApiCallExecutor apiCalls,
-            GitHubConditionalRequestExecutor conditionalRequests,
             GitHubTopicsEnrichmentComponent topicsEnrichment,
             GitHubLanguagesEnrichmentComponent languagesEnrichment,
             GitHubLicenseEnrichmentComponent licenseEnrichment,
             GitHubActionsEnrichmentComponent actionsEnrichment,
             GitHubReleaseEnrichmentComponent releaseEnrichment) {
-        this.tokenService = tokenService;
-        this.client = client;
-        this.apiCalls = apiCalls;
-        this.conditionalRequests = conditionalRequests;
         this.topicsEnrichment = topicsEnrichment;
         this.languagesEnrichment = languagesEnrichment;
         this.licenseEnrichment = licenseEnrichment;
@@ -57,10 +43,6 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
             GitHubInstallationTokenService tokenService,
             GitHubRepositoryMetadataClient client) {
         this(
-                tokenService,
-                client,
-                new GitHubApiCallExecutor(tokenService),
-                null,
                 new GitHubTopicsEnrichmentComponent(
                         client,
                         new GitHubApiCallExecutor(tokenService)),
@@ -286,11 +268,4 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
                         RepositoryRefreshOutcome.FAILED));
     }
 
-
-    private String safeMessage(RuntimeException exception) {
-        String message = exception.getMessage();
-        return message == null || message.isBlank()
-                ? exception.getClass().getSimpleName()
-                : message;
-    }
 }
