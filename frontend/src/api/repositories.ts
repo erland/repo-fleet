@@ -31,11 +31,13 @@ export type ActivityStatus = {
 }
 
 export type CacheFreshness = 'FRESH' | 'STALE' | 'REFRESHING'
+export type RepositoryRefreshOutcome = 'SUCCESS' | 'DEGRADED' | 'FAILED'
 
 export type RepositoryRefreshStatus = {
   state: AnalysisState
   message: string | null
   freshness?: CacheFreshness | null
+  latestOutcome?: RepositoryRefreshOutcome | null
 }
 
 export type RepositorySummary = {

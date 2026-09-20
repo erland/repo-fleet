@@ -8,6 +8,7 @@ import type {
   LicensePresence,
   RefreshDiagnosticsSnapshot,
   RepositoryComplianceDetail,
+  RepositoryRefreshOutcome,
   RepositorySummary,
   RepositoryVisibility,
 } from '../src/api'
@@ -30,6 +31,7 @@ type NoExtraFrontendKeys<Frontend, Backend> =
 
 type _AnalysisState = Expect<Equal<AnalysisState, Schemas['AnalysisState']>>
 type _RepositoryVisibility = Expect<Equal<RepositoryVisibility, Schemas['RepositoryVisibility']>>
+type _RepositoryRefreshOutcome = Expect<Equal<RepositoryRefreshOutcome, Schemas['RepositoryRefreshOutcome']>>
 type _LicensePresence = Expect<Equal<LicensePresence, Schemas['LicensePresence']>>
 type _InventoryRefreshState = Expect<Equal<InventoryRefreshState, Schemas['InventoryRefreshState']>>
 type _ComplianceResult = Expect<Equal<ComplianceResult, Schemas['RepositoryRuleEvaluationResult']>>
