@@ -27,7 +27,7 @@ Perform one final, deliberately small maintainability pass. Prefer testability a
 | 2 | Review/extract repository compliance detail state from `App.tsx` if clearly beneficial | DONE |
 | 3 | Review app data-loading/polling lifecycle; implement only a justified low-risk extraction | DONE |
 | 4 | Final dead-code/duplication review and stop/go decision | DONE – STOP |
-| 5 | Final cleanup, documentation and full CI verification | NOT STARTED |
+| 5 | Final cleanup, documentation and full CI verification | DONE |
 
 ## Step 1 acceptance
 
@@ -92,6 +92,24 @@ Findings:
 
 The codebase has reached the intended point where additional refactoring would risk becoming preference-driven rather than finding-driven.
 
-## Next step
+## Step 4 verification
 
-Step 5 – final cleanup, documentation and full CI verification. No additional functional refactoring is planned.
+Completed and verified by successful CI run #506 on PR #50.
+
+## Step 5 completion
+
+Final cleanup is documentation-only. No further functional changes are introduced after the stop decision.
+
+### Iteration outcome
+
+- Added focused test coverage around saved-view state decisions without new test dependencies.
+- Extracted repository compliance detail lifecycle from `App.tsx`.
+- Extracted repository portfolio loading, refresh status, compliance summary, diagnostics and refresh polling into a focused hook.
+- Reduced `App.tsx` substantially while keeping auth, filtering/sorting, selection and workspace composition in the app shell.
+- Performed a final dead-code/duplication review and intentionally stopped further structural refactoring when remaining opportunities became mostly stylistic.
+
+## Completion
+
+Code Improvement Iteration 3 is complete.
+
+The implementation was verified incrementally by CI runs #499, #502, #505 and #506 on PR #50.
