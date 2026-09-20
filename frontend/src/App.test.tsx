@@ -118,7 +118,8 @@ describe('InventoryRefreshPanel', () => {
       />,
     )
     expect(partial).toContain('Needs attention')
-    expect(partial).toContain('Refresh completed with partial failures')
+    expect(partial).toContain('Refresh completed with warnings')
+    expect(partial).toContain('Previously cached metadata may still be available')
 
     const failed = renderToString(
       <InventoryRefreshPanel
