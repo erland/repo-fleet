@@ -24,8 +24,8 @@ Perform one final, deliberately small maintainability pass. Prefer testability a
 | Step | Change | Status |
 |---|---|---|
 | 1 | Make saved-view hook logic directly testable with pure helpers and focused tests | DONE |
-| 2 | Review/extract repository compliance detail state from `App.tsx` if clearly beneficial | IN PROGRESS |
-| 3 | Review app data-loading/polling lifecycle; implement only a justified low-risk extraction | NOT STARTED |
+| 2 | Review/extract repository compliance detail state from `App.tsx` if clearly beneficial | DONE |
+| 3 | Review app data-loading/polling lifecycle; implement only a justified low-risk extraction | IN PROGRESS |
 | 4 | Final dead-code/duplication review and stop/go decision | NOT STARTED |
 | 5 | Final cleanup, documentation and full CI verification | NOT STARTED |
 
@@ -55,6 +55,25 @@ The extraction is justified because it removes a complete concern from `App.tsx`
 - User-visible repository detail behaviour is unchanged.
 - Full frontend checks and CI pass.
 
+## Step 2 verification
+
+Completed and verified by successful CI run #502 on PR #50.
+
+## Step 3 finding
+
+Repository portfolio loading is still a coherent lifecycle in `App.tsx`: repository inventory, refresh status, compliance summary, diagnostics, refresh start and refresh polling all coordinate around the same backend refresh state.
+
+Moving these together materially reduces `App.tsx` responsibility instead of simply moving isolated callbacks.
+
+## Step 3 acceptance
+
+- Repository inventory/status/compliance/diagnostics state and loading functions are owned by one focused portfolio-data hook.
+- Initial authenticated loading and refresh polling move together.
+- Incremental/full refresh start orchestration moves with the refresh lifecycle.
+- Auth handling, filtering/sorting, selection and workspace composition remain in `App.tsx`.
+- Existing user-visible loading, polling and refresh behaviour is unchanged.
+- Full frontend checks and CI pass.
+
 ## Next step
 
-After Step 2 is verified by CI: Step 3 – review the remaining app data-loading/polling lifecycle and implement an extraction only if it materially reduces responsibility rather than reshuffling complexity.
+After Step 3 is verified by CI: Step 4 – perform the final dead-code/duplication review and make a stop/go decision for further refactoring.
