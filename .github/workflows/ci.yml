@@ -113,8 +113,8 @@ jobs:
         run: mvn --batch-mode --no-transfer-progress verify
 
 
-  contract-bootstrap:
-    name: API contract bootstrap
+  contract:
+    name: API contract
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -138,16 +138,18 @@ jobs:
         working-directory: backend
         run: mvn --batch-mode --no-transfer-progress -DskipTests package
 
-      - name: Generate TypeScript DTO types
+      - name: Generate TypeScript DTO contract
         run: |
-          mkdir -p frontend/src/api/generated
-          npx --yes openapi-typescript@7.10.1 backend/target/openapi/openapi.json -o frontend/src/api/generated/schema.ts
+          mkdir -p frontend/contracts/generated
+          npx --yes openapi-typescript@7.10.1 backend/target/openapi/openapi.json -o frontend/contracts/generated/schema.ts
 
-      - name: Upload generated contract bootstrap
-        uses: actions/upload-artifact@v4
-        with:
-          name: generated-api-contract
-          path: frontend/src/api/generated/schema.ts
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund
+
+      - name: Verify frontend contract assumptions
+        working-directory: frontend
+        run: npx tsc -p tsconfig.contract.json
 
   product:
     name: Production containers
@@ -174,6 +176,7 @@ jobs:
       - policy
       - frontend
       - backend
+      - contract
       - product
 
     steps:
@@ -182,11 +185,12 @@ jobs:
           POLICY_RESULT: ${{ needs.policy.result }}
           FRONTEND_RESULT: ${{ needs.frontend.result }}
           BACKEND_RESULT: ${{ needs.backend.result }}
+          CONTRACT_RESULT: ${{ needs.contract.result }}
           PRODUCT_RESULT: ${{ needs.product.result }}
         run: |
-          for result in "$POLICY_RESULT" "$FRONTEND_RESULT" "$BACKEND_RESULT" "$PRODUCT_RESULT"; do
+          for result in "$POLICY_RESULT" "$FRONTEND_RESULT" "$BACKEND_RESULT" "$CONTRACT_RESULT" "$PRODUCT_RESULT"; do
             if [ "$result" != "success" ]; then
-              echo "Quality gate failed: policy=$POLICY_RESULT frontend=$FRONTEND_RESULT backend=$BACKEND_RESULT product=$PRODUCT_RESULT"
+              echo "Quality gate failed: policy=$POLICY_RESULT frontend=$FRONTEND_RESULT backend=$BACKEND_RESULT contract=$CONTRACT_RESULT product=$PRODUCT_RESULT"
               exit 1
             fi
           done
