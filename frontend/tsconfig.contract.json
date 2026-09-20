@@ -1,7 +1,10 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2022", "DOM"],
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "strict": true,
@@ -11,6 +14,6 @@
   "files": [
     "contracts/generated/schema.ts",
     "contracts/api-contract.ts",
-    "src/api.ts"
+    "src/api/index.ts"
   ]
 }
