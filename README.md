@@ -258,6 +258,7 @@ The completion review lists the delivered requirements, intentional deviations f
 - `docs/docker-images.md` – individual production images
 - `docs/docker-compose-runtime.md` – complete Docker runtime
 - `docs/ci-quality-gate.md` – pull-request validation
+- `docs/queue-concurrency.md` – supported backend topology and targeted queue scaling gate
 - `docs/release-publishing.md` – versioned GHCR/GitHub Releases
 - `docs/phase-1-acceptance-validation.md` – deterministic acceptance coverage
 - `docs/phase-1-completion-review.md` – final Phase 1 assessment
