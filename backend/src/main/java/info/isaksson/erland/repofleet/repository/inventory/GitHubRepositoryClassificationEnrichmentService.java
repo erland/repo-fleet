@@ -2,9 +2,7 @@ package info.isaksson.erland.repofleet.repository.inventory;
 
 import info.isaksson.erland.repofleet.github.api.GitHubApiCallExecutor;
 import info.isaksson.erland.repofleet.github.auth.GitHubInstallationTokenService;
-import info.isaksson.erland.repofleet.github.client.GitHubReleaseResponse;
 import info.isaksson.erland.repofleet.github.client.GitHubRepositoryMetadataClient;
-import info.isaksson.erland.repofleet.github.client.GitHubWorkflowsResponse;
 import info.isaksson.erland.repofleet.github.conditional.GitHubConditionalRequestExecutor;
 import info.isaksson.erland.repofleet.repository.api.AnalysisState;
 import info.isaksson.erland.repofleet.repository.api.CacheFreshness;
@@ -17,9 +15,7 @@ import info.isaksson.erland.repofleet.repository.api.RepositorySummary;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
-import jakarta.ws.rs.core.GenericType;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 @ApplicationScoped
@@ -32,6 +28,8 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
     private final GitHubTopicsEnrichmentComponent topicsEnrichment;
     private final GitHubLanguagesEnrichmentComponent languagesEnrichment;
     private final GitHubLicenseEnrichmentComponent licenseEnrichment;
+    private final GitHubActionsEnrichmentComponent actionsEnrichment;
+    private final GitHubReleaseEnrichmentComponent releaseEnrichment;
 
     @Inject
     public GitHubRepositoryClassificationEnrichmentService(
@@ -41,7 +39,9 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
             GitHubConditionalRequestExecutor conditionalRequests,
             GitHubTopicsEnrichmentComponent topicsEnrichment,
             GitHubLanguagesEnrichmentComponent languagesEnrichment,
-            GitHubLicenseEnrichmentComponent licenseEnrichment) {
+            GitHubLicenseEnrichmentComponent licenseEnrichment,
+            GitHubActionsEnrichmentComponent actionsEnrichment,
+            GitHubReleaseEnrichmentComponent releaseEnrichment) {
         this.tokenService = tokenService;
         this.client = client;
         this.apiCalls = apiCalls;
@@ -49,6 +49,8 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
         this.topicsEnrichment = topicsEnrichment;
         this.languagesEnrichment = languagesEnrichment;
         this.licenseEnrichment = licenseEnrichment;
+        this.actionsEnrichment = actionsEnrichment;
+        this.releaseEnrichment = releaseEnrichment;
     }
 
     GitHubRepositoryClassificationEnrichmentService(
@@ -67,6 +69,12 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
                         new GitHubApiCallExecutor(tokenService)),
                 new GitHubLicenseEnrichmentComponent(
                         client,
+                        new GitHubApiCallExecutor(tokenService)),
+                new GitHubActionsEnrichmentComponent(
+                        client,
+                        new GitHubApiCallExecutor(tokenService)),
+                new GitHubReleaseEnrichmentComponent(
+                        client,
                         new GitHubApiCallExecutor(tokenService)));
     }
 
@@ -78,8 +86,6 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
         LicenseStatus license = repository.license();
         GitHubActionsStatus githubActions = repository.githubActions();
         ReleaseStatus release = repository.release();
-        GitHubActionsStatus cachedActions = githubActions;
-        ReleaseStatus cachedRelease = release;
         boolean cachedEnrichmentComplete = repository.refreshStatus() != null
                 && repository.refreshStatus().state() == AnalysisState.COMPLETE;
         boolean cachedLicenseComplete = license != null
@@ -126,104 +132,20 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
             errors.add(licenseResult.error());
         }
 
-        try {
-            if (conditionalRequests == null) {
-                GitHubWorkflowsResponse response = apiCalls.execute(
-                        "workflows for " + repository.fullName(),
-                        authorization -> client.getWorkflows(
-                                repository.owner(),
-                                repository.name(),
-                                authorization,
-                                GitHubInstallationTokenService.ACCEPT,
-                                GitHubInstallationTokenService.API_VERSION,
-                                1,
-                                1));
-                githubActions = toActionsStatus(response);
-            } else {
-                var result = conditionalRequests.execute(
-                        repository.id(),
-                        "workflows",
-                        "workflows for " + repository.fullName(),
-                        java.time.Instant.now(),
-                        (authorization, etag) -> client.getWorkflowsConditional(
-                                repository.owner(),
-                                repository.name(),
-                                authorization,
-                                GitHubInstallationTokenService.ACCEPT,
-                                GitHubInstallationTokenService.API_VERSION,
-                                etag,
-                                1,
-                                1),
-                        response -> response.readEntity(GitHubWorkflowsResponse.class),
-                        () -> null);
-                if (result.reusedCached()) {
-                    githubActions = cachedActionsComplete
-                            ? cachedActions
-                            : refreshActionsDirect(repository);
-                } else {
-                    githubActions = toActionsStatus(result.value());
-                }
-            }
-            actionsComplete = true;
-        } catch (RuntimeException exception) {
-            if (cachedActionsComplete) {
-                githubActions = cachedActions;
-                actionsComplete = true;
-                errors.add("actions: " + safeMessage(exception));
-            } else {
-                githubActions = new GitHubActionsStatus(
-                        AnalysisState.FAILED,
-                        null,
-                        null);
-                errors.add("actions: " + safeMessage(exception));
-            }
+        RepositoryMetadataResult<GitHubActionsStatus> actionsResult =
+                actionsEnrichment.enrich(repository, cachedActionsComplete);
+        githubActions = actionsResult.value();
+        actionsComplete = actionsResult.complete();
+        if (actionsResult.degraded() && actionsResult.error() != null) {
+            errors.add(actionsResult.error());
         }
 
-        try {
-            if (conditionalRequests == null) {
-                GitHubReleaseResponse latest = findLatestPublishedRelease(repository);
-                release = toReleaseStatus(latest);
-            } else {
-                var result = conditionalRequests.execute(
-                        repository.id(),
-                        "releases",
-                        "releases for " + repository.fullName() + " page 1",
-                        java.time.Instant.now(),
-                        (authorization, etag) -> client.getReleasesConditional(
-                                repository.owner(),
-                                repository.name(),
-                                authorization,
-                                GitHubInstallationTokenService.ACCEPT,
-                                GitHubInstallationTokenService.API_VERSION,
-                                etag,
-                                100,
-                                1),
-                        response -> response.readEntity(new GenericType<List<GitHubReleaseResponse>>() {}),
-                        () -> null);
-                if (result.reusedCached()) {
-                    release = cachedReleaseComplete
-                            ? cachedRelease
-                            : toReleaseStatus(findLatestPublishedRelease(repository));
-                } else {
-                    release = toReleaseStatus(findLatestPublishedRelease(repository, result.value()));
-                }
-            }
-            releaseComplete = true;
-        } catch (RuntimeException exception) {
-            if (cachedReleaseComplete) {
-                release = cachedRelease;
-                releaseComplete = true;
-                errors.add("release: " + safeMessage(exception));
-            } else {
-                release = new ReleaseStatus(
-                        AnalysisState.FAILED,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null);
-                errors.add("release: " + safeMessage(exception));
-            }
+        RepositoryMetadataResult<ReleaseStatus> releaseResult =
+                releaseEnrichment.enrich(repository, cachedReleaseComplete, true);
+        release = releaseResult.value();
+        releaseComplete = releaseResult.complete();
+        if (releaseResult.degraded() && releaseResult.error() != null) {
+            errors.add(releaseResult.error());
         }
 
         AnalysisState state;
@@ -292,34 +214,14 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
             errors.add(topicsResult.error());
         }
 
-        try {
-            if (conditionalRequests == null) {
-                release = toReleaseStatus(findLatestPublishedRelease(repository));
-            } else {
-                ReleaseStatus cachedRelease = release;
-                var result = conditionalRequests.execute(
-                        repository.id(),
-                        "releases",
-                        "releases for " + repository.fullName() + " page 1",
-                        java.time.Instant.now(),
-                        (authorization, etag) -> client.getReleasesConditional(
-                                repository.owner(),
-                                repository.name(),
-                                authorization,
-                                GitHubInstallationTokenService.ACCEPT,
-                                GitHubInstallationTokenService.API_VERSION,
-                                etag,
-                                100,
-                                1),
-                        response -> response.readEntity(new GenericType<List<GitHubReleaseResponse>>() {}),
-                        () -> null);
-                release = result.reusedCached()
-                        ? cachedRelease
-                        : toReleaseStatus(findLatestPublishedRelease(repository, result.value()));
-            }
-            releaseComplete = true;
-        } catch (RuntimeException exception) {
-            errors.add("release: " + safeMessage(exception));
+        boolean cachedReleaseComplete = release != null
+                && release.analysisState() == AnalysisState.COMPLETE;
+        RepositoryMetadataResult<ReleaseStatus> releaseResult =
+                releaseEnrichment.enrich(repository, cachedReleaseComplete, false);
+        release = releaseResult.value();
+        releaseComplete = releaseResult.complete();
+        if (releaseResult.degraded() && releaseResult.error() != null) {
+            errors.add(releaseResult.error());
         }
 
         AnalysisState state = topicsComplete && releaseComplete
@@ -382,106 +284,6 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
                         "Repository became unavailable during refresh: " + error,
                         CacheFreshness.STALE,
                         RepositoryRefreshOutcome.FAILED));
-    }
-
-    private java.time.Instant releaseTimestamp(GitHubReleaseResponse release) {
-        return release.publishedAt() != null ? release.publishedAt() : release.createdAt();
-    }
-
-    private GitHubActionsStatus refreshActionsDirect(RepositorySummary repository) {
-        GitHubWorkflowsResponse response = apiCalls.execute(
-                "workflows for " + repository.fullName(),
-                authorization -> client.getWorkflows(
-                        repository.owner(),
-                        repository.name(),
-                        authorization,
-                        GitHubInstallationTokenService.ACCEPT,
-                        GitHubInstallationTokenService.API_VERSION,
-                        1,
-                        1));
-        return toActionsStatus(response);
-    }
-
-    private GitHubActionsStatus toActionsStatus(GitHubWorkflowsResponse response) {
-        if (response == null) {
-            throw new IllegalStateException("GitHub returned an empty workflows response.");
-        }
-        int workflowCount = Math.max(0, response.totalCount());
-        return new GitHubActionsStatus(
-                AnalysisState.COMPLETE,
-                workflowCount > 0,
-                workflowCount);
-    }
-
-    private ReleaseStatus toReleaseStatus(GitHubReleaseResponse latest) {
-        return latest == null
-                ? new ReleaseStatus(AnalysisState.COMPLETE, false, null, null, null, null)
-                : new ReleaseStatus(
-                        AnalysisState.COMPLETE,
-                        true,
-                        latest.name(),
-                        latest.tagName(),
-                        latest.publishedAt() != null ? latest.publishedAt() : latest.createdAt(),
-                        latest.prerelease());
-    }
-
-    private GitHubReleaseResponse findLatestPublishedRelease(
-            RepositorySummary repository,
-            List<GitHubReleaseResponse> firstPage) {
-        List<GitHubReleaseResponse> releases = firstPage == null ? List.of() : firstPage;
-        GitHubReleaseResponse latest = latestPublished(releases);
-        if (latest != null || releases.size() < 100) {
-            return latest;
-        }
-        return findLatestPublishedReleaseFromPage(repository, 2);
-    }
-
-    private GitHubReleaseResponse latestPublished(List<GitHubReleaseResponse> releases) {
-        return releases.stream()
-                .filter(item -> item != null && !item.draft())
-                .max(Comparator.comparing(
-                        this::releaseTimestamp,
-                        Comparator.nullsFirst(Comparator.naturalOrder())))
-                .orElse(null);
-    }
-
-    private GitHubReleaseResponse findLatestPublishedReleaseFromPage(
-            RepositorySummary repository,
-            int startPage) {
-        int page = startPage;
-        while (true) {
-            int requestedPage = page;
-            List<GitHubReleaseResponse> response = apiCalls.execute(
-                    "releases for " + repository.fullName() + " page " + requestedPage,
-                    authorization -> client.getReleases(
-                            repository.owner(),
-                            repository.name(),
-                            authorization,
-                            GitHubInstallationTokenService.ACCEPT,
-                            GitHubInstallationTokenService.API_VERSION,
-                            100,
-                            requestedPage));
-            List<GitHubReleaseResponse> releases = response == null ? List.of() : response;
-            GitHubReleaseResponse latest = latestPublished(releases);
-            if (latest != null || releases.size() < 100) {
-                return latest;
-            }
-            page++;
-        }
-    }
-
-    private GitHubReleaseResponse findLatestPublishedRelease(RepositorySummary repository) {
-        List<GitHubReleaseResponse> response = apiCalls.execute(
-                "releases for " + repository.fullName() + " page 1",
-                authorization -> client.getReleases(
-                        repository.owner(),
-                        repository.name(),
-                        authorization,
-                        GitHubInstallationTokenService.ACCEPT,
-                        GitHubInstallationTokenService.API_VERSION,
-                        100,
-                        1));
-        return findLatestPublishedRelease(repository, response);
     }
 
 
