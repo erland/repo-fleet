@@ -66,8 +66,17 @@ public class RepositoryGroupService {
     }
 
     public List<RepositoryGroupDefinition> matchingGroups(RepositorySummary repository) {
-        return list().stream()
-                .filter(RepositoryGroupDefinition::enabled)
+        return matchingGroups(
+                repository,
+                list().stream()
+                        .filter(RepositoryGroupDefinition::enabled)
+                        .toList());
+    }
+
+    List<RepositoryGroupDefinition> matchingGroups(
+            RepositorySummary repository,
+            List<RepositoryGroupDefinition> enabledGroups) {
+        return enabledGroups.stream()
                 .filter(group -> evaluator.matches(group.selector(), repository))
                 .toList();
     }
