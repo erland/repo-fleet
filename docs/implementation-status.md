@@ -114,9 +114,29 @@ Detailed plan: `docs/ux-improvement-plan.md`.
 
 Detailed plan: `docs/repository-launcher-ux-plan.md`.
 
+## Design Review Remediation
+
+| Step | Remediation | Status | Notes |
+|---:|---|---|---|
+| IP-001 | Verify duplicate compliance path usage | DONE | Duplicate path confirmed isolated before removal. |
+| IP-002 | Consolidate compliance evaluation | DONE | Duplicate evaluator/service removed; canonical evaluator retained. |
+| IP-003 | Validate OpenAPI contract source | DONE | Quarkus OpenAPI validated as frontend contract source. |
+| IP-004 | Automate frontend/backend DTO contract | DONE | Compile-time TypeScript assertions verify handwritten DTOs against generated OpenAPI schema. |
+| IP-005 | Split frontend API client by feature | DONE | Monolithic API module replaced by feature modules. |
+| IP-006 | Add explicit latest refresh outcome model | DONE | SUCCESS/DEGRADED/FAILED separated from data completeness. |
+| IP-007 | Populate refresh outcome from enrichment | DONE | Enrichment distinguishes fresh success, degraded cached data and hard failure. |
+| IP-008 | Propagate degraded refresh through inventory/UI | DONE | Inventory aggregation and UI preserve usable stale data while exposing degraded refreshes. |
+| IP-009 | Extract topics/languages enrichment | DONE | Facet components own GitHub/conditional/cache behavior. |
+| IP-010 | Extract license enrichment | DONE | License detection and fallback moved to focused component. |
+| IP-011 | Extract Actions/release enrichment | DONE | Orchestrator reduced to facet coordination; volatile release verification reuses the release component. |
+| IP-012 | Make webhook idempotency claim-first | DONE | Atomic delivery claim occurs before processing in the same transaction. |
+| IP-013 | Establish supported queue topology | DONE | Supported runtime is explicitly single-backend. |
+| IP-014 | Multi-instance atomic queue claim | DEFERRED | Required only before horizontal backend scaling is introduced; see `docs/queue-concurrency.md`. |
+| IP-015 | Precompute compliance membership and final closure | IN PROGRESS | Membership is now precomputed once per summary; final CI/regression verification pending. |
+
 ## Current Position
 
-Current step: **Repository Launcher UX Iteration 2 COMPLETE; Phase 2 remains complete.**
+Current step: **Design Review Remediation IP-015 IN PROGRESS; final CI/regression verification pending.**
 
 Phase 1 completed steps: **26 / 26**  
 Phase 2 completed steps: **34 / 34**

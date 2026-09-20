@@ -102,6 +102,21 @@ class RepositoryComplianceSummaryServiceTest {
                 true,
                 now);
 
+        groups.save(
+                "architecture",
+                "Architecture",
+                null,
+                new RepositoryGroupSelector(
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        List.of("architecture"),
+                        List.of()),
+                true,
+                now);
+
         persistResult(1L, "license-required", RepositoryRuleEvaluationResult.FAIL, now);
         persistResult(1L, "release-recommended", RepositoryRuleEvaluationResult.PASS, now);
         persistResult(2L, "license-required", RepositoryRuleEvaluationResult.PASS, now);
@@ -131,12 +146,22 @@ class RepositoryComplianceSummaryServiceTest {
         assertEquals(1L, licenseRule.resultCounts().get(RepositoryRuleEvaluationResult.FAIL));
         assertEquals(1L, licenseRule.resultCounts().get(RepositoryRuleEvaluationResult.PASS));
 
-        assertEquals(1, summary.groups().size());
-        ComplianceGroupSummary services = summary.groups().getFirst();
-        assertEquals("services", services.groupKey());
+        assertEquals(2, summary.groups().size());
+        ComplianceGroupSummary services = summary.groups().stream()
+                .filter(group -> group.groupKey().equals("services"))
+                .findFirst()
+                .orElseThrow();
         assertEquals(1L, services.repositoryCount());
         assertEquals(1L, services.resultCounts().get(RepositoryRuleEvaluationResult.FAIL));
         assertEquals(1L, services.resultCounts().get(RepositoryRuleEvaluationResult.PASS));
+
+        ComplianceGroupSummary architecture = summary.groups().stream()
+                .filter(group -> group.groupKey().equals("architecture"))
+                .findFirst()
+                .orElseThrow();
+        assertEquals(1L, architecture.repositoryCount());
+        assertEquals(1L, architecture.resultCounts().get(RepositoryRuleEvaluationResult.FAIL));
+        assertEquals(1L, architecture.resultCounts().get(RepositoryRuleEvaluationResult.PASS));
     }
 
     @Test
