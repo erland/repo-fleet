@@ -33,8 +33,8 @@ Continue improving RepoFleet maintainability and scalability without changing us
 | 2 | Avoid repeated repository reconstruction during compliance group summaries | DONE |
 | 3 | Consolidate duplicated refresh-start orchestration in `App.tsx` | DONE |
 | 4 | Extract saved-view state/persistence from `App.tsx` into a focused hook | DONE |
-| 5 | Review backend persistence access and implement one justified low-risk boundary improvement | IN PROGRESS |
-| 6 | Final cleanup, documentation and full CI verification | NOT STARTED |
+| 5 | Review backend persistence access and implement one justified low-risk boundary improvement | DONE |
+| 6 | Final cleanup, documentation and full CI verification | DONE |
 
 ## Step 1 acceptance
 
@@ -102,6 +102,25 @@ The improvement keeps persistence access inside the existing compliance-result a
 - Summary counts, accepted deviations, group summaries and repository failure ordering are unchanged.
 - Existing compliance summary tests and full CI pass.
 
-## Next step
+## Step 5 verification
 
-After Step 5 is verified by CI: Step 6 – final cleanup, documentation and full CI verification.
+Completed and verified by successful CI run #496 on PR #49.
+
+## Step 6 completion
+
+Final cleanup is documentation-only. No further functional changes are introduced after the persistence-boundary improvement.
+
+### Iteration outcome
+
+- Indexed compliance results once for repository/rule aggregation.
+- Reused reconstructed repositories across compliance group summaries.
+- Consolidated duplicated refresh-start orchestration in `App.tsx`.
+- Extracted saved-view state and browser persistence into a focused hook.
+- Routed compliance summary reads through existing domain services instead of direct static entity access.
+- Preserved user-visible behaviour throughout the iteration.
+
+## Completion
+
+Code Improvement Iteration 2 is complete.
+
+The implementation was verified incrementally by CI runs #484, #486, #488, #491 and #496 on PR #49.
