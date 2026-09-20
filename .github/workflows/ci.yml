@@ -112,6 +112,43 @@ jobs:
       - name: Run tests and build backend
         run: mvn --batch-mode --no-transfer-progress verify
 
+
+  contract-bootstrap:
+    name: API contract bootstrap
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+
+      - name: Generate OpenAPI document
+        working-directory: backend
+        run: mvn --batch-mode --no-transfer-progress -DskipTests package
+
+      - name: Generate TypeScript DTO types
+        run: |
+          mkdir -p frontend/src/api/generated
+          npx --yes openapi-typescript@7.10.1 backend/target/openapi/openapi.json -o frontend/src/api/generated/schema.ts
+
+      - name: Upload generated contract bootstrap
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-api-contract
+          path: frontend/src/api/generated/schema.ts
+
   product:
     name: Production containers
     runs-on: ubuntu-latest
