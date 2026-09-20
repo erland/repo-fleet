@@ -232,7 +232,8 @@ class GitHubRepositoryConditionalEnrichmentServiceTest {
                 apiCalls,
                 conditionalRequests,
                 new GitHubTopicsEnrichmentComponent(client, apiCalls, conditionalRequests),
-                new GitHubLanguagesEnrichmentComponent(client, apiCalls, conditionalRequests));
+                new GitHubLanguagesEnrichmentComponent(client, apiCalls, conditionalRequests),
+                new GitHubLicenseEnrichmentComponent(client, apiCalls, conditionalRequests));
     }
 
     private RepositorySummary cachedRepository() {
