@@ -466,6 +466,49 @@ class InMemoryRepositoryInventoryServiceTest {
                 service.listRepositories().get(1).refreshStatus().state());
     }
 
+    @Test
+    void degradedCompleteRepositoryMakesInventoryPartialWithoutDiscardingUsableData() {
+        GitHubRepositoryDiscoveryService discovery = () -> List.of(repository(1L, "one"));
+        RepositoryEnrichmentService enrichment = repository -> new RepositorySummary(
+                repository.id(),
+                repository.owner(),
+                repository.name(),
+                repository.fullName(),
+                repository.url(),
+                repository.visibility(),
+                repository.archived(),
+                repository.fork(),
+                repository.defaultBranch(),
+                List.of("cached-topic"),
+                List.of("Java"),
+                "Java",
+                repository.license(),
+                repository.githubActions(),
+                repository.release(),
+                repository.activity(),
+                new info.isaksson.erland.repofleet.repository.api.RepositoryRefreshStatus(
+                        info.isaksson.erland.repofleet.repository.api.AnalysisState.COMPLETE,
+                        "Cached metadata retained after transient failure",
+                        info.isaksson.erland.repofleet.repository.api.CacheFreshness.STALE,
+                        info.isaksson.erland.repofleet.repository.api.RepositoryRefreshOutcome.DEGRADED));
+
+        var service = new InMemoryRepositoryInventoryService(discovery, enrichment, CLOCK);
+        service.refresh();
+
+        assertEquals(InventoryRefreshState.PARTIAL, service.getStatus().state());
+        assertEquals(0, service.getStatus().successfulCount());
+        assertEquals(1, service.getStatus().errorCount());
+        assertEquals(
+                info.isaksson.erland.repofleet.repository.api.AnalysisState.COMPLETE,
+                service.listRepositories().getFirst().refreshStatus().state());
+        assertEquals(
+                info.isaksson.erland.repofleet.repository.api.RepositoryRefreshOutcome.DEGRADED,
+                service.listRepositories().getFirst().refreshStatus().latestOutcome());
+        assertEquals(
+                info.isaksson.erland.repofleet.repository.api.CacheFreshness.STALE,
+                service.listRepositories().getFirst().refreshStatus().freshness());
+    }
+
     private RepositorySummary repository(long id, String name) {
         return new RepositorySummary(
                 id,

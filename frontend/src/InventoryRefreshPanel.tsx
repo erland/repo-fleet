@@ -51,7 +51,7 @@ export function InventoryRefreshPanel({
     ? `${Math.round((status.processedCount / status.totalCount) * 100)}%`
     : null
   const partialMessage = status?.state === 'PARTIAL'
-    ? `${status.errorCount} ${status.errorCount === 1 ? 'repository has' : 'repositories have'} incomplete or failed analysis.`
+    ? `${status.errorCount} ${status.errorCount === 1 ? 'repository had' : 'repositories had'} a degraded or failed refresh. Previously cached metadata may still be available.`
     : null
   const currentStatusLabel = statusLabel(status, running, statusError)
 
@@ -114,7 +114,7 @@ export function InventoryRefreshPanel({
 
           {showPartial && (
             <div className="refresh-message refresh-message-warning" role="status">
-              <strong>Refresh completed with partial failures.</strong>
+              <strong>Refresh completed with warnings.</strong>
               <span>{partialMessage}</span>
             </div>
           )}

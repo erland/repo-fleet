@@ -375,6 +375,8 @@ export function RepositoryDetailPanel({
             value={repository.release.latestReleasePrerelease === null ? 'Unknown' : booleanLabel(repository.release.latestReleasePrerelease)}
           />
           <DetailItem label="Repository analysis" value={analysisLabel(repository.refreshStatus.state)} />
+          <DetailItem label="Data freshness" value={repository.refreshStatus.freshness ?? 'Unknown'} />
+          <DetailItem label="Latest refresh" value={repository.refreshStatus.latestOutcome ?? 'Unknown'} />
           <DetailItem label="Analysis message" value={repository.refreshStatus.message ?? '—'} />
         </dl>
       </details>

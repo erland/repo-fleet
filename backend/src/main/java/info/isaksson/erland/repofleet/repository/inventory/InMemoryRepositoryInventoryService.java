@@ -2,6 +2,7 @@ package info.isaksson.erland.repofleet.repository.inventory;
 
 import info.isaksson.erland.repofleet.repository.api.AnalysisState;
 import info.isaksson.erland.repofleet.repository.api.CacheFreshness;
+import info.isaksson.erland.repofleet.repository.api.RepositoryRefreshOutcome;
 import info.isaksson.erland.repofleet.repository.api.RepositoryRefreshStatus;
 import info.isaksson.erland.repofleet.repository.api.RepositorySummary;
 import info.isaksson.erland.repofleet.repository.persistence.CachedRepositoryInventoryService;
@@ -422,11 +423,15 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
             repositories = List.copyOf(working);
 
             AnalysisState repositoryState = repositoryState(enriched);
-            if (repositoryState == AnalysisState.COMPLETE) {
+            RepositoryRefreshOutcome repositoryOutcome = repositoryOutcome(enriched);
+            if (repositoryState == AnalysisState.COMPLETE
+                    && repositoryOutcome != RepositoryRefreshOutcome.DEGRADED
+                    && repositoryOutcome != RepositoryRefreshOutcome.FAILED) {
                 successful++;
             } else {
                 errors++;
-                if (repositoryState == AnalysisState.FAILED) {
+                if (repositoryState == AnalysisState.FAILED
+                        || repositoryOutcome == RepositoryRefreshOutcome.FAILED) {
                     hardFailures++;
                 }
             }
@@ -499,11 +504,15 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
                 processed++;
 
                 AnalysisState state = repositoryState(result.repository());
-                if (state == AnalysisState.COMPLETE) {
+                RepositoryRefreshOutcome outcome = repositoryOutcome(result.repository());
+                if (state == AnalysisState.COMPLETE
+                        && outcome != RepositoryRefreshOutcome.DEGRADED
+                        && outcome != RepositoryRefreshOutcome.FAILED) {
                     successful++;
                 } else {
                     errors++;
-                    if (state == AnalysisState.FAILED) {
+                    if (state == AnalysisState.FAILED
+                            || outcome == RepositoryRefreshOutcome.FAILED) {
                         hardFailures++;
                     }
                 }
@@ -549,7 +558,9 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
                             repository.activity(),
                             new RepositoryRefreshStatus(
                                     AnalysisState.FAILED,
-                                    "Repository enrichment processing failed: " + safeMessage(exception))),
+                                    "Repository enrichment processing failed: " + safeMessage(exception),
+                                    CacheFreshness.STALE,
+                                    RepositoryRefreshOutcome.FAILED)),
                     CacheFreshness.STALE);
         }
     }
@@ -567,12 +578,14 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
 
         RepositorySummary enrichmentBase = enrichmentBase(planItem, repository);
         RepositorySummary enriched = enrichSafely(enrichmentBase);
-        AnalysisState enrichedState = repositoryState(enriched);
-        enriched = withFreshness(
-                enriched,
-                enrichedState == AnalysisState.COMPLETE
-                        ? CacheFreshness.FRESH
-                        : CacheFreshness.STALE);
+        RepositoryRefreshOutcome enrichedOutcome = repositoryOutcome(enriched);
+        CacheFreshness enrichmentFreshness =
+                enrichedOutcome == RepositoryRefreshOutcome.DEGRADED
+                        || enrichedOutcome == RepositoryRefreshOutcome.FAILED
+                        || repositoryState(enriched) != AnalysisState.COMPLETE
+                        ? CacheFreshness.STALE
+                        : CacheFreshness.FRESH;
+        enriched = withFreshness(enriched, enrichmentFreshness);
         if (snapshotService != null) {
             snapshotService.persistProgressiveResult(enriched, clock.instant());
         }
@@ -611,6 +624,12 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
         return repository.refreshStatus() == null
                 ? AnalysisState.FAILED
                 : repository.refreshStatus().state();
+    }
+
+    private RepositoryRefreshOutcome repositoryOutcome(RepositorySummary repository) {
+        return repository.refreshStatus() == null
+                ? RepositoryRefreshOutcome.FAILED
+                : repository.refreshStatus().latestOutcome();
     }
 
     private record ProcessingCounts(int successful, int errors, int hardFailures) {
@@ -684,7 +703,8 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
                 new RepositoryRefreshStatus(
                         current == null ? AnalysisState.NOT_ANALYZED : current.state(),
                         current == null ? null : current.message(),
-                        freshness));
+                        freshness,
+                        current == null ? null : current.latestOutcome()));
     }
 
     private RepositorySummary verifyVolatileMetadataSafely(RepositorySummary repository) {
@@ -710,7 +730,9 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
                     repository.activity(),
                     new RepositoryRefreshStatus(
                             AnalysisState.PARTIAL,
-                            "Repository volatile metadata verification failed: " + safeMessage(exception)));
+                            "Repository volatile metadata verification failed: " + safeMessage(exception),
+                            CacheFreshness.STALE,
+                            RepositoryRefreshOutcome.DEGRADED));
         }
     }
 
@@ -737,7 +759,9 @@ public class InMemoryRepositoryInventoryService implements RepositoryInventorySe
                     repository.activity(),
                     new RepositoryRefreshStatus(
                             AnalysisState.FAILED,
-                            "Repository enrichment failed: " + safeMessage(exception)));
+                            "Repository enrichment failed: " + safeMessage(exception),
+                            CacheFreshness.STALE,
+                            RepositoryRefreshOutcome.FAILED));
         }
     }
 

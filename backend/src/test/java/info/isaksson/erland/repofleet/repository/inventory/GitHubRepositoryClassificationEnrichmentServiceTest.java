@@ -24,6 +24,8 @@ import info.isaksson.erland.repofleet.repository.api.GitHubActionsStatus;
 import info.isaksson.erland.repofleet.repository.api.LicensePresence;
 import info.isaksson.erland.repofleet.repository.api.LicenseStatus;
 import info.isaksson.erland.repofleet.repository.api.ReleaseStatus;
+import info.isaksson.erland.repofleet.repository.api.CacheFreshness;
+import info.isaksson.erland.repofleet.repository.api.RepositoryRefreshOutcome;
 import info.isaksson.erland.repofleet.repository.api.RepositoryRefreshStatus;
 import info.isaksson.erland.repofleet.repository.api.RepositorySummary;
 import info.isaksson.erland.repofleet.repository.api.RepositoryVisibility;
@@ -85,6 +87,8 @@ class GitHubRepositoryClassificationEnrichmentServiceTest {
         assertEquals(List.of("architecture"), verified.topics());
         assertEquals("v1.1.0", verified.release().latestReleaseTag());
         assertEquals(AnalysisState.COMPLETE, verified.refreshStatus().state());
+        assertEquals(RepositoryRefreshOutcome.SUCCESS, verified.refreshStatus().latestOutcome());
+        assertEquals(CacheFreshness.FRESH, verified.refreshStatus().freshness());
         verify(client, never()).getLanguages(anyString(), anyString(), anyString(), anyString(), anyString());
         verify(client, never()).getRootContents(anyString(), anyString(), anyString(), anyString(), anyString());
         verify(client, never()).getWorkflows(
@@ -99,6 +103,8 @@ class GitHubRepositoryClassificationEnrichmentServiceTest {
         RepositorySummary enriched = service.enrich(repository());
 
         assertEquals(AnalysisState.FAILED, enriched.refreshStatus().state());
+        assertEquals(RepositoryRefreshOutcome.FAILED, enriched.refreshStatus().latestOutcome());
+        assertEquals(CacheFreshness.STALE, enriched.refreshStatus().freshness());
         verify(client, never()).getLanguages(anyString(), anyString(), anyString(), anyString(), anyString());
         verify(client, never()).getRootContents(anyString(), anyString(), anyString(), anyString(), anyString());
         verify(client, never()).getWorkflows(
@@ -154,6 +160,8 @@ class GitHubRepositoryClassificationEnrichmentServiceTest {
         assertEquals(List.of(), enriched.languages());
         assertNull(enriched.primaryLanguage());
         assertEquals(AnalysisState.PARTIAL, enriched.refreshStatus().state());
+        assertEquals(RepositoryRefreshOutcome.DEGRADED, enriched.refreshStatus().latestOutcome());
+        assertEquals(CacheFreshness.STALE, enriched.refreshStatus().freshness());
     }
 
     @Test
@@ -171,6 +179,38 @@ class GitHubRepositoryClassificationEnrichmentServiceTest {
         assertEquals(AnalysisState.COMPLETE, enriched.license().analysisState());
     }
 
+
+    @Test
+    void keepsCompleteCachedDataButMarksLatestRefreshDegradedWhenGitHubLookupFails() {
+        when(client.getTopics(anyString(), anyString(), anyString(), anyString(), anyString()))
+                .thenThrow(new IllegalStateException("topics unavailable"));
+
+        RepositorySummary cached = new RepositorySummary(
+                1L,
+                "erland",
+                "repo-fleet",
+                "erland/repo-fleet",
+                "https://github.com/erland/repo-fleet",
+                RepositoryVisibility.PRIVATE,
+                false,
+                false,
+                "main",
+                List.of("cached-topic"),
+                List.of("Java"),
+                "Java",
+                new LicenseStatus(AnalysisState.COMPLETE, LicensePresence.MISSING, false, null, null),
+                new GitHubActionsStatus(AnalysisState.COMPLETE, false, 0),
+                new ReleaseStatus(AnalysisState.COMPLETE, false, null, null, null, null),
+                new ActivityStatus(null, null),
+                new RepositoryRefreshStatus(AnalysisState.COMPLETE, "previous complete"));
+
+        RepositorySummary enriched = service.enrich(cached);
+
+        assertEquals(AnalysisState.COMPLETE, enriched.refreshStatus().state());
+        assertEquals(RepositoryRefreshOutcome.DEGRADED, enriched.refreshStatus().latestOutcome());
+        assertEquals(CacheFreshness.STALE, enriched.refreshStatus().freshness());
+        assertEquals(List.of("cached-topic"), enriched.topics());
+    }
 
     @Test
     void marksLicenseMissingWhenNoLicenseFileExists() {
@@ -308,6 +348,8 @@ class GitHubRepositoryClassificationEnrichmentServiceTest {
         RepositorySummary enriched = service.enrich(repository());
 
         assertEquals(AnalysisState.FAILED, enriched.refreshStatus().state());
+        assertEquals(RepositoryRefreshOutcome.FAILED, enriched.refreshStatus().latestOutcome());
+        assertEquals(CacheFreshness.STALE, enriched.refreshStatus().freshness());
         assertEquals(AnalysisState.NOT_ANALYZED, enriched.license().analysisState());
     }
 

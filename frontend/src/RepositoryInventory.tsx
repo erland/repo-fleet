@@ -45,6 +45,11 @@ function maintenanceFlags(repository: RepositorySummary): string[] {
     flags.push('No release')
   }
 
+  if (repository.refreshStatus.latestOutcome === 'DEGRADED'
+      || repository.refreshStatus.freshness === 'STALE') {
+    flags.push('Stale metadata')
+  }
+
   return flags
 }
 

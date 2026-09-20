@@ -12,10 +12,12 @@ import info.isaksson.erland.repofleet.github.client.GitHubTopicsResponse;
 import info.isaksson.erland.repofleet.github.client.GitHubWorkflowsResponse;
 import info.isaksson.erland.repofleet.github.conditional.GitHubConditionalRequestExecutor;
 import info.isaksson.erland.repofleet.repository.api.AnalysisState;
+import info.isaksson.erland.repofleet.repository.api.CacheFreshness;
 import info.isaksson.erland.repofleet.repository.api.GitHubActionsStatus;
 import info.isaksson.erland.repofleet.repository.api.LicensePresence;
 import info.isaksson.erland.repofleet.repository.api.LicenseStatus;
 import info.isaksson.erland.repofleet.repository.api.ReleaseStatus;
+import info.isaksson.erland.repofleet.repository.api.RepositoryRefreshOutcome;
 import info.isaksson.erland.repofleet.repository.api.RepositoryRefreshStatus;
 import info.isaksson.erland.repofleet.repository.api.RepositorySummary;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -123,12 +125,14 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
             }
             if (cachedEnrichmentComplete) {
                 topicsComplete = true;
+                errors.add("topics: " + safeMessage(exception));
             } else {
                 errors.add("topics: " + safeMessage(exception));
             }
         } catch (RuntimeException exception) {
             if (cachedEnrichmentComplete) {
                 topicsComplete = true;
+                errors.add("topics: " + safeMessage(exception));
             } else {
                 errors.add("topics: " + safeMessage(exception));
             }
@@ -170,6 +174,7 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
         } catch (RuntimeException exception) {
             if (cachedEnrichmentComplete) {
                 languagesComplete = true;
+                errors.add("languages: " + safeMessage(exception));
             } else {
                 errors.add("languages: " + safeMessage(exception));
             }
@@ -255,6 +260,7 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
             } else if (cachedLicenseComplete) {
                 license = cachedLicense;
                 licenseComplete = true;
+                errors.add("license: " + safeMessage(exception));
             } else {
                 errors.add("license: " + safeMessage(exception));
             }
@@ -262,6 +268,7 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
             if (cachedLicenseComplete) {
                 license = cachedLicense;
                 licenseComplete = true;
+                errors.add("license: " + safeMessage(exception));
             } else {
                 errors.add("license: " + safeMessage(exception));
             }
@@ -310,6 +317,7 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
             if (cachedActionsComplete) {
                 githubActions = cachedActions;
                 actionsComplete = true;
+                errors.add("actions: " + safeMessage(exception));
             } else {
                 githubActions = new GitHubActionsStatus(
                         AnalysisState.FAILED,
@@ -353,6 +361,7 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
             if (cachedReleaseComplete) {
                 release = cachedRelease;
                 releaseComplete = true;
+                errors.add("release: " + safeMessage(exception));
             } else {
                 release = new ReleaseStatus(
                         AnalysisState.FAILED,
@@ -383,6 +392,15 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
             message = "Repository enrichment failed (" + String.join("; ", errors) + ").";
         }
 
+        RepositoryRefreshOutcome latestOutcome = state == AnalysisState.FAILED
+                ? RepositoryRefreshOutcome.FAILED
+                : errors.isEmpty()
+                        ? RepositoryRefreshOutcome.SUCCESS
+                        : RepositoryRefreshOutcome.DEGRADED;
+        CacheFreshness freshness = latestOutcome == RepositoryRefreshOutcome.SUCCESS
+                ? CacheFreshness.FRESH
+                : CacheFreshness.STALE;
+
         return new RepositorySummary(
                 repository.id(),
                 repository.owner(),
@@ -400,7 +418,7 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
                 githubActions,
                 release,
                 repository.activity(),
-                new RepositoryRefreshStatus(state, message));
+                new RepositoryRefreshStatus(state, message, freshness, latestOutcome));
     }
 
     @Override
@@ -495,6 +513,13 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
                 : "Repository volatile metadata verification partially completed ("
                         + String.join("; ", errors) + ").";
 
+        RepositoryRefreshOutcome latestOutcome = errors.isEmpty()
+                ? RepositoryRefreshOutcome.SUCCESS
+                : RepositoryRefreshOutcome.DEGRADED;
+        CacheFreshness freshness = latestOutcome == RepositoryRefreshOutcome.SUCCESS
+                ? CacheFreshness.FRESH
+                : CacheFreshness.STALE;
+
         return new RepositorySummary(
                 repository.id(),
                 repository.owner(),
@@ -512,7 +537,7 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
                 repository.githubActions(),
                 release,
                 repository.activity(),
-                new RepositoryRefreshStatus(state, message));
+                new RepositoryRefreshStatus(state, message, freshness, latestOutcome));
     }
 
     private RepositorySummary unavailableRepository(
@@ -537,7 +562,9 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
                 repository.activity(),
                 new RepositoryRefreshStatus(
                         AnalysisState.FAILED,
-                        "Repository became unavailable during refresh: " + safeMessage(exception)));
+                        "Repository became unavailable during refresh: " + safeMessage(exception),
+                        CacheFreshness.STALE,
+                        RepositoryRefreshOutcome.FAILED));
     }
 
     private java.time.Instant releaseTimestamp(GitHubReleaseResponse release) {

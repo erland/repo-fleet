@@ -58,6 +58,27 @@ describe('RepositoryInventory', () => {
     expect(html).toContain('Release unknown')
   })
 
+  it('shows stale metadata without converting known capabilities into missing flags', () => {
+    const stale = {
+      ...repository,
+      refreshStatus: {
+        state: 'COMPLETE',
+        message: 'Cached metadata retained after transient failure',
+        freshness: 'STALE',
+        latestOutcome: 'DEGRADED',
+      },
+    } satisfies RepositorySummary
+
+    const html = renderToString(
+      <RepositoryInventory repositories={[stale]} loading={false} error={null} />,
+    )
+
+    expect(html).toContain('Stale metadata')
+    expect(html).not.toContain('License unknown')
+    expect(html).not.toContain('Actions unknown')
+    expect(html).not.toContain('Release unknown')
+  })
+
   it('labels the repository table as a keyboard-scrollable region with a caption', () => {
     const html = renderToString(
       <RepositoryInventory repositories={[repository]} loading={false} error={null} />,
@@ -184,6 +205,29 @@ describe('RepositoryDetailPanel', () => {
     ]) expect(html).toContain(value)
     expect(html).toContain('role="dialog"')
     expect(html).toContain('aria-modal="true"')
+  })
+
+  it('shows refresh outcome separately from usable repository analysis', () => {
+    const degraded = {
+      ...repository,
+      refreshStatus: {
+        state: 'COMPLETE',
+        message: 'Cached metadata retained after transient failure',
+        freshness: 'STALE',
+        latestOutcome: 'DEGRADED',
+      },
+    } satisfies RepositorySummary
+
+    const html = renderToString(
+      <RepositoryDetailPanel repository={degraded} onClose={() => undefined} />,
+    )
+
+    expect(html).toContain('Repository analysis')
+    expect(html).toContain('Complete')
+    expect(html).toContain('Data freshness')
+    expect(html).toContain('STALE')
+    expect(html).toContain('Latest refresh')
+    expect(html).toContain('DEGRADED')
   })
 
   it('shows recent repository activity as relative time', () => {
