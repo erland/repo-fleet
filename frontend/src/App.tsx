@@ -4,11 +4,7 @@ import {
   fetchInventoryStatus,
   fetchRepositories,
   fetchComplianceSummary,
-  fetchRepositoryCompliance,
   fetchRefreshDiagnostics,
-  saveRepositoryComplianceException,
-  expireRepositoryComplianceException,
-  removeRepositoryComplianceException,
   logout,
   startInventoryRefresh,
   startFullInventoryRefresh,
@@ -16,7 +12,6 @@ import {
   type InventoryStatus,
   type RepositorySummary,
   type CompliancePortfolioSummary,
-  type RepositoryComplianceDetail,
   type RefreshDiagnosticsSnapshot,
 } from './api'
 import { ComplianceOverviewPanel } from './ComplianceOverviewPanel'
@@ -28,6 +23,7 @@ import { defaultRepositorySort, sortRepositories } from './repositorySorting'
 import { clearRepositorySelection, deselectVisibleRepositories, selectVisibleRepositories, toggleRepositorySelection } from './repositorySelection'
 import { summarizePortfolio } from './portfolioSummary'
 import { useSavedRepositoryViews } from './useSavedRepositoryViews'
+import { useRepositoryComplianceDetail } from './useRepositoryComplianceDetail'
 
 const REFRESH_POLL_INTERVAL_MS = 1000
 
@@ -49,10 +45,6 @@ export default function App() {
   const [filters, setFilters] = useState(emptyRepositoryFilters)
   const [sort, setSort] = useState(defaultRepositorySort)
   const [selectedRepositoryIds, setSelectedRepositoryIds] = useState<Set<number>>(new Set())
-  const [detailRepositoryId, setDetailRepositoryId] = useState<number | null>(null)
-  const [detailCompliance, setDetailCompliance] = useState<RepositoryComplianceDetail[]>([])
-  const [detailComplianceLoading, setDetailComplianceLoading] = useState(false)
-  const [detailComplianceError, setDetailComplianceError] = useState<string | null>(null)
   const [workspaceView, setWorkspaceView] = useState<'repositories' | 'insights'>('repositories')
   const {
     views: savedViews,
@@ -191,11 +183,6 @@ export default function App() {
   )
 
 
-  const detailRepository = useMemo(
-    () => repositories.find((repository) => repository.id === detailRepositoryId) ?? null,
-    [repositories, detailRepositoryId],
-  )
-
   const portfolioSummary = useMemo(
     () => summarizePortfolio(filteredRepositories),
     [filteredRepositories],
@@ -235,69 +222,20 @@ export default function App() {
     deleteView(viewId)
   }, [deleteView])
 
-  const reloadRepositoryCompliance = useCallback(async (repositoryId: number) => {
-    setDetailComplianceLoading(true)
-    try {
-      const result = await fetchRepositoryCompliance(repositoryId)
-      if (!mountedRef.current) return
-      setDetailCompliance(result)
-      setDetailComplianceError(null)
-    } catch {
-      if (!mountedRef.current) return
-      setDetailComplianceError('Repository compliance detail could not be loaded.')
-    } finally {
-      if (mountedRef.current) setDetailComplianceLoading(false)
-    }
-  }, [])
-
-  const openRepositoryDetails = useCallback((repositoryId: number) => {
-    setDetailRepositoryId(repositoryId)
-    setDetailCompliance([])
-    setDetailComplianceError(null)
-    void reloadRepositoryCompliance(repositoryId)
-  }, [reloadRepositoryCompliance])
-
-  const saveComplianceException = useCallback(async (
-    repositoryId: number,
-    ruleKey: string,
-    reason: string,
-    expiresAt: string | null,
-  ) => {
-    await saveRepositoryComplianceException(repositoryId, ruleKey, reason, expiresAt)
-    await Promise.all([
-      reloadRepositoryCompliance(repositoryId),
-      loadCompliance(),
-    ])
-  }, [loadCompliance, reloadRepositoryCompliance])
-
-  const expireComplianceException = useCallback(async (
-    repositoryId: number,
-    ruleKey: string,
-  ) => {
-    await expireRepositoryComplianceException(repositoryId, ruleKey)
-    await Promise.all([
-      reloadRepositoryCompliance(repositoryId),
-      loadCompliance(),
-    ])
-  }, [loadCompliance, reloadRepositoryCompliance])
-
-  const removeComplianceException = useCallback(async (
-    repositoryId: number,
-    ruleKey: string,
-  ) => {
-    await removeRepositoryComplianceException(repositoryId, ruleKey)
-    await Promise.all([
-      reloadRepositoryCompliance(repositoryId),
-      loadCompliance(),
-    ])
-  }, [loadCompliance, reloadRepositoryCompliance])
-
-  const closeRepositoryDetails = useCallback(() => {
-    setDetailRepositoryId(null)
-    setDetailCompliance([])
-    setDetailComplianceError(null)
-    setDetailComplianceLoading(false)
-  }, [])
+  const {
+    repository: detailRepository,
+    compliance: detailCompliance,
+    loading: detailComplianceLoading,
+    error: detailComplianceError,
+    open: openRepositoryDetails,
+    saveException: saveComplianceException,
+    expireException: expireComplianceException,
+    removeException: removeComplianceException,
+    close: closeRepositoryDetails,
+  } = useRepositoryComplianceDetail({
+    repositories,
+    onComplianceChanged: loadCompliance,
+  })
 
   const toggleRepository = useCallback((repositoryId: number) => {
     setSelectedRepositoryIds((current) => toggleRepositorySelection(current, repositoryId))
