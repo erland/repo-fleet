@@ -72,8 +72,11 @@ class GitHubReleaseEnrichmentComponent {
             return RepositoryMetadataResult.success(value);
         } catch (RuntimeException exception) {
             String error = "release: " + safeMessage(exception);
-            if (allowFailureFallback && cachedComplete) {
-                return RepositoryMetadataResult.degraded(cached, true, error);
+            if (cachedComplete) {
+                return RepositoryMetadataResult.degraded(
+                        cached,
+                        allowFailureFallback,
+                        error);
             }
             return RepositoryMetadataResult.degraded(
                     new ReleaseStatus(AnalysisState.FAILED, null, null, null, null, null),
