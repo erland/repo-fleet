@@ -96,8 +96,11 @@ export type InventoryStatus = {
   processedCount: number
   successfulCount: number
   errorCount: number
+  reusedCount: number
+  newCount: number
+  changedCount: number
+  scheduledCount: number
   currentRepository: string | null
-  running: boolean
 }
 
 export async function fetchInventoryStatus(): Promise<InventoryStatus> {
