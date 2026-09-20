@@ -1,11 +1,7 @@
 package info.isaksson.erland.repofleet.repository.inventory;
 
 import info.isaksson.erland.repofleet.github.api.GitHubApiCallExecutor;
-import info.isaksson.erland.repofleet.github.api.GitHubApiException;
-import info.isaksson.erland.repofleet.github.api.GitHubApiFailureKind;
 import info.isaksson.erland.repofleet.github.auth.GitHubInstallationTokenService;
-import info.isaksson.erland.repofleet.github.client.GitHubContentItemResponse;
-import info.isaksson.erland.repofleet.github.client.GitHubLicenseResponse;
 import info.isaksson.erland.repofleet.github.client.GitHubReleaseResponse;
 import info.isaksson.erland.repofleet.github.client.GitHubRepositoryMetadataClient;
 import info.isaksson.erland.repofleet.github.client.GitHubWorkflowsResponse;
@@ -13,7 +9,6 @@ import info.isaksson.erland.repofleet.github.conditional.GitHubConditionalReques
 import info.isaksson.erland.repofleet.repository.api.AnalysisState;
 import info.isaksson.erland.repofleet.repository.api.CacheFreshness;
 import info.isaksson.erland.repofleet.repository.api.GitHubActionsStatus;
-import info.isaksson.erland.repofleet.repository.api.LicensePresence;
 import info.isaksson.erland.repofleet.repository.api.LicenseStatus;
 import info.isaksson.erland.repofleet.repository.api.ReleaseStatus;
 import info.isaksson.erland.repofleet.repository.api.RepositoryRefreshOutcome;
@@ -36,6 +31,7 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
     private final GitHubConditionalRequestExecutor conditionalRequests;
     private final GitHubTopicsEnrichmentComponent topicsEnrichment;
     private final GitHubLanguagesEnrichmentComponent languagesEnrichment;
+    private final GitHubLicenseEnrichmentComponent licenseEnrichment;
 
     @Inject
     public GitHubRepositoryClassificationEnrichmentService(
@@ -44,13 +40,15 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
             GitHubApiCallExecutor apiCalls,
             GitHubConditionalRequestExecutor conditionalRequests,
             GitHubTopicsEnrichmentComponent topicsEnrichment,
-            GitHubLanguagesEnrichmentComponent languagesEnrichment) {
+            GitHubLanguagesEnrichmentComponent languagesEnrichment,
+            GitHubLicenseEnrichmentComponent licenseEnrichment) {
         this.tokenService = tokenService;
         this.client = client;
         this.apiCalls = apiCalls;
         this.conditionalRequests = conditionalRequests;
         this.topicsEnrichment = topicsEnrichment;
         this.languagesEnrichment = languagesEnrichment;
+        this.licenseEnrichment = licenseEnrichment;
     }
 
     GitHubRepositoryClassificationEnrichmentService(
@@ -66,6 +64,9 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
                         new GitHubApiCallExecutor(tokenService)),
                 new GitHubLanguagesEnrichmentComponent(
                         client,
+                        new GitHubApiCallExecutor(tokenService)),
+                new GitHubLicenseEnrichmentComponent(
+                        client,
                         new GitHubApiCallExecutor(tokenService)));
     }
 
@@ -77,7 +78,6 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
         LicenseStatus license = repository.license();
         GitHubActionsStatus githubActions = repository.githubActions();
         ReleaseStatus release = repository.release();
-        LicenseStatus cachedLicense = license;
         GitHubActionsStatus cachedActions = githubActions;
         ReleaseStatus cachedRelease = release;
         boolean cachedEnrichmentComplete = repository.refreshStatus() != null
@@ -118,97 +118,12 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
         }
 
 
-        try {
-            if (conditionalRequests == null) {
-                license = refreshLicenseDirect(repository);
-            } else {
-                var contentsResult = conditionalRequests.execute(
-                        repository.id(),
-                        "root-contents",
-                        "root contents for " + repository.fullName(),
-                        java.time.Instant.now(),
-                        (authorization, etag) -> client.getRootContentsConditional(
-                                repository.owner(),
-                                repository.name(),
-                                authorization,
-                                GitHubInstallationTokenService.ACCEPT,
-                                GitHubInstallationTokenService.API_VERSION,
-                                etag),
-                        response -> response.readEntity(new GenericType<List<GitHubContentItemResponse>>() {}),
-                        () -> null);
-
-                if (contentsResult.reusedCached()) {
-                    license = cachedLicenseComplete
-                            ? cachedLicense
-                            : refreshLicenseDirect(repository);
-                } else {
-                    List<GitHubContentItemResponse> contents =
-                            contentsResult.value() == null ? List.of() : contentsResult.value();
-                    boolean licenseFilePresent = contents.stream()
-                            .filter(item -> item != null && "file".equalsIgnoreCase(item.type()))
-                            .map(GitHubContentItemResponse::name)
-                            .filter(name -> name != null)
-                            .anyMatch(this::isLicenseFileName);
-
-                    if (!licenseFilePresent) {
-                        license = new LicenseStatus(
-                                AnalysisState.COMPLETE,
-                                LicensePresence.MISSING,
-                                false,
-                                null,
-                                null);
-                    } else {
-                        var licenseResult = conditionalRequests.execute(
-                                repository.id(),
-                                "license",
-                                "license for " + repository.fullName(),
-                                java.time.Instant.now(),
-                                (authorization, etag) -> client.getLicenseConditional(
-                                        repository.owner(),
-                                        repository.name(),
-                                        authorization,
-                                        GitHubInstallationTokenService.ACCEPT,
-                                        GitHubInstallationTokenService.API_VERSION,
-                                        etag),
-                                response -> response.readEntity(GitHubLicenseResponse.class),
-                                () -> null);
-                        if (licenseResult.reusedCached()) {
-                            license = cachedLicenseComplete
-                                    ? cachedLicense
-                                    : refreshLicenseDirect(repository);
-                        } else {
-                            license = toLicenseStatus(licenseResult.value());
-                        }
-                    }
-                }
-            }
-            licenseComplete = true;
-        } catch (GitHubApiException exception) {
-            if (exception.kind() == GitHubApiFailureKind.NOT_FOUND
-                    && license != null
-                    && license.presence() == LicensePresence.PRESENT) {
-                license = new LicenseStatus(
-                        AnalysisState.COMPLETE,
-                        LicensePresence.PRESENT,
-                        false,
-                        null,
-                        "Custom or unrecognized license");
-                licenseComplete = true;
-            } else if (cachedLicenseComplete) {
-                license = cachedLicense;
-                licenseComplete = true;
-                errors.add("license: " + safeMessage(exception));
-            } else {
-                errors.add("license: " + safeMessage(exception));
-            }
-        } catch (RuntimeException exception) {
-            if (cachedLicenseComplete) {
-                license = cachedLicense;
-                licenseComplete = true;
-                errors.add("license: " + safeMessage(exception));
-            } else {
-                errors.add("license: " + safeMessage(exception));
-            }
+        RepositoryMetadataResult<LicenseStatus> licenseResult =
+                licenseEnrichment.enrich(repository, cachedLicenseComplete);
+        license = licenseResult.value();
+        licenseComplete = licenseResult.complete();
+        if (licenseResult.degraded() && licenseResult.error() != null) {
+            errors.add(licenseResult.error());
         }
 
         try {
@@ -471,80 +386,6 @@ public class GitHubRepositoryClassificationEnrichmentService implements Reposito
 
     private java.time.Instant releaseTimestamp(GitHubReleaseResponse release) {
         return release.publishedAt() != null ? release.publishedAt() : release.createdAt();
-    }
-
-    private boolean isLicenseFileName(String name) {
-        String normalized = name.trim().toUpperCase(java.util.Locale.ROOT);
-        return normalized.equals("LICENSE")
-                || normalized.startsWith("LICENSE.")
-                || normalized.equals("LICENCE")
-                || normalized.startsWith("LICENCE.");
-    }
-
-    private boolean isRecognizedLicense(String key, String spdxId) {
-        if (spdxId != null && !spdxId.isBlank() && !"NOASSERTION".equalsIgnoreCase(spdxId)) {
-            return true;
-        }
-        return key != null && !key.isBlank() && !"other".equalsIgnoreCase(key);
-    }
-
-    private LicenseStatus refreshLicenseDirect(RepositorySummary repository) {
-        List<GitHubContentItemResponse> rootContents = apiCalls.execute(
-                "root contents for " + repository.fullName(),
-                authorization -> client.getRootContents(
-                        repository.owner(),
-                        repository.name(),
-                        authorization,
-                        GitHubInstallationTokenService.ACCEPT,
-                        GitHubInstallationTokenService.API_VERSION));
-        List<GitHubContentItemResponse> contents = rootContents == null ? List.of() : rootContents;
-        boolean licenseFilePresent = contents.stream()
-                .filter(item -> item != null && "file".equalsIgnoreCase(item.type()))
-                .map(GitHubContentItemResponse::name)
-                .filter(name -> name != null)
-                .anyMatch(this::isLicenseFileName);
-        if (!licenseFilePresent) {
-            return new LicenseStatus(
-                    AnalysisState.COMPLETE,
-                    LicensePresence.MISSING,
-                    false,
-                    null,
-                    null);
-        }
-        try {
-            GitHubLicenseResponse response = apiCalls.execute(
-                    "license for " + repository.fullName(),
-                    authorization -> client.getLicense(
-                            repository.owner(),
-                            repository.name(),
-                            authorization,
-                            GitHubInstallationTokenService.ACCEPT,
-                            GitHubInstallationTokenService.API_VERSION));
-            return toLicenseStatus(response);
-        } catch (GitHubApiException exception) {
-            if (exception.kind() == GitHubApiFailureKind.NOT_FOUND) {
-                return new LicenseStatus(
-                        AnalysisState.COMPLETE,
-                        LicensePresence.PRESENT,
-                        false,
-                        null,
-                        "Custom or unrecognized license");
-            }
-            throw exception;
-        }
-    }
-
-    private LicenseStatus toLicenseStatus(GitHubLicenseResponse response) {
-        String key = response == null || response.license() == null ? null : response.license().key();
-        String name = response == null || response.license() == null ? null : response.license().name();
-        String spdxId = response == null || response.license() == null ? null : response.license().spdxId();
-        boolean recognized = isRecognizedLicense(key, spdxId);
-        return new LicenseStatus(
-                AnalysisState.COMPLETE,
-                LicensePresence.PRESENT,
-                recognized,
-                key,
-                name);
     }
 
     private GitHubActionsStatus refreshActionsDirect(RepositorySummary repository) {
