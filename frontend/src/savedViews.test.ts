@@ -3,7 +3,9 @@ import { emptyRepositoryFilters } from './repositoryFilters'
 import { defaultRepositorySort } from './repositorySorting'
 import {
   SAVED_VIEWS_STORAGE_KEY,
+  activeViewAfterRemoval,
   createSavedView,
+  findSavedView,
   loadSavedViews,
   persistSavedViews,
   removeSavedView,
@@ -61,6 +63,16 @@ describe('saved views', () => {
     expect(persistSavedViews(failing, [])).toBe(false)
   })
 
+  it('finds a saved view by id and returns null for an unknown view', () => {
+    const views = [
+      createSavedView('One', emptyRepositoryFilters, defaultRepositorySort, '1'),
+      createSavedView('Two', emptyRepositoryFilters, defaultRepositorySort, '2'),
+    ]
+
+    expect(findSavedView(views, '2')?.name).toBe('Two')
+    expect(findSavedView(views, 'missing')).toBeNull()
+  })
+
   it('removes only the requested saved view', () => {
     const views = [
       createSavedView('One', emptyRepositoryFilters, defaultRepositorySort, '1'),
@@ -68,5 +80,11 @@ describe('saved views', () => {
     ]
 
     expect(removeSavedView(views, '1').map((view) => view.name)).toEqual(['Two'])
+  })
+
+  it('clears the active view only when that view is removed', () => {
+    expect(activeViewAfterRemoval('1', '1')).toBeNull()
+    expect(activeViewAfterRemoval('2', '1')).toBe('2')
+    expect(activeViewAfterRemoval(null, '1')).toBeNull()
   })
 })

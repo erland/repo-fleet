@@ -2,7 +2,9 @@ import { useCallback, useEffect, useState } from 'react'
 import type { RepositoryFilters } from './repositoryFilters'
 import type { RepositorySort } from './repositorySorting'
 import {
+  activeViewAfterRemoval,
   createSavedView,
+  findSavedView,
   loadSavedViews,
   persistSavedViews,
   removeSavedView,
@@ -54,7 +56,7 @@ export function useSavedRepositoryViews() {
   }, [])
 
   const activateView = useCallback((viewId: string) => {
-    const view = views.find((candidate) => candidate.id === viewId)
+    const view = findSavedView(views, viewId)
     if (!view) return null
 
     setActiveViewId(viewId)
@@ -67,7 +69,7 @@ export function useSavedRepositoryViews() {
 
   const deleteView = useCallback((viewId: string) => {
     setViews((current) => removeSavedView(current, viewId))
-    setActiveViewId((current) => current === viewId ? null : current)
+    setActiveViewId((current) => activeViewAfterRemoval(current, viewId))
   }, [])
 
   return {
