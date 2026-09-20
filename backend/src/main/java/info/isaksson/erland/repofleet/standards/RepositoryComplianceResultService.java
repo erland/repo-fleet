@@ -115,6 +115,29 @@ public class RepositoryComplianceResultService {
     }
 
     @Transactional
+    public List<StoredRepositoryComplianceResult> listAll() {
+        java.util.Map<String, RepositoryStandardRuleDefinition> rulesByKey =
+                RepositoryStandardRule.listAll().stream()
+                        .map(RepositoryStandardRule.class::cast)
+                        .map(this::toDefinition)
+                        .collect(java.util.stream.Collectors.toMap(
+                                RepositoryStandardRuleDefinition::ruleKey,
+                                java.util.function.Function.identity()));
+
+        return RepositoryComplianceResult.listAll().stream()
+                .map(RepositoryComplianceResult.class::cast)
+                .map(result -> {
+                    RepositoryStandardRuleDefinition rule = rulesByKey.get(result.ruleKey);
+                    if (rule == null) {
+                        throw new IllegalStateException(
+                                "Stored compliance result references missing rule: " + result.ruleKey);
+                    }
+                    return toStored(result, rule);
+                })
+                .toList();
+    }
+
+    @Transactional
     public List<StoredRepositoryComplianceResult> listForRepository(long githubRepositoryId) {
         return RepositoryComplianceResult.list(
                         "githubRepositoryId = ?1 order by ruleKey",
