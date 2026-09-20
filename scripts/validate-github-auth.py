@@ -3,7 +3,7 @@ from pathlib import Path
 root = Path(__file__).resolve().parents[1]
 backend = root / "backend/src/main/java/info/isaksson/erland/repofleet/auth"
 app = (root / "frontend/src/App.tsx").read_text(encoding="utf-8")
-api = (root / "frontend/src/api.ts").read_text(encoding="utf-8")
+api = (root / "frontend/src/api/auth.ts").read_text(encoding="utf-8")
 compose = (root / "deploy/docker-compose.server.yml").read_text(encoding="utf-8")
 env = (root / "deploy/.env.server.example").read_text(encoding="utf-8")
 nginx = (root / "deploy/nginx/repo-fleet.conf").read_text(encoding="utf-8")
