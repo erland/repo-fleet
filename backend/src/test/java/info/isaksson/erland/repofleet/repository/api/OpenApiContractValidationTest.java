@@ -22,6 +22,10 @@ class OpenApiContractValidationTest {
                 .body("components.schemas.RepositorySummary.properties", hasKey("topics"))
                 .body("components.schemas.RepositoryRefreshStatus.properties", hasKey("state"))
                 .body("components.schemas.RepositoryRefreshStatus.properties", hasKey("freshness"))
+                .body("components.schemas.RepositoryRefreshStatus.properties", hasKey("latestOutcome"))
+                .body(
+                        "components.schemas.RepositoryRefreshOutcome.enum",
+                        hasItems("SUCCESS", "DEGRADED", "FAILED"))
                 .body(
                         "components.schemas.AnalysisState.enum",
                         hasItems("NOT_ANALYZED", "COMPLETE", "PARTIAL", "FAILED"));
