@@ -128,6 +128,27 @@ class RepositoryRuleEvaluatorTest {
     }
 
     @Test
+    void usesUpdatedAtWhenPushedAtIsMissingForInactivityEvaluation() {
+        RepositorySummary recentUpdate = withActivity(
+                new ActivityStatus(null, NOW.minusSeconds(20 * 24 * 3600)));
+        assertEquals(
+                RepositoryRuleEvaluationResult.PASS,
+                evaluator.evaluate(
+                        recentUpdate,
+                        rule("activity", RepositoryRuleType.MAXIMUM_INACTIVITY_AGE, Map.of("days", 30)),
+                        NOW).result());
+
+        RepositorySummary oldUpdate = withActivity(
+                new ActivityStatus(null, NOW.minusSeconds(60 * 24 * 3600)));
+        RepositoryRuleEvaluation evaluation = evaluator.evaluate(
+                oldUpdate,
+                rule("activity", RepositoryRuleType.MAXIMUM_INACTIVITY_AGE, Map.of("days", 30)),
+                NOW);
+        assertEquals(RepositoryRuleEvaluationResult.FAIL, evaluation.result());
+        assertEquals("60 days", evaluation.observedValue());
+    }
+
+    @Test
     void readmeRuleIsUnknownUntilReliableSignalExists() {
         assertEquals(
                 RepositoryRuleEvaluationResult.UNKNOWN,
