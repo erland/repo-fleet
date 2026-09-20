@@ -30,8 +30,8 @@ Continue improving RepoFleet maintainability and scalability without changing us
 | Step | Change | Status |
 |---|---|---|
 | 1 | Index compliance results once and reuse them in repository/rule summaries | DONE |
-| 2 | Avoid repeated repository reconstruction during compliance group summaries | IN PROGRESS |
-| 3 | Consolidate duplicated refresh-start orchestration in `App.tsx` | NOT STARTED |
+| 2 | Avoid repeated repository reconstruction during compliance group summaries | DONE |
+| 3 | Consolidate duplicated refresh-start orchestration in `App.tsx` | IN PROGRESS |
 | 4 | Extract saved-view state/persistence from `App.tsx` into a focused hook | NOT STARTED |
 | 5 | Review backend persistence access and implement one justified low-risk boundary improvement | NOT STARTED |
 | 6 | Final cleanup, documentation and full CI verification | NOT STARTED |
@@ -56,6 +56,18 @@ Completed and verified by successful CI run #484 on PR #49.
 - Existing compliance summary tests remain green.
 - Full CI passes.
 
+## Step 2 verification
+
+Completed and verified by successful CI run #486 on PR #49.
+
+## Step 3 acceptance
+
+- Incremental and full refresh share one orchestration function for guard, loading state, status update and error handling.
+- Each refresh variant keeps its own API starter and user-facing failure message.
+- Refresh polling behaviour is unchanged.
+- Full frontend tests and type checks pass.
+- Full CI passes.
+
 ## Next step
 
-After Step 2 is verified by CI: Step 3 – consolidate duplicated refresh-start orchestration in `App.tsx`.
+After Step 3 is verified by CI: Step 4 – extract saved-view state/persistence from `App.tsx` into a focused hook.
