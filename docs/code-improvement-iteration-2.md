@@ -32,8 +32,8 @@ Continue improving RepoFleet maintainability and scalability without changing us
 | 1 | Index compliance results once and reuse them in repository/rule summaries | DONE |
 | 2 | Avoid repeated repository reconstruction during compliance group summaries | DONE |
 | 3 | Consolidate duplicated refresh-start orchestration in `App.tsx` | DONE |
-| 4 | Extract saved-view state/persistence from `App.tsx` into a focused hook | IN PROGRESS |
-| 5 | Review backend persistence access and implement one justified low-risk boundary improvement | NOT STARTED |
+| 4 | Extract saved-view state/persistence from `App.tsx` into a focused hook | DONE |
+| 5 | Review backend persistence access and implement one justified low-risk boundary improvement | IN PROGRESS |
 | 6 | Final cleanup, documentation and full CI verification | NOT STARTED |
 
 ## Step 1 acceptance
@@ -81,6 +81,27 @@ Completed and verified by successful CI run #488 on PR #49.
 - Existing saved-view tests and full frontend checks pass.
 - Full CI passes.
 
+## Step 4 verification
+
+Completed and verified by successful CI run #491 on PR #49.
+
+## Step 5 finding
+
+`RepositoryComplianceSummaryService` still read `RepositoryComplianceResult` and `RepositoryStandardRule` Panache entities directly, even though these concerns already have domain services. This couples aggregation logic to persistence details and makes the summary service harder to isolate.
+
+The improvement keeps persistence access inside the existing compliance-result and rule services:
+- `RepositoryComplianceResultService.listAll()` returns stored compliance results as domain records.
+- `RepositoryComplianceSummaryService` consumes those records plus `RepositoryStandardRuleService.list()`.
+- No new repository abstraction or persistence model is introduced.
+
+## Step 5 acceptance
+
+- Compliance summary no longer performs direct static reads from compliance-result or standard-rule entities.
+- Stored compliance results are exposed through `RepositoryComplianceResultService`.
+- Rule definitions are read through `RepositoryStandardRuleService`.
+- Summary counts, accepted deviations, group summaries and repository failure ordering are unchanged.
+- Existing compliance summary tests and full CI pass.
+
 ## Next step
 
-After Step 4 is verified by CI: Step 5 – review backend persistence access and implement one justified low-risk boundary improvement.
+After Step 5 is verified by CI: Step 6 – final cleanup, documentation and full CI verification.
