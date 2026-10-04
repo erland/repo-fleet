@@ -58,6 +58,8 @@ services:
         condition: service_healthy
     networks:
       - app
+    labels:
+      - "traefik.docker.network=coolify"
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:8080/healthz >/dev/null || exit 1"]
       interval: 10s
